@@ -1,55 +1,52 @@
-# HomeInStGeorge Project Control
+# HomeInStGeorgeUtah.com Project Control
 
 ## Active source folder
 
-~/Documents/homeinstgeorge-modern-stack
+~/Documents/realtor-site
 
-## Active staging site
+## Production domain
 
-https://benlane.us
+https://HomeInStGeorgeUtah.com
 
-## Production site
+## Important domain note
 
-https://homeinstgeorge.com
+https://homeinstgeorge.com is still live but is unrelated to this project.
 
-Do not point production to the Astro/Cloudflare build until Flexmls routing, redirects, SEO, and rollback are verified.
+Do not use homeinstgeorge.com for production deployment, redirects, Cloudflare Pages routing, MLS/API configuration, SEO canonical URLs, sitemap URLs, or launch assumptions for this project.
 
-## Architecture
+## Current production direction
 
-- Astro: public marketing and SEO site
-- WordPress: Flexmls IDX runtime
-- Flexmls: MLS search, listing details, saved searches, lead capture
-- Cloudflare Pages: staging/static deployment
-- Cloudflare Workers: later routing/API layer
+The project is a custom Cloudflare-first real estate website and lead engine for Joel Robertson in St. George, Utah.
 
-## Current Flexmls route
+Core direction:
 
-/st-george-homes-for-sale/
+- Custom public website
+- Custom search and property experience
+- Owned lead intake and routing logic
+- Cloudflare Pages / Workers deployment
+- D1 as operational source of truth
+- R2 for assets and generated files
+- MLS/FBS/Spark/RESO access only through provider adapters
+- CRM, booking, email, SMS, and analytics as downstream utilities only
 
-## IDX rule
+## Architecture rule
 
-Do not scrape, duplicate, or locally store MLS listing data. Route users to the authorized Flexmls runtime.
+The system is divided into four layers:
 
-## Current completed work
+1. Source Layer
+2. Product Layer
+3. Logic Layer
+4. Utility Layer
 
-- Homepage
-- About
-- Buyers
-- Sellers
-- Blog index
-- Blog detail route
-- Dynamic neighborhood pages
-- 31 neighborhood/service-area MDX files
-- Seller financing page
-- Horse properties page
-- Cloudflare Pages staging
+Only the Source Layer may depend on external real estate data vendors.
 
-## Next work
+## Non-goals
 
-1. Relocation page copy
-2. Neighborhood content upgrades
-3. Old-site redirect map
-4. /homes/search handoff to /st-george-homes-for-sale/
-5. SEO/schema/sitemap/robots
-6. Flexmls routing and visual harmonization
-7. Lead form backend decision
+- No production dependency on homeinstgeorge.com
+- No GoDaddy production hosting
+- No WordPress/Flexmls plugin as the product core
+- No vendor-owned search UX as the main experience
+- No vendor-owned lead forms
+- No CRM as source of truth
+- No booking tool as workflow owner
+- No scraping or copying MLS data outside approved MLS/API rules
