@@ -1,0 +1,19 @@
+# Architecture Decision Record
+
+## Decision
+
+Use a hybrid architecture:
+
+1. Astro for the public marketing site.
+2. WordPress for content editing and Flexmls IDX plugin execution.
+3. Cloudflare Workers/Hono for API and edge routing.
+4. React Router app zone only for authenticated or workflow-heavy parts.
+5. Postgres/Drizzle only for broker-owned data: leads, contact history, events, preferences, analytics.
+
+## Why not pure Astro for IDX?
+
+The existing Flexmls integration is a WordPress plugin. Moving IDX into Astro would require a separate approved data feed or official API path. Until that is confirmed in writing, Astro should link/proxy to WordPress/Flexmls pages.
+
+## Why not full Houzez/Kadence?
+
+The goal is a modern custom design layer without duplicating the MLS/listing engine. Flexmls owns listings. The site owns brand, pages, lead paths, and SEO.

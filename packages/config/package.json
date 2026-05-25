@@ -1,0 +1,10 @@
+{
+	"name": "@home/config",
+	"private": true,
+	"type": "module",
+	"exports": {
+		"./site": "./site.ts",
+		"./seo": "./seo.ts",
+		"./routes": "./routes.ts"
+	}
+}

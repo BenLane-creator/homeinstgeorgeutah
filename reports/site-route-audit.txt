@@ -1,0 +1,139 @@
+=== BUILD CHECK ===
+Sun May 24 20:49:45 UTC 2026
+
+=== EXPECTED ROUTES ===
+/
+/about/
+/buyers/
+/sellers/
+/relocation/
+/contact/
+/blog/
+/blog/st-george-market-guidance/
+/horse-properties/
+/seller-financing/
+/neighborhoods/
+/neighborhoods/st-george/
+/neighborhoods/washington/
+/neighborhoods/hurricane/
+/neighborhoods/ivins/
+/neighborhoods/santa-clara/
+/neighborhoods/entrada/
+/neighborhoods/little-valley/
+/neighborhoods/washington-fields/
+/neighborhoods/apple-valley/
+/neighborhoods/dammeron-valley/
+/neighborhoods/diamond-valley/
+/neighborhoods/veyo/
+/neighborhoods/central/
+/neighborhoods/new-harmony/
+/neighborhoods/enterprise/
+
+=== DIST FILE CHECK ===
+PASS dist: / -> apps/site/dist/index.html
+PASS dist: /about/ -> apps/site/dist/about/index.html
+PASS dist: /buyers/ -> apps/site/dist/buyers/index.html
+PASS dist: /sellers/ -> apps/site/dist/sellers/index.html
+PASS dist: /relocation/ -> apps/site/dist/relocation/index.html
+PASS dist: /contact/ -> apps/site/dist/contact/index.html
+PASS dist: /blog/ -> apps/site/dist/blog/index.html
+PASS dist: /blog/st-george-market-guidance/ -> apps/site/dist/blog/st-george-market-guidance/index.html
+PASS dist: /horse-properties/ -> apps/site/dist/horse-properties/index.html
+PASS dist: /seller-financing/ -> apps/site/dist/seller-financing/index.html
+PASS dist: /neighborhoods/ -> apps/site/dist/neighborhoods/index.html
+PASS dist: /neighborhoods/st-george/ -> apps/site/dist/neighborhoods/st-george/index.html
+PASS dist: /neighborhoods/washington/ -> apps/site/dist/neighborhoods/washington/index.html
+PASS dist: /neighborhoods/hurricane/ -> apps/site/dist/neighborhoods/hurricane/index.html
+PASS dist: /neighborhoods/ivins/ -> apps/site/dist/neighborhoods/ivins/index.html
+PASS dist: /neighborhoods/santa-clara/ -> apps/site/dist/neighborhoods/santa-clara/index.html
+PASS dist: /neighborhoods/entrada/ -> apps/site/dist/neighborhoods/entrada/index.html
+PASS dist: /neighborhoods/little-valley/ -> apps/site/dist/neighborhoods/little-valley/index.html
+PASS dist: /neighborhoods/washington-fields/ -> apps/site/dist/neighborhoods/washington-fields/index.html
+PASS dist: /neighborhoods/apple-valley/ -> apps/site/dist/neighborhoods/apple-valley/index.html
+PASS dist: /neighborhoods/dammeron-valley/ -> apps/site/dist/neighborhoods/dammeron-valley/index.html
+PASS dist: /neighborhoods/diamond-valley/ -> apps/site/dist/neighborhoods/diamond-valley/index.html
+PASS dist: /neighborhoods/veyo/ -> apps/site/dist/neighborhoods/veyo/index.html
+PASS dist: /neighborhoods/central/ -> apps/site/dist/neighborhoods/central/index.html
+PASS dist: /neighborhoods/new-harmony/ -> apps/site/dist/neighborhoods/new-harmony/index.html
+PASS dist: /neighborhoods/enterprise/ -> apps/site/dist/neighborhoods/enterprise/index.html
+
+=== LOCAL SERVER CHECK ===
+This requires bun run dev:site to be running in another terminal.
+
+FAIL local: 000 http://localhost:4321/
+FAIL local: 000 http://localhost:4321/about/
+FAIL local: 000 http://localhost:4321/buyers/
+FAIL local: 000 http://localhost:4321/sellers/
+FAIL local: 000 http://localhost:4321/relocation/
+FAIL local: 000 http://localhost:4321/contact/
+FAIL local: 000 http://localhost:4321/blog/
+FAIL local: 000 http://localhost:4321/blog/st-george-market-guidance/
+FAIL local: 000 http://localhost:4321/horse-properties/
+FAIL local: 000 http://localhost:4321/seller-financing/
+FAIL local: 000 http://localhost:4321/neighborhoods/
+FAIL local: 000 http://localhost:4321/neighborhoods/st-george/
+FAIL local: 000 http://localhost:4321/neighborhoods/washington/
+FAIL local: 000 http://localhost:4321/neighborhoods/hurricane/
+FAIL local: 000 http://localhost:4321/neighborhoods/ivins/
+FAIL local: 000 http://localhost:4321/neighborhoods/santa-clara/
+FAIL local: 000 http://localhost:4321/neighborhoods/entrada/
+FAIL local: 000 http://localhost:4321/neighborhoods/little-valley/
+FAIL local: 000 http://localhost:4321/neighborhoods/washington-fields/
+FAIL local: 000 http://localhost:4321/neighborhoods/apple-valley/
+FAIL local: 000 http://localhost:4321/neighborhoods/dammeron-valley/
+FAIL local: 000 http://localhost:4321/neighborhoods/diamond-valley/
+FAIL local: 000 http://localhost:4321/neighborhoods/veyo/
+FAIL local: 000 http://localhost:4321/neighborhoods/central/
+FAIL local: 000 http://localhost:4321/neighborhoods/new-harmony/
+FAIL local: 000 http://localhost:4321/neighborhoods/enterprise/
+
+=== GENERATED NEIGHBORHOOD PAGES ===
+apps/site/dist/neighborhoods/apple-valley/index.html
+apps/site/dist/neighborhoods/bloomington/index.html
+apps/site/dist/neighborhoods/brookside/index.html
+apps/site/dist/neighborhoods/central/index.html
+apps/site/dist/neighborhoods/dammeron-valley/index.html
+apps/site/dist/neighborhoods/desert-color/index.html
+apps/site/dist/neighborhoods/diamond-valley/index.html
+apps/site/dist/neighborhoods/downtown-st-george/index.html
+apps/site/dist/neighborhoods/enterprise/index.html
+apps/site/dist/neighborhoods/entrada/index.html
+apps/site/dist/neighborhoods/gunlock/index.html
+apps/site/dist/neighborhoods/hurricane/index.html
+apps/site/dist/neighborhoods/index.html
+apps/site/dist/neighborhoods/ivins/index.html
+apps/site/dist/neighborhoods/kayenta/index.html
+apps/site/dist/neighborhoods/laverkin/index.html
+apps/site/dist/neighborhoods/leeds/index.html
+apps/site/dist/neighborhoods/little-valley/index.html
+apps/site/dist/neighborhoods/new-harmony/index.html
+apps/site/dist/neighborhoods/pine-valley/index.html
+apps/site/dist/neighborhoods/rockville/index.html
+apps/site/dist/neighborhoods/santa-clara/index.html
+apps/site/dist/neighborhoods/springdale/index.html
+apps/site/dist/neighborhoods/st-george/index.html
+apps/site/dist/neighborhoods/sunbrook/index.html
+apps/site/dist/neighborhoods/sunriver/index.html
+apps/site/dist/neighborhoods/toquerville/index.html
+apps/site/dist/neighborhoods/veyo/index.html
+apps/site/dist/neighborhoods/virgin/index.html
+apps/site/dist/neighborhoods/washington-fields/index.html
+apps/site/dist/neighborhoods/washington/index.html
+apps/site/dist/neighborhoods/winchester-hills/index.html
+
+=== GENERATED TOP LEVEL PAGES ===
+apps/site/dist/about/index.html
+apps/site/dist/blog/index.html
+apps/site/dist/buyers/index.html
+apps/site/dist/contact/index.html
+apps/site/dist/homes/index.html
+apps/site/dist/horse-properties/index.html
+apps/site/dist/index.html
+apps/site/dist/neighborhoods/index.html
+apps/site/dist/relocation/index.html
+apps/site/dist/seller-financing/index.html
+apps/site/dist/sellers/index.html
+
+=== SUMMARY ===
+DIST: PASS
+LOCAL: FAIL

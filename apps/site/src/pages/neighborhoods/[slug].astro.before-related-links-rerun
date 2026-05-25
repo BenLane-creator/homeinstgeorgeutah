@@ -1,0 +1,158 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import CTA from "../../components/CTA.astro";
+import { site } from "@home/config/site";
+
+export async function getStaticPaths() {
+  const rawNeighborhoods = import.meta.glob("../../content/neighborhoods/*.mdx", {
+    eager: true,
+    query: "?raw",
+    import: "default",
+  });
+
+  return Object.entries(rawNeighborhoods)
+    .map(([path, raw]) => {
+      const fileSlug =
+        path
+          .split("/")
+          .pop()
+          ?.replace(/\.mdx$/, "") ?? "";
+
+      const text = String(raw ?? "");
+      let data = {};
+      let body = text.trim();
+
+      if (text.startsWith("---")) {
+        const end = text.indexOf("\n---", 3);
+
+        if (end !== -1) {
+          const frontmatterText = text.slice(3, end).trim();
+          body = text.slice(end + 4).trim();
+
+          for (const line of frontmatterText.split("\n")) {
+            const match = line.match(/^([A-Za-z0-9_-]+):\s*(.*)$/);
+
+            if (!match) {
+              continue;
+            }
+
+            const key = match[1];
+            let value = match[2].trim();
+            value = value.replace(/^["']|["']$/g, "");
+            data[key] = value;
+          }
+        }
+      }
+
+      const slug = data.slug || fileSlug;
+
+      const fallbackTitle = slug
+        .split("-")
+        .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+        .join(" ");
+
+      const title = data.title || fallbackTitle;
+      const description =
+        data.description ||
+        `${title} real estate guidance for St. George and Southern Utah.`;
+
+      return {
+        slug,
+        title,
+        description,
+        body,
+      };
+    })
+    .filter((entry) => entry.slug)
+    .map((entry) => ({
+      params: { slug: entry.slug },
+      props: entry,
+    }));
+}
+
+const { slug, title, description, body } = Astro.props;
+
+const paragraphs = String(body ?? "")
+  .split(/\n{2,}/)
+  .map((paragraph) => paragraph.trim())
+  .filter(Boolean);
+---
+
+<BaseLayout
+  title={`${title} Real Estate`}
+  pathname={`/neighborhoods/${slug}`}
+  description={description}
+>
+  <section class="bg-[#fffaf3] px-5 py-24">
+    <div class="mx-auto max-w-5xl">
+      <p class="text-sm font-semibold uppercase tracking-[0.25em] text-amber-900/70">
+        Southern Utah Area Guide
+      </p>
+
+      <h1 class="mt-4 max-w-4xl font-serif text-5xl font-semibold tracking-tight text-stone-950 md:text-6xl">
+        {title} real estate
+      </h1>
+
+      <p class="mt-6 max-w-3xl text-lg leading-8 text-stone-700">
+        {description}
+      </p>
+
+      <div class="mt-8 flex flex-col gap-3 sm:flex-row">
+        <a
+          href={site.flexmlsSearchUrl}
+          class="rounded-full bg-stone-950 px-6 py-3 text-center font-semibold text-white hover:bg-stone-800"
+        >
+          Search homes
+        </a>
+
+        <a
+          href="/contact/"
+          class="rounded-full bg-white px-6 py-3 text-center font-semibold text-stone-950 ring-1 ring-stone-200 hover:bg-stone-50"
+        >
+          Ask Joel about {title}
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <section class="bg-white px-5 py-20">
+    <article class="mx-auto max-w-4xl space-y-6 text-lg leading-8 text-stone-700">
+      {paragraphs.map((paragraph) => (
+        <p>{paragraph}</p>
+      ))}
+    </article>
+  </section>
+
+  <section class="bg-[#fffaf3] px-5 py-20">
+    <div class="mx-auto grid max-w-5xl gap-6 md:grid-cols-3">
+      <div class="rounded-3xl border border-stone-200 bg-white p-6">
+        <h2 class="font-serif text-2xl font-semibold text-stone-950">
+          Verify details
+        </h2>
+        <p class="mt-3 leading-7 text-stone-700">
+          Confirm zoning, utilities, access, HOA terms, floodplain status, and property-specific conditions before making an offer.
+        </p>
+      </div>
+
+      <div class="rounded-3xl border border-stone-200 bg-white p-6">
+        <h2 class="font-serif text-2xl font-semibold text-stone-950">
+          Search live listings
+        </h2>
+        <p class="mt-3 leading-7 text-stone-700">
+          Live MLS search, listing details, and IDX lead capture should remain powered by Flexmls.
+        </p>
+      </div>
+
+      <div class="rounded-3xl border border-stone-200 bg-white p-6">
+        <h2 class="font-serif text-2xl font-semibold text-stone-950">
+          Local guidance
+        </h2>
+        <p class="mt-3 leading-7 text-stone-700">
+          Joel Robertson helps buyers and sellers evaluate location, pricing, property condition, and resale considerations.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <CTA />
+</BaseLayout>

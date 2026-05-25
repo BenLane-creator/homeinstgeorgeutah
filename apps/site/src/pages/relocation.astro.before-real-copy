@@ -1,0 +1,83 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import CTA from "../components/CTA.astro";
+import { site } from "@home/config/site";
+
+const pageTitle = "Relocating to St. George";
+---
+
+<BaseLayout
+  title={pageTitle}
+  pathname="/relocation/"
+  description="Relocation guidance for moving to St. George and Southern Utah from Joel Robertson of Robertson Real Estate."
+>
+  <section class="bg-[#fffaf3] px-5 py-24">
+    <div class="mx-auto max-w-5xl">
+      <p class="text-sm font-semibold uppercase tracking-[0.25em] text-amber-900/70">Relocation</p>
+      <h1 class="mt-4 max-w-4xl font-serif text-5xl font-semibold tracking-tight text-stone-950 md:text-6xl">
+        Moving to St. George or Southern Utah?
+      </h1>
+      <p class="mt-6 max-w-3xl text-lg leading-8 text-stone-700">
+        Joel Robertson helps relocating buyers understand the St. George area before making a move — from neighborhoods and lifestyle fit to market conditions, commute patterns, and long-term resale considerations.
+      </p>
+      <div class="mt-8 flex flex-col gap-3 sm:flex-row">
+        <a href="/homes/search/" class="rounded-full bg-stone-950 px-6 py-3 text-center font-semibold text-white hover:bg-stone-800">
+          Search homes
+        </a>
+        <a href="/contact/" class="rounded-full bg-white px-6 py-3 text-center font-semibold text-stone-950 ring-1 ring-stone-200 hover:bg-stone-50">
+          Ask Joel about relocating
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <section class="bg-white px-5 py-20">
+    <div class="mx-auto grid max-w-7xl gap-8 md:grid-cols-3">
+      <div class="rounded-3xl border border-stone-200 p-8">
+        <p class="text-sm font-semibold uppercase tracking-[0.2em] text-amber-900/70">Lifestyle</p>
+        <h2 class="mt-3 font-serif text-3xl font-semibold">Find the right fit</h2>
+        <p class="mt-4 leading-7 text-stone-600">
+          Southern Utah offers desert scenery, outdoor access, golf, trails, parks, newer communities, established neighborhoods, and a range of lifestyle options.
+        </p>
+      </div>
+
+      <div class="rounded-3xl border border-stone-200 p-8">
+        <p class="text-sm font-semibold uppercase tracking-[0.2em] text-amber-900/70">Areas</p>
+        <h2 class="mt-3 font-serif text-3xl font-semibold">Compare communities</h2>
+        <p class="mt-4 leading-7 text-stone-600">
+          St. George, Washington, Santa Clara, Ivins, Hurricane, Little Valley, Entrada, SunRiver, and Washington Fields each offer different tradeoffs.
+        </p>
+      </div>
+
+      <div class="rounded-3xl border border-stone-200 p-8">
+        <p class="text-sm font-semibold uppercase tracking-[0.2em] text-amber-900/70">Local guidance</p>
+        <h2 class="mt-3 font-serif text-3xl font-semibold">Avoid guesswork</h2>
+        <p class="mt-4 leading-7 text-stone-600">
+          A relocation search should account for schools, commute routes, healthcare access, HOA rules, utilities, climate, traffic patterns, and future growth.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <section class="bg-[#fffaf3] px-5 py-20">
+    <div class="mx-auto max-w-5xl">
+      <p class="text-sm font-semibold uppercase tracking-[0.25em] text-amber-900/70">Relocation planning</p>
+      <h2 class="mt-4 font-serif text-4xl font-semibold text-stone-950">
+        Start with a local conversation.
+      </h2>
+      <p class="mt-6 max-w-3xl text-lg leading-8 text-stone-700">
+        Before narrowing your search, talk through your goals with Joel Robertson of Robertson Real Estate. With 20+ years of local experience, Joel can help you understand which areas may fit your budget, lifestyle, timeline, and long-term plans.
+      </p>
+      <div class="mt-8 flex flex-col gap-3 sm:flex-row">
+        <a href={site.phoneHref} class="rounded-full bg-stone-950 px-6 py-3 text-center font-semibold text-white">
+          Call {site.phone}
+        </a>
+        <a href={`mailto:${site.email}`} class="rounded-full bg-white px-6 py-3 text-center font-semibold text-stone-950 ring-1 ring-stone-200">
+          {site.email}
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <CTA />
+</BaseLayout>

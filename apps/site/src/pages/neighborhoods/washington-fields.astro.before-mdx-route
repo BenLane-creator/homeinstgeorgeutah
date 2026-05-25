@@ -1,0 +1,42 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import CTA from "../../components/CTA.astro";
+
+const pathname = "/neighborhoods/washington-fields/";
+---
+
+<BaseLayout
+  title="Washington Fields"
+  pathname={pathname}
+  description="Explore Washington Fields homes, larger lots, newer construction, and east-side Southern Utah amenities."
+>
+  <section class="bg-[#fffaf3] px-5 py-24">
+    <div class="mx-auto max-w-5xl">
+      <p class="text-sm font-semibold uppercase tracking-[0.25em] text-amber-900/70">
+        Neighborhood
+      </p>
+
+      <h1 class="mt-4 max-w-4xl font-serif text-5xl font-semibold tracking-tight text-stone-950 md:text-6xl">
+        Washington Fields
+      </h1>
+
+      <p class="mt-6 max-w-3xl text-lg leading-8 text-stone-700">
+        Explore Washington Fields homes, larger lots, newer construction, and east-side Southern Utah access.
+      </p>
+    </div>
+  </section>
+
+  <article class="bg-white px-5 py-20">
+    <div class="prose prose-stone mx-auto max-w-3xl">
+      <p>
+        Washington Fields is known for newer homes, larger-lot options in some areas, and quick access to Washington and St. George amenities.
+      </p>
+
+      <p>
+        Buyers often compare Washington Fields for space, neighborhood feel, home style, and long-term property value.
+      </p>
+    </div>
+  </article>
+
+  <CTA />
+</BaseLayout>

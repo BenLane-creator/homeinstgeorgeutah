@@ -1,0 +1,42 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import CTA from "../../components/CTA.astro";
+
+const pathname = "/neighborhoods/little-valley/";
+---
+
+<BaseLayout
+  title="Little Valley"
+  pathname={pathname}
+  description="Explore Little Valley homes, newer neighborhoods, parks, schools, and family-friendly St. George living."
+>
+  <section class="bg-[#fffaf3] px-5 py-24">
+    <div class="mx-auto max-w-5xl">
+      <p class="text-sm font-semibold uppercase tracking-[0.25em] text-amber-900/70">
+        Neighborhood
+      </p>
+
+      <h1 class="mt-4 max-w-4xl font-serif text-5xl font-semibold tracking-tight text-stone-950 md:text-6xl">
+        Little Valley
+      </h1>
+
+      <p class="mt-6 max-w-3xl text-lg leading-8 text-stone-700">
+        Explore Little Valley homes, parks, schools, and family-friendly Southern Utah neighborhoods.
+      </p>
+    </div>
+  </section>
+
+  <article class="bg-white px-5 py-20">
+    <div class="prose prose-stone mx-auto max-w-3xl">
+      <p>
+        Little Valley is one of the most popular newer-home areas in St. George for buyers looking for neighborhood feel, schools, parks, and convenient access.
+      </p>
+
+      <p>
+        Buyers often compare Little Valley for home age, lot sizes, school access, commute patterns, and long-term resale potential.
+      </p>
+    </div>
+  </article>
+
+  <CTA />
+</BaseLayout>

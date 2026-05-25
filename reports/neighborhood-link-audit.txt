@@ -1,0 +1,13 @@
+=== NEIGHBORHOOD LINK AUDIT ===
+Content neighborhood MDX files: 31
+Static neighborhood Astro pages: 0
+Total expected neighborhood routes: 31
+
+=== ERRORS ===
+No blocking errors found.
+
+=== WARNINGS ===
+No warnings found.
+
+=== RESULT ===
+PASS: No broken generated neighborhood/internal links found.

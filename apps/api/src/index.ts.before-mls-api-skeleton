@@ -1,0 +1,58 @@
+import { zValidator } from "@hono/zod-validator";
+import { Hono } from "hono";
+import { cors } from "hono/cors";
+import { z } from "zod";
+
+type Env = {
+  CORS_ORIGIN: string;
+  WORDPRESS_ORIGIN: string;
+};
+
+const app = new Hono<{ Bindings: Env }>();
+
+app.use("*", async (c, next) => {
+  const corsMiddleware = cors({ origin: c.env.CORS_ORIGIN || "https://homeinstgeorge.com" });
+  return corsMiddleware(c, next);
+});
+
+app.get("/api/health", (c) => c.json({ ok: true, service: "homeinstgeorge-api" }));
+
+const leadSchema = z.object({
+  intent: z.string().min(1).max(80),
+  name: z.string().min(1).max(200).optional(),
+  email: z.string().email(),
+  phone: z.string().max(50).optional(),
+  message: z.string().max(2000).optional(),
+  pageUrl: z.string().url().optional(),
+  consent: z.boolean().default(false),
+});
+
+app.post("/api/leads", zValidator("json", leadSchema), async (c) => {
+  const lead = c.req.valid("json");
+
+  // TODO: Insert into Postgres via Drizzle or send to CRM/email after auth/rate limiting.
+  // Do not replace Flexmls IDX lead capture until the broker confirms this is allowed.
+  console.log("lead", JSON.stringify({ ...lead, receivedAt: new Date().toISOString() }));
+
+  return c.json({ ok: true });
+});
+
+app.get("/api/wp/posts", async (c) => {
+  const origin = c.env.WORDPRESS_ORIGIN;
+  const url = new URL("/wp-json/wp/v2/posts", origin);
+  url.searchParams.set("_fields", "id,slug,title,excerpt,date,link");
+  url.searchParams.set("per_page", c.req.query("per_page") ?? "6");
+  const response = await fetch(url, { headers: { accept: "application/json" } });
+  return new Response(response.body, response);
+});
+
+app.all("/homes/*", async (c) => {
+  // Optional reverse proxy. Use only after testing cookies, canonical URLs, Flexmls scripts, forms, and MLS disclaimers.
+  const origin = c.env.WORDPRESS_ORIGIN;
+  const incoming = new URL(c.req.url);
+  const target = new URL(incoming.pathname + incoming.search, origin);
+  const request = new Request(target, c.req.raw);
+  return fetch(request);
+});
+
+export default app;

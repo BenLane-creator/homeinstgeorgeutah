@@ -1,0 +1,116 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import CTA from "../../components/CTA.astro";
+
+export async function getStaticPaths() {
+  const rawPosts = import.meta.glob("../../content/blog/*.mdx", {
+    eager: true,
+    query: "?raw",
+    import: "default",
+  });
+
+  return Object.entries(rawPosts).map(([path, raw]) => {
+    const fileSlug =
+      path
+        .split("/")
+        .pop()
+        ?.replace(/\.mdx$/, "") ?? "";
+
+    const text = String(raw ?? "");
+    const data: Record<string, string> = {};
+    let body = text.trim();
+
+    if (text.startsWith("---")) {
+      const end = text.indexOf("\n---", 3);
+
+      if (end !== -1) {
+        const frontmatterText = text.slice(3, end).trim();
+        body = text.slice(end + 4).trim();
+
+        for (const line of frontmatterText.split("\n")) {
+          const match = line.match(/^([A-Za-z0-9_-]+):\s*(.*)$/);
+
+          if (!match) {
+            continue;
+          }
+
+          const key = match[1];
+          let value = match[2].trim();
+          value = value.replace(/^["']|["']$/g, "");
+          data[key] = value;
+        }
+      }
+    }
+
+    const slug = data.slug || fileSlug;
+    const title = data.title || slug.split("-").map((part) => part.charAt(0).toUpperCase() + part.slice(1)).join(" ");
+    const description = data.description || `${title} from Home In St. George.`;
+
+    return {
+      params: { slug },
+      props: {
+        slug,
+        title,
+        description,
+        pubDate: data.pubDate,
+        author: data.author,
+        category: data.category,
+        body,
+      },
+    };
+  });
+}
+
+const { slug, title, description, pubDate, author, category, body } = Astro.props as {
+  slug: string;
+  title: string;
+  description: string;
+  pubDate?: string;
+  author?: string;
+  category?: string;
+  body: string;
+};
+
+const paragraphs = String(body ?? "")
+  .split(/\n{2,}/)
+  .map((paragraph) => paragraph.trim())
+  .filter(Boolean);
+---
+
+<BaseLayout
+  title={title}
+  pathname={`/blog/${slug}`}
+  description={description}
+>
+  <section class="bg-[#fffaf3] px-5 py-24">
+    <div class="mx-auto max-w-4xl">
+      <p class="text-sm font-semibold uppercase tracking-[0.25em] text-amber-900/70">
+        {category || "Market Update"}
+      </p>
+
+      <h1 class="mt-4 font-serif text-5xl font-semibold tracking-tight text-stone-950 md:text-6xl">
+        {title}
+      </h1>
+
+      <p class="mt-6 max-w-3xl text-lg leading-8 text-stone-700">
+        {description}
+      </p>
+
+      {(pubDate || author) && (
+        <p class="mt-6 text-sm font-medium text-stone-500">
+          {pubDate ? pubDate : ""}{pubDate && author ? " · " : ""}{author ? author : ""}
+        </p>
+      )}
+    </div>
+  </section>
+
+  <section class="bg-white px-5 py-20">
+    <article class="mx-auto max-w-4xl space-y-6 text-lg leading-8 text-stone-700">
+      {paragraphs.map((paragraph) => (
+        <p>{paragraph}</p>
+      ))}
+    </article>
+  </section>
+
+  <CTA />
+</BaseLayout>

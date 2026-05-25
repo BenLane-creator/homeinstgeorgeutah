@@ -1,0 +1,20 @@
+name = "homeinstgeorge-api"
+main = "src/index.ts"
+compatibility_date = "2026-05-01"
+workers_dev = true
+
+[vars]
+CORS_ORIGIN = "https://homeinstgeorge.com"
+WORDPRESS_ORIGIN = "https://wp.homeinstgeorge.com"
+
+# Bind when ready:
+# [[r2_buckets]]
+# binding = "ASSETS"
+# bucket_name = "homeinstgeorge-assets"
+
+# [[durable_objects.bindings]]
+# name = "LEAD_SESSION"
+# class_name = "LeadSession"
+
+# [observability]
+# enabled = true

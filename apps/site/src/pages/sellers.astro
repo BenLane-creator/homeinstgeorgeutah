@@ -1,0 +1,74 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import CTA from "../components/CTA.astro";
+import { site } from "@home/config/site";
+---
+
+<BaseLayout
+  title="Selling a Home in St. George"
+  pathname="/sellers/"
+  description="Seller guidance for St. George and Southern Utah homeowners from Joel Robertson of Robertson Real Estate."
+>
+  <section class="bg-[#fffaf3] px-5 py-24">
+    <div class="mx-auto max-w-5xl">
+      <p class="text-sm font-semibold uppercase tracking-[0.25em] text-amber-900/70">
+        Sellers
+      </p>
+
+      <h1 class="mt-4 max-w-4xl font-serif text-5xl font-semibold tracking-tight text-stone-950 md:text-6xl">
+        Sell with pricing, preparation, and negotiation strategy.
+      </h1>
+
+      <p class="mt-6 max-w-3xl text-lg leading-8 text-stone-700">
+        Joel Robertson helps St. George and Southern Utah sellers position their homes clearly, price with local context, and negotiate with 20+ years of real estate experience.
+      </p>
+
+      <div class="mt-8 flex flex-col gap-3 sm:flex-row">
+        <a href="/contact/" class="rounded-full bg-stone-950 px-6 py-3 text-center font-semibold text-white hover:bg-stone-800">
+          Request seller consultation
+        </a>
+        <a href={site.flexmlsSearchUrl} class="rounded-full bg-white px-6 py-3 text-center font-semibold text-stone-950 ring-1 ring-stone-200 hover:bg-stone-50">
+          Review competing homes
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <section class="bg-white px-5 py-20">
+    <div class="mx-auto grid max-w-7xl gap-8 md:grid-cols-3">
+      {[
+        ["Price with context", "Compare active competition, recent sales, location, condition, upgrades, lot characteristics, and buyer demand before setting the list price."],
+        ["Prepare strategically", "Focus on improvements, presentation, repairs, photos, access, and showing condition that are most likely to affect buyer response."],
+        ["Negotiate the full deal", "Evaluate price, inspections, appraisal issues, timing, financing strength, concessions, and closing certainty before accepting terms."],
+      ].map(([title, copy]) => (
+        <div class="rounded-3xl border border-stone-200 p-8">
+          <h2 class="font-serif text-3xl font-semibold text-stone-950">{title}</h2>
+          <p class="mt-4 leading-7 text-stone-600">{copy}</p>
+        </div>
+      ))}
+    </div>
+  </section>
+
+  <section class="bg-[#fffaf3] px-5 py-20">
+    <div class="mx-auto max-w-6xl">
+      <h2 class="font-serif text-4xl font-semibold text-stone-950">
+        Seller resources
+      </h2>
+
+      <div class="mt-8 grid gap-4 md:grid-cols-2">
+        {[
+          ["/contact/", "Request a home value review"],
+          ["/seller-financing/", "Consider seller financing options"],
+          ["/neighborhoods/", "Review local area pages"],
+          [site.flexmlsSearchUrl, "See competing listings"],
+        ].map(([href, label]) => (
+          <a href={href} class="rounded-2xl border border-stone-200 bg-white p-5 font-semibold text-stone-950 hover:bg-stone-50">
+            {label}
+          </a>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <CTA />
+</BaseLayout>

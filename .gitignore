@@ -1,0 +1,54 @@
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Build output and local framework state
+dist/
+**/dist/
+.astro/
+**/.astro/
+.wrangler/
+**/.wrangler/
+**/.vite/
+**/.cache/
+**/.mf/
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Test and coverage output
+coverage/
+playwright-report/
+test-results/
+
+# OS/editor noise
+.DS_Store
+
+# dependencies
+node_modules/
+**/node_modules/
+
+# build output
+dist/
+build/
+**/dist/
+**/build/
+
+# framework/cache output
+.astro/
+.wrangler/
+.vite/
+.cache/
+.mf/
+**/.astro/
+**/.wrangler/
+**/.vite/
+**/.cache/
+**/.mf/
+
+# test output
+coverage/
+playwright-report/
+test-results/

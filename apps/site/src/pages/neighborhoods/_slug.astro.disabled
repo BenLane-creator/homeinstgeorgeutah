@@ -1,0 +1,72 @@
+---
+import { getCollection, render } from "astro:content";
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import CTA from "../../components/CTA.astro";
+import { breadcrumbSchema, canonical, neighborhoodSchema } from "@home/config/seo";
+
+export async function getStaticPaths() {
+  const neighborhoods = await getCollection("neighborhoods");
+
+  return neighborhoods.map((item) => ({
+    params: { slug: item.data.slug },
+    props: { item },
+  }));
+}
+
+const { item } = Astro.props;
+const { Content } = await render(item);
+
+const pathname = `/neighborhoods/${item.data.slug}`;
+---
+
+<BaseLayout
+  title={item.data.title}
+  pathname={pathname}
+  description={item.data.description}
+  schema={[
+    breadcrumbSchema([
+      { name: "Home", url: canonical("/") },
+      { name: "Neighborhoods", url: canonical("/neighborhoods") },
+      { name: item.data.title, url: canonical(pathname) },
+    ]),
+    neighborhoodSchema({
+      name: item.data.title,
+      description: item.data.description,
+      pathname,
+    }),
+  ]}
+>
+  <section class="bg-[#fffaf3] px-5 py-24">
+    <div class="mx-auto max-w-5xl">
+      <p class="text-sm font-semibold uppercase tracking-[0.25em] text-amber-900/70">
+        Neighborhood
+      </p>
+
+      <h1 class="mt-4 max-w-4xl font-serif text-5xl font-semibold tracking-tight text-stone-950 md:text-6xl">
+        {item.data.title}
+      </h1>
+
+      <p class="mt-6 max-w-3xl text-lg leading-8 text-stone-700">
+        {item.data.description}
+      </p>
+
+      <div class="mt-8 flex flex-col gap-3 sm:flex-row">
+        <a href="/homes/search" class="rounded-full bg-stone-950 px-6 py-3 text-center font-semibold text-white hover:bg-stone-800">
+          Search homes
+        </a>
+
+        <a href="/contact" class="rounded-full bg-white px-6 py-3 text-center font-semibold text-stone-950 ring-1 ring-stone-200 hover:bg-stone-50">
+          Contact Joel
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <article class="bg-white px-5 py-20">
+    <div class="prose prose-stone mx-auto max-w-3xl">
+      <Content />
+    </div>
+  </article>
+
+  <CTA />
+</BaseLayout>

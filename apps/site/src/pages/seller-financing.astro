@@ -1,0 +1,122 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import CTA from "../components/CTA.astro";
+import { site } from "@home/config/site";
+---
+
+<BaseLayout
+  title="Seller Financing & Creative Purchase Options"
+  pathname="/seller-financing/"
+  description="Explore seller financing and creative purchase options in St. George and Southern Utah with Joel Robertson of Robertson Real Estate."
+>
+  <section class="bg-[#fffaf3] px-5 py-24">
+    <div class="mx-auto max-w-5xl">
+      <p class="text-sm font-semibold uppercase tracking-[0.25em] text-amber-900/70">
+        Alternative Purchase Options
+      </p>
+
+      <h1 class="mt-4 max-w-4xl font-serif text-5xl font-semibold tracking-tight text-stone-950 md:text-6xl">
+        Seller financing and creative purchase structures for select buyers and properties.
+      </h1>
+
+      <p class="mt-6 max-w-3xl text-lg leading-8 text-stone-700">
+        Some buyers need more flexibility than a traditional mortgage allows. In certain situations, seller financing or investor-assisted structures may create additional paths toward homeownership in St. George and Southern Utah.
+      </p>
+
+      <div class="mt-8 flex flex-col gap-3 sm:flex-row">
+        <a
+          href="/contact/"
+          class="rounded-full bg-stone-950 px-6 py-3 text-center font-semibold text-white hover:bg-stone-800"
+        >
+          Discuss financing options
+        </a>
+
+        <a
+          href={site.flexmlsSearchUrl}
+          class="rounded-full bg-white px-6 py-3 text-center font-semibold text-stone-950 ring-1 ring-stone-200 hover:bg-stone-50"
+        >
+          Search homes
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <section class="bg-white px-5 py-20">
+    <div class="mx-auto grid max-w-6xl gap-12 lg:grid-cols-[1.2fr_0.8fr]">
+      <div>
+        <h2 class="font-serif text-3xl font-semibold text-stone-950">
+          What seller financing can help accomplish
+        </h2>
+
+        <p class="mt-6 text-lg leading-8 text-stone-700">
+          Seller financing allows a buyer and seller to negotiate terms directly instead of relying entirely on a conventional lending structure. Depending on the property, available funding partners, and overall transaction structure, this may provide additional flexibility around timing, down payment, qualification, or payment structure.
+        </p>
+
+        <div class="mt-10 grid gap-6 md:grid-cols-2">
+          <div class="rounded-3xl border border-stone-200 p-6">
+            <h3 class="font-semibold text-stone-950">
+              Potential buyer benefits
+            </h3>
+
+            <ul class="mt-4 space-y-3 text-stone-700">
+              <li>• Flexible purchase structures</li>
+              <li>• Faster negotiations and closings</li>
+              <li>• Alternative qualification paths</li>
+              <li>• Investor-assisted opportunities</li>
+              <li>• Property-specific solutions</li>
+            </ul>
+          </div>
+
+          <div class="rounded-3xl border border-stone-200 p-6">
+            <h3 class="font-semibold text-stone-950">
+              Potential seller benefits
+            </h3>
+
+            <ul class="mt-4 space-y-3 text-stone-700">
+              <li>• Expanded buyer pool</li>
+              <li>• Flexible disposition strategies</li>
+              <li>• Negotiated terms structures</li>
+              <li>• Potential recurring income</li>
+              <li>• Creative transaction options</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="mt-12 rounded-3xl bg-stone-100 p-8">
+          <h3 class="font-serif text-2xl font-semibold text-stone-950">
+            Important financing disclosure
+          </h3>
+
+          <p class="mt-4 leading-8 text-stone-700">
+            Financing programs, seller-financing arrangements, investor participation, and qualification standards vary significantly by property, borrower profile, lender requirements, investor approval, and applicable regulations. Not all buyers or properties qualify. All financing should be reviewed carefully with appropriate licensed professionals before proceeding.
+          </p>
+        </div>
+      </div>
+
+      <aside class="rounded-3xl bg-stone-950 p-8 text-white">
+        <h2 class="font-serif text-3xl font-semibold">
+          Work with an experienced local broker
+        </h2>
+
+        <p class="mt-6 leading-8 text-stone-300">
+          Joel Robertson of Robertson Real Estate helps buyers and sellers evaluate practical real estate options throughout St. George and Southern Utah, backed by 20+ years of local market experience.
+        </p>
+
+        <div class="mt-8 space-y-4 text-stone-200">
+          <p>{site.phone}</p>
+          <p>{site.email}</p>
+          <p>St. George, Utah</p>
+        </div>
+
+        <a
+          href="/contact/"
+          class="mt-8 inline-flex rounded-full bg-white px-6 py-3 font-semibold text-stone-950 hover:bg-stone-100"
+        >
+          Request a consultation
+        </a>
+      </aside>
+    </div>
+  </section>
+
+  <CTA />
+</BaseLayout>

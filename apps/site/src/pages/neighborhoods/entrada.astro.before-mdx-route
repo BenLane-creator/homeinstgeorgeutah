@@ -1,0 +1,46 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import CTA from "../../components/CTA.astro";
+
+const pathname = "/neighborhoods/entrada/";
+---
+
+<BaseLayout
+  title="Entrada"
+  pathname={pathname}
+  description="Explore Entrada homes, desert golf, red-rock views, and private-resort-style living near St. George and Ivins."
+>
+  <section class="bg-[#fffaf3] px-5 py-24">
+    <div class="mx-auto max-w-5xl">
+      <p class="text-sm font-semibold uppercase tracking-[0.25em] text-amber-900/70">
+        Neighborhood
+      </p>
+
+      <h1 class="mt-4 max-w-4xl font-serif text-5xl font-semibold tracking-tight text-stone-950 md:text-6xl">
+        Entrada
+      </h1>
+
+      <p class="mt-6 max-w-3xl text-lg leading-8 text-stone-700">
+        Explore Entrada homes, desert golf, red-rock views, and private-resort-style living near St. George and Ivins.
+      </p>
+    </div>
+  </section>
+
+  <article class="bg-white px-5 py-20">
+    <div class="prose prose-stone mx-auto max-w-3xl">
+      <p>
+        Entrada is known for desert golf, gated neighborhoods, dramatic red-rock scenery, and luxury-oriented Southern Utah living.
+      </p>
+
+      <p>
+        Buyers often compare Entrada for golf access, privacy, views, architecture, HOA structure, and proximity to Snow Canyon and outdoor recreation.
+      </p>
+
+      <p>
+        Joel Robertson helps clients evaluate Entrada homes with attention to long-term value, neighborhood fit, amenities, and resale considerations.
+      </p>
+    </div>
+  </article>
+
+  <CTA />
+</BaseLayout>

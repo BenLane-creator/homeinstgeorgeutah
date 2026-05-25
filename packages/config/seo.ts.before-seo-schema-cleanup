@@ -1,0 +1,66 @@
+import { site } from "./site";
+
+export function title(pageTitle?: string) {
+  return pageTitle
+    ? `${pageTitle} | ${site.name}`
+    : `${site.name} | ${site.market} Real Estate`;
+}
+
+export function canonical(pathname = "/") {
+  return new URL(pathname, site.url).toString();
+}
+
+export function realtorSchema() {
+  return {
+    "@context": "https://schema.org",
+    "@type": "RealEstateAgent",
+    name: site.brokerName,
+    brand: site.name,
+    legalName: site.companyName,
+    url: site.url,
+    areaServed: site.market,
+    address: site.address,
+    telephone: site.phone,
+    email: site.email,
+  };
+}
+
+export function breadcrumbSchema(
+  items: Array<{
+    name: string;
+    url: string;
+  }>
+) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: items.map((item, index) => ({
+      "@type": "ListItem",
+      position: index + 1,
+      name: item.name,
+      item: item.url,
+    })),
+  };
+}
+
+export function neighborhoodSchema({
+  name,
+  description,
+  pathname,
+}: {
+  name: string;
+  description: string;
+  pathname: string;
+}) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "Place",
+    name,
+    description,
+    url: canonical(pathname),
+    containedInPlace: {
+      "@type": "Place",
+      name: site.market,
+    },
+  };
+}
