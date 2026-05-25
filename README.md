@@ -1,4 +1,4 @@
-# HomeInStGeorge Modern Hybrid Stack
+# HomeInStGeorgeUtah Modern Hybrid Stack
 
 This repository implements the safe hybrid architecture for `homeinstgeorge.com`:
 
