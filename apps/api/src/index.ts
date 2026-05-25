@@ -1,4 +1,8 @@
+import { Hono } from "hono";
+import { cors } from "hono/cors";
+
 export interface Env {
+	DB?: D1Database;
 	SPARK_API_BASE_URL?: string;
 	SPARK_ACCESS_TOKEN?: string;
 	LEADS_KV?: KVNamespace;
@@ -27,6 +31,33 @@ type ApiResponse = {
 	};
 };
 
+type LeadIntakePayload = {
+	intent?: string;
+	eventType?: string;
+	name?: string;
+	email?: string;
+	phone?: string;
+	message?: string;
+	pageUrl?: string;
+	sourcePath?: string;
+	landingUrl?: string;
+	referrer?: string;
+	listingId?: string;
+	propertyUrl?: string;
+	city?: string;
+	neighborhood?: string;
+	addressSummary?: string;
+	price?: string | number;
+	consent?: boolean;
+	utm?: {
+		source?: string;
+		medium?: string;
+		campaign?: string;
+		term?: string;
+		content?: string;
+	};
+};
+
 const providerMeta = {
 	provider: "Washington County BOR - IDX",
 	source: "Spark® / RESO Web API",
@@ -37,68 +68,107 @@ const providerMeta = {
 	],
 };
 
-function json(payload: ApiResponse, init: ResponseInit = {}) {
+const app = new Hono<{ Bindings: Env }>();
+
+app.use(
+	"*",
+	cors({
+		origin: "*",
+		allowMethods: ["GET", "POST", "OPTIONS"],
+		allowHeaders: ["content-type", "authorization"],
+	}),
+);
+
+function apiJson(payload: ApiResponse, status = 200) {
 	return new Response(JSON.stringify(payload, null, 2), {
-		...init,
+		status,
 		headers: {
 			"content-type": "application/json; charset=utf-8",
-			"access-control-allow-origin": "*",
-			"access-control-allow-methods": "GET,POST,OPTIONS",
-			"access-control-allow-headers": "content-type,authorization",
-			...init.headers,
 		},
 	});
 }
 
-function notFound(pathname: string) {
-	return json(
+function meta() {
+	return {
+		...providerMeta,
+		generatedAt: new Date().toISOString(),
+	};
+}
+
+function ok(data: JsonValue, status = 200) {
+	return apiJson(
 		{
-			ok: false,
-			error: {
-				code: "NOT_FOUND",
-				message: `No API route exists for ${pathname}`,
-			},
-			meta: {
-				...providerMeta,
-				generatedAt: new Date().toISOString(),
-			},
+			ok: true,
+			data,
+			meta: meta(),
 		},
-		{ status: 404 },
+		status,
 	);
 }
 
 function badRequest(message: string) {
-	return json(
+	return apiJson(
 		{
 			ok: false,
 			error: {
 				code: "BAD_REQUEST",
 				message,
 			},
-			meta: {
-				...providerMeta,
-				generatedAt: new Date().toISOString(),
-			},
+			meta: meta(),
 		},
-		{ status: 400 },
+		400,
+	);
+}
+
+function notFound(pathname: string) {
+	return apiJson(
+		{
+			ok: false,
+			error: {
+				code: "NOT_FOUND",
+				message: `No API route exists for ${pathname}`,
+			},
+			meta: meta(),
+		},
+		404,
 	);
 }
 
 function upstreamError(message: string) {
-	return json(
+	return apiJson(
 		{
 			ok: false,
 			error: {
 				code: "MLS_UPSTREAM_ERROR",
 				message,
 			},
-			meta: {
-				...providerMeta,
-				generatedAt: new Date().toISOString(),
-			},
+			meta: meta(),
 		},
-		{ status: 502 },
+		502,
 	);
+}
+
+function serverError(message: string) {
+	return apiJson(
+		{
+			ok: false,
+			error: {
+				code: "SERVER_ERROR",
+				message,
+			},
+			meta: meta(),
+		},
+		500,
+	);
+}
+
+function textValue(value: unknown) {
+	return typeof value === "string" ? value.trim() : "";
+}
+
+function optionalText(value: unknown) {
+	const text = textValue(value);
+	return text.length > 0 ? text : null;
 }
 
 function boundedPositiveInt(
@@ -180,19 +250,77 @@ async function callSparkReso(
 	return response.json();
 }
 
-async function handleHealth() {
-	return json({
-		ok: true,
-		data: {
-			service: "homeinstgeorgeutah-api",
-			status: "ok",
-			routes: ["/api/search", "/api/listings/:id", "/api/leads"],
-		},
-		meta: {
-			...providerMeta,
-			generatedAt: new Date().toISOString(),
-		},
-	});
+function splitName(fullName: string) {
+	const parts = fullName.trim().split(/\s+/).filter(Boolean);
+	const firstName = parts[0] || "";
+	const lastName = parts.length > 1 ? parts.slice(1).join(" ") : "";
+
+	return { firstName, lastName };
+}
+
+function classifyWorkflowLane(payload: LeadIntakePayload) {
+	const intent = textValue(payload.intent || payload.eventType).toLowerCase();
+	const message = textValue(payload.message).toLowerCase();
+	const listingId = textValue(payload.listingId);
+
+	if (intent.includes("valuation") || intent.includes("seller")) {
+		return {
+			workflowLane: intent.includes("valuation")
+				? "valuation"
+				: "seller_high_priority",
+			reason: "Seller or valuation intent detected.",
+		};
+	}
+
+	if (intent.includes("showing")) {
+		return {
+			workflowLane: "showing_request",
+			reason: "Showing request intent detected.",
+		};
+	}
+
+	if (intent.includes("relocation") || message.includes("relocat")) {
+		return {
+			workflowLane: "relocation",
+			reason: "Relocation intent detected.",
+		};
+	}
+
+	if (listingId || intent.includes("property")) {
+		return {
+			workflowLane: "property_inquiry",
+			reason: "Property context or property inquiry intent detected.",
+		};
+	}
+
+	if (intent.includes("consult") || intent.includes("book")) {
+		return {
+			workflowLane: "booked_consult",
+			reason: "Consultation or booking intent detected.",
+		};
+	}
+
+	if (intent.includes("search") || intent.includes("buyer")) {
+		return {
+			workflowLane: "buyer_active_search",
+			reason: "Buyer/search intent detected.",
+		};
+	}
+
+	return {
+		workflowLane: "general_contact",
+		reason: "Default general contact routing.",
+	};
+}
+
+function shouldCreateBookingHandoff(workflowLane: string) {
+	return [
+		"seller_high_priority",
+		"valuation",
+		"showing_request",
+		"booked_consult",
+		"relocation",
+	].includes(workflowLane);
 }
 
 async function handleSearch(request: Request, env: Env) {
@@ -214,41 +342,23 @@ async function handleSearch(request: Request, env: Env) {
 	}
 
 	if (!liveResult) {
-		return json({
-			ok: true,
-			data: {
-				mode: "stub",
-				message:
-					"MLS search endpoint is wired, but Spark® / RESO credentials are not configured yet.",
-				query: params,
-				results: [],
-			},
-			meta: {
-				...providerMeta,
-				generatedAt: new Date().toISOString(),
-			},
+		return ok({
+			mode: "stub",
+			message:
+				"MLS search endpoint is wired, but Spark® / RESO credentials are not configured yet.",
+			query: params,
+			results: [],
 		});
 	}
 
-	return json({
-		ok: true,
-		data: {
-			mode: "live",
-			query: params,
-			result: liveResult,
-		},
-		meta: {
-			...providerMeta,
-			generatedAt: new Date().toISOString(),
-		},
+	return ok({
+		mode: "live",
+		query: params,
+		result: liveResult,
 	});
 }
 
-async function handleListingDetail(
-	_request: Request,
-	env: Env,
-	listingId: string,
-) {
+async function handleListingDetail(env: Env, listingId: string) {
 	if (!listingId) {
 		return badRequest("Missing listing id.");
 	}
@@ -267,161 +377,304 @@ async function handleListingDetail(
 	}
 
 	if (!liveResult) {
-		return json({
-			ok: true,
-			data: {
-				mode: "stub",
-				message:
-					"Listing detail endpoint is wired, but Spark® / RESO credentials are not configured yet.",
-				listingId,
-				listing: null,
-			},
-			meta: {
-				...providerMeta,
-				generatedAt: new Date().toISOString(),
-			},
+		return ok({
+			mode: "stub",
+			message:
+				"Listing detail endpoint is wired, but Spark® / RESO credentials are not configured yet.",
+			listingId,
+			listing: null,
 		});
 	}
 
-	return json({
-		ok: true,
-		data: {
-			mode: "live",
-			listingId,
-			result: liveResult,
-		},
-		meta: {
-			...providerMeta,
-			generatedAt: new Date().toISOString(),
-		},
+	return ok({
+		mode: "live",
+		listingId,
+		result: liveResult,
 	});
 }
 
-async function handleLead(request: Request, env: Env) {
-	if (request.method !== "POST") {
-		return json(
-			{
-				ok: false,
-				error: {
-					code: "METHOD_NOT_ALLOWED",
-					message: "Use POST for /api/leads.",
-				},
-				meta: {
-					...providerMeta,
-					generatedAt: new Date().toISOString(),
-				},
-			},
-			{ status: 405 },
-		);
-	}
-
-	let body: Record<string, unknown>;
+async function handleLeadIntake(request: Request, env: Env) {
+	let body: LeadIntakePayload;
 
 	try {
-		body = await request.json();
+		body = (await request.json()) as LeadIntakePayload;
 	} catch {
 		return badRequest("Invalid JSON body.");
 	}
 
-	const name = String(body.name || "").trim();
-	const email = String(body.email || "").trim();
-	const phone = String(body.phone || "").trim();
-	const message = String(body.message || "").trim();
-	const intent = String(body.intent || "general").trim();
-	const pageUrl = String(body.pageUrl || body.sourcePath || "").trim();
-	const listingId = String(body.listingId || "").trim();
+	const fullName = textValue(body.name);
+	const email = textValue(body.email).toLowerCase();
+	const phone = textValue(body.phone);
+	const message = textValue(body.message);
+	const intent = textValue(body.intent || body.eventType || "general_contact");
+	const pageUrl = textValue(body.pageUrl || body.sourcePath || body.landingUrl);
 	const consent = body.consent === true;
 
-	if (!name || !email?.includes("@")) {
-		return badRequest("Name and a valid email are required.");
+	if (!fullName) {
+		return badRequest("Name is required.");
+	}
+
+	if (!email.includes("@") && !phone) {
+		return badRequest("A valid email or phone is required.");
 	}
 
 	if (!consent) {
 		return badRequest("Consent is required before capturing a lead.");
 	}
 
-	const lead = {
-		id: crypto.randomUUID(),
-		intent,
-		name,
-		email,
-		phone,
-		message,
-		pageUrl,
-		listingId,
-		consent,
-		createdAt: new Date().toISOString(),
-	};
+	const now = new Date().toISOString();
+	const contactId = crypto.randomUUID();
+	const attributionSessionId = crypto.randomUUID();
+	const propertyContextId = crypto.randomUUID();
+	const leadEventId = crypto.randomUUID();
+	const routingDecisionId = crypto.randomUUID();
+	const crmSyncJobId = crypto.randomUUID();
+	const bookingHandoffId = crypto.randomUUID();
+	const { firstName, lastName } = splitName(fullName);
+	const { workflowLane, reason } = classifyWorkflowLane(body);
+	const bookingEligible = shouldCreateBookingHandoff(workflowLane);
+	const eventType = textValue(body.eventType || "lead_intake");
+	const rawPayloadJson = JSON.stringify(body);
 
-	if (env.LEADS_KV) {
-		await env.LEADS_KV.put(`lead:${lead.id}`, JSON.stringify(lead));
-	}
+	if (!env.DB) {
+		const lead = {
+			id: leadEventId,
+			contactId,
+			intent,
+			eventType,
+			name: fullName,
+			email,
+			phone,
+			message,
+			pageUrl,
+			listingId: textValue(body.listingId),
+			consent,
+			workflowLane,
+			createdAt: now,
+		};
 
-	return json(
-		{
-			ok: true,
-			data: {
-				mode: env.LEADS_KV ? "stored" : "stub",
-				message: env.LEADS_KV
-					? "Lead captured."
-					: "Lead endpoint is wired. Bind LEADS_KV or add email/CRM delivery before production.",
+		if (env.LEADS_KV) {
+			await env.LEADS_KV.put(`lead:${lead.id}`, JSON.stringify(lead));
+		}
+
+		return ok(
+			{
+				mode: env.LEADS_KV ? "kv_fallback" : "stub",
+				message:
+					"D1 binding is not configured yet. Lead intake contract is wired but canonical D1 storage is unavailable.",
 				lead,
 			},
-			meta: {
-				...providerMeta,
-				generatedAt: new Date().toISOString(),
-			},
+			201,
+		);
+	}
+
+	try {
+		await env.DB.batch([
+			env.DB.prepare(
+				`INSERT OR IGNORE INTO contacts (
+					id, email, phone, first_name, last_name, full_name, source, created_at, updated_at
+				) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+			).bind(
+				contactId,
+				email || null,
+				phone || null,
+				firstName || null,
+				lastName || null,
+				fullName,
+				"website",
+				now,
+				now,
+			),
+			env.DB.prepare(
+				`INSERT INTO attribution_sessions (
+					id, contact_id, landing_url, referrer, utm_source, utm_medium,
+					utm_campaign, utm_term, utm_content, user_agent, ip_hash, created_at
+				) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+			).bind(
+				attributionSessionId,
+				contactId,
+				pageUrl || null,
+				optionalText(body.referrer),
+				optionalText(body.utm?.source),
+				optionalText(body.utm?.medium),
+				optionalText(body.utm?.campaign),
+				optionalText(body.utm?.term),
+				optionalText(body.utm?.content),
+				request.headers.get("user-agent"),
+				null,
+				now,
+			),
+			env.DB.prepare(
+				`INSERT INTO property_context (
+					id, listing_id, property_url, city, neighborhood, address_summary, price, created_at
+				) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+			).bind(
+				propertyContextId,
+				optionalText(body.listingId),
+				optionalText(body.propertyUrl || body.pageUrl),
+				optionalText(body.city),
+				optionalText(body.neighborhood),
+				optionalText(body.addressSummary),
+				body.price === undefined ? null : String(body.price),
+				now,
+			),
+			env.DB.prepare(
+				`INSERT INTO lead_events (
+					id, contact_id, attribution_session_id, property_context_id,
+					event_type, intent, message, raw_payload_json, created_at
+				) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+			).bind(
+				leadEventId,
+				contactId,
+				attributionSessionId,
+				propertyContextId,
+				eventType,
+				intent,
+				message || null,
+				rawPayloadJson,
+				now,
+			),
+			env.DB.prepare(
+				`INSERT INTO routing_decisions (
+					id, lead_event_id, contact_id, workflow_lane, reason, created_at
+				) VALUES (?, ?, ?, ?, ?, ?)`,
+			).bind(
+				routingDecisionId,
+				leadEventId,
+				contactId,
+				workflowLane,
+				reason,
+				now,
+			),
+			env.DB.prepare(
+				`INSERT INTO crm_sync_jobs (
+					id, lead_event_id, contact_id, status, attempt_count, last_error, created_at, updated_at
+				) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+			).bind(
+				crmSyncJobId,
+				leadEventId,
+				contactId,
+				"pending",
+				0,
+				null,
+				now,
+				now,
+			),
+			env.DB.prepare(
+				`INSERT INTO booking_handoffs (
+					id, lead_event_id, contact_id, eligible, reason, booking_url, created_at
+				) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+			).bind(
+				bookingHandoffId,
+				leadEventId,
+				contactId,
+				bookingEligible ? 1 : 0,
+				bookingEligible
+					? `Eligible for booking handoff through ${workflowLane}.`
+					: `Not booking-eligible for ${workflowLane}.`,
+				null,
+				now,
+			),
+		]);
+	} catch (error) {
+		const message =
+			error instanceof Error ? error.message : "Unknown D1 lead intake error";
+		return serverError(message);
+	}
+
+	return ok(
+		{
+			mode: "stored",
+			contactId,
+			leadEventId,
+			attributionSessionId,
+			propertyContextId,
+			routingDecisionId,
+			crmSyncJobId,
+			bookingHandoffId,
+			workflowLane,
+			bookingEligible,
 		},
-		{ status: 201 },
+		201,
 	);
 }
 
-export default {
-	async fetch(request: Request, env: Env): Promise<Response> {
-		if (request.method === "OPTIONS") {
-			return json({
-				ok: true,
-				meta: { generatedAt: new Date().toISOString() },
-			});
-		}
+app.get("/", (_c) =>
+	ok({
+		service: "homeinstgeorgeutah-api",
+		status: "ok",
+		routes: [
+			"/api/health",
+			"/api/mls-status",
+			"/api/search",
+			"/api/listings/:id",
+			"/api/leads",
+			"/api/v1/leads/intake",
+		],
+	}),
+);
 
-		const url = new URL(request.url);
-		const pathname = url.pathname.replace(/\/$/, "") || "/";
+app.get("/api", (c) =>
+	c.json({
+		ok: true,
+		data: {
+			service: "homeinstgeorgeutah-api",
+			status: "ok",
+			routes: [
+				"/api/health",
+				"/api/mls-status",
+				"/api/search",
+				"/api/listings/:id",
+				"/api/leads",
+				"/api/v1/leads/intake",
+			],
+		},
+		meta: meta(),
+	}),
+);
 
-		if (pathname === "/" || pathname === "/api" || pathname === "/api/health") {
-			return handleHealth();
-		}
+app.get("/api/health", (c) =>
+	c.json({
+		ok: true,
+		data: {
+			service: "homeinstgeorgeutah-api",
+			status: "ok",
+			routes: [
+				"/api/search",
+				"/api/listings/:id",
+				"/api/leads",
+				"/api/v1/leads/intake",
+			],
+		},
+		meta: meta(),
+	}),
+);
 
-		if (pathname === "/api/search") {
-			return handleSearch(request, env);
-		}
+app.get("/api/mls-status", (c) =>
+	c.json({
+		ok: true,
+		data: {
+			configured: Boolean(c.env.SPARK_API_BASE_URL && c.env.SPARK_ACCESS_TOKEN),
+			requiredEnv: ["SPARK_API_BASE_URL", "SPARK_ACCESS_TOKEN"],
+			optionalBindings: ["DB", "LEADS_KV"],
+		},
+		meta: meta(),
+	}),
+);
 
-		if (pathname.startsWith("/api/listings/")) {
-			const listingId = decodeURIComponent(
-				pathname.replace("/api/listings/", ""),
-			);
-			return handleListingDetail(request, env, listingId);
-		}
+app.get("/api/search", async (c) => handleSearch(c.req.raw, c.env));
 
-		if (pathname === "/api/leads") {
-			return handleLead(request, env);
-		}
+app.get("/api/listings/:id", async (c) => {
+	const listingId = decodeURIComponent(c.req.param("id"));
+	return handleListingDetail(c.env, listingId);
+});
 
-		if (pathname === "/api/mls-status") {
-			return json({
-				ok: true,
-				data: {
-					configured: Boolean(env.SPARK_API_BASE_URL && env.SPARK_ACCESS_TOKEN),
-					requiredEnv: ["SPARK_API_BASE_URL", "SPARK_ACCESS_TOKEN"],
-					optionalBindings: ["LEADS_KV"],
-				},
-				meta: {
-					...providerMeta,
-					generatedAt: new Date().toISOString(),
-				},
-			});
-		}
+app.post("/api/leads", async (c) => handleLeadIntake(c.req.raw, c.env));
 
-		return notFound(url.pathname);
-	},
-};
+app.post("/api/v1/leads/intake", async (c) =>
+	handleLeadIntake(c.req.raw, c.env),
+);
+
+app.notFound((c) => notFound(new URL(c.req.url).pathname));
+
+export default app;
