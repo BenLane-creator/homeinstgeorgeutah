@@ -17,7 +17,7 @@ export default function LeadFormIsland({
 		const formData = new FormData(form);
 
 		try {
-			const response = await fetch("/api/leads", {
+			const response = await fetch("/api/v1/leads/intake", {
 				method: "POST",
 				headers: { "content-type": "application/json" },
 				body: JSON.stringify({
