@@ -423,7 +423,7 @@ async function handleLeadIntake(request: Request, env: Env) {
 	}
 
 	const now = new Date().toISOString();
-	const contactId = crypto.randomUUID();
+	let contactId: string = crypto.randomUUID();
 	const attributionSessionId = crypto.randomUUID();
 	const propertyContextId = crypto.randomUUID();
 	const leadEventId = crypto.randomUUID();
@@ -466,6 +466,18 @@ async function handleLeadIntake(request: Request, env: Env) {
 			},
 			201,
 		);
+	}
+
+	if (email) {
+		const existingContact = await env.DB.prepare(
+			"SELECT id FROM contacts WHERE email = ? LIMIT 1",
+		)
+			.bind(email)
+			.first<{ id: string }>();
+
+		if (existingContact?.id) {
+			contactId = existingContact.id;
+		}
 	}
 
 	try {
