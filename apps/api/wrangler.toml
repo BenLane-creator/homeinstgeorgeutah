@@ -1,14 +1,8 @@
 name = "homeinstgeorgeutah-api"
 main = "src/index.ts"
-compatibility_date = "2026-05-15"
+compatibility_date = "2026-05-25"
 
-[vars]
-SPARK_API_BASE_URL = ""
-
-# Set secret after credentials are issued:
-# bunx wrangler secret put SPARK_ACCESS_TOKEN --config apps/api/wrangler.toml
-
-# Optional future KV binding:
-# [[kv_namespaces]]
-# binding = "LEADS_KV"
-# id = "replace_with_cloudflare_kv_namespace_id"
+[[d1_databases]]
+binding = "DB"
+database_name = "homeinstgeorgeutah"
+database_id = "79ff9457-a4ce-459c-ac55-c528c3de8a87"
