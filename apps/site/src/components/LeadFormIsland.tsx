@@ -17,7 +17,10 @@ export default function LeadFormIsland({
 		const formData = new FormData(form);
 
 		try {
-			const response = await fetch("/api/v1/leads/intake", {
+			const apiBaseUrl =
+				window.location.hostname === "localhost" ? "http://localhost:8787" : "";
+
+			const response = await fetch(`${apiBaseUrl}/api/v1/leads/intake`, {
 				method: "POST",
 				headers: { "content-type": "application/json" },
 				body: JSON.stringify({
@@ -30,7 +33,11 @@ export default function LeadFormIsland({
 					consent: formData.get("consent") === "on",
 				}),
 			});
-			if (!response.ok) throw new Error("Lead request failed");
+			if (!response.ok) {
+				const errorText = await response.text();
+				console.error("Lead request failed", response.status, errorText);
+				throw new Error("Lead request failed");
+			}
 			setStatus("success");
 			form.reset();
 		} catch {
