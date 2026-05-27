@@ -2,6 +2,11 @@ name = "homeinstgeorgeutah-api"
 main = "src/index.ts"
 compatibility_date = "2026-05-25"
 
+routes = [
+  { pattern = "HomeInStGeorgeUtah.com/api/*", zone_name = "HomeInStGeorgeUtah.com" },
+  { pattern = "www.HomeInStGeorgeUtah.com/api/*", zone_name = "HomeInStGeorgeUtah.com" }
+]
+
 [[d1_databases]]
 binding = "DB"
 database_name = "homeinstgeorgeutah"
