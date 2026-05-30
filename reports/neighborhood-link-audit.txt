@@ -1,13 +1,43 @@
 === NEIGHBORHOOD LINK AUDIT ===
 Content neighborhood MDX files: 31
-Static neighborhood Astro pages: 0
+Static neighborhood Astro pages: 3
 Total expected neighborhood routes: 31
 
 === ERRORS ===
 No blocking errors found.
 
 === WARNINGS ===
-No warnings found.
+WARNING: /neighborhoods/ index may not link to /neighborhoods/apple-valley/
+WARNING: /neighborhoods/ index may not link to /neighborhoods/bloomington/
+WARNING: /neighborhoods/ index may not link to /neighborhoods/brookside/
+WARNING: /neighborhoods/ index may not link to /neighborhoods/central/
+WARNING: /neighborhoods/ index may not link to /neighborhoods/dammeron-valley/
+WARNING: /neighborhoods/ index may not link to /neighborhoods/desert-color/
+WARNING: /neighborhoods/ index may not link to /neighborhoods/diamond-valley/
+WARNING: /neighborhoods/ index may not link to /neighborhoods/downtown-st-george/
+WARNING: /neighborhoods/ index may not link to /neighborhoods/enterprise/
+WARNING: /neighborhoods/ index may not link to /neighborhoods/entrada/
+WARNING: /neighborhoods/ index may not link to /neighborhoods/gunlock/
+WARNING: /neighborhoods/ index may not link to /neighborhoods/hurricane/
+WARNING: /neighborhoods/ index may not link to /neighborhoods/ivins/
+WARNING: /neighborhoods/ index may not link to /neighborhoods/kayenta/
+WARNING: /neighborhoods/ index may not link to /neighborhoods/laverkin/
+WARNING: /neighborhoods/ index may not link to /neighborhoods/leeds/
+WARNING: /neighborhoods/ index may not link to /neighborhoods/little-valley/
+WARNING: /neighborhoods/ index may not link to /neighborhoods/new-harmony/
+WARNING: /neighborhoods/ index may not link to /neighborhoods/pine-valley/
+WARNING: /neighborhoods/ index may not link to /neighborhoods/rockville/
+WARNING: /neighborhoods/ index may not link to /neighborhoods/santa-clara/
+WARNING: /neighborhoods/ index may not link to /neighborhoods/springdale/
+WARNING: /neighborhoods/ index may not link to /neighborhoods/st-george/
+WARNING: /neighborhoods/ index may not link to /neighborhoods/sunbrook/
+WARNING: /neighborhoods/ index may not link to /neighborhoods/sunriver/
+WARNING: /neighborhoods/ index may not link to /neighborhoods/toquerville/
+WARNING: /neighborhoods/ index may not link to /neighborhoods/veyo/
+WARNING: /neighborhoods/ index may not link to /neighborhoods/virgin/
+WARNING: /neighborhoods/ index may not link to /neighborhoods/washington/
+WARNING: /neighborhoods/ index may not link to /neighborhoods/washington-fields/
+WARNING: /neighborhoods/ index may not link to /neighborhoods/winchester-hills/
 
 === RESULT ===
 PASS: No broken generated neighborhood/internal links found.

@@ -1,25 +1,18 @@
-# WordPress Setup
+# WordPress Setup — Historical Reference Only
 
-## Required plugins
+This project is no longer targeting WordPress, GoDaddy hosting, or the Flexmls WordPress plugin as the production architecture for HomeInStGeorgeUtah.com.
 
-- Flexmls IDX
-- SEO plugin already configured, if present
-- Form plugin only if it is already needed
+The current production direction is the custom Cloudflare build:
 
-## Do not remove before testing
+```text
+homeinstgeorgeutah.com
+Cloudflare Pages
+Cloudflare Workers
+Cloudflare D1
+Washington County BOR - IDX
+Spark® / RESO Web API
+Custom MLS search and listing experience
+Owned lead engine
+```
 
-- Flexmls IDX
-- Any plugin that controls shortcodes/blocks on property search pages
-- Any cache/security plugin until staging tests are complete
-
-## IDX page inventory
-
-Capture the exact URLs and shortcodes/blocks for:
-
-- Search form
-- Search results
-- Listing details
-- Leadgen/contact forms
-- Account/saved search
-- Market stats
-- Agent/contact blocks
+Retain old WordPress/Flexmls information only for reference, redirect planning, and comparison with the existing HomeInStGeorge.com site. Do not use it as the main search UX, lead database, saved-search system, or routing engine.

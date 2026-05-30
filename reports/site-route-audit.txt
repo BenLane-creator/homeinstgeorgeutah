@@ -1,5 +1,5 @@
 === BUILD CHECK ===
-Sun May 24 20:49:45 UTC 2026
+Wed May 20 02:13:17 PM MDT 2026
 
 === EXPECTED ROUTES ===
 /
@@ -60,32 +60,32 @@ PASS dist: /neighborhoods/enterprise/ -> apps/site/dist/neighborhoods/enterprise
 === LOCAL SERVER CHECK ===
 This requires bun run dev:site to be running in another terminal.
 
-FAIL local: 000 http://localhost:4321/
-FAIL local: 000 http://localhost:4321/about/
-FAIL local: 000 http://localhost:4321/buyers/
-FAIL local: 000 http://localhost:4321/sellers/
-FAIL local: 000 http://localhost:4321/relocation/
-FAIL local: 000 http://localhost:4321/contact/
-FAIL local: 000 http://localhost:4321/blog/
-FAIL local: 000 http://localhost:4321/blog/st-george-market-guidance/
-FAIL local: 000 http://localhost:4321/horse-properties/
-FAIL local: 000 http://localhost:4321/seller-financing/
-FAIL local: 000 http://localhost:4321/neighborhoods/
-FAIL local: 000 http://localhost:4321/neighborhoods/st-george/
-FAIL local: 000 http://localhost:4321/neighborhoods/washington/
-FAIL local: 000 http://localhost:4321/neighborhoods/hurricane/
-FAIL local: 000 http://localhost:4321/neighborhoods/ivins/
-FAIL local: 000 http://localhost:4321/neighborhoods/santa-clara/
-FAIL local: 000 http://localhost:4321/neighborhoods/entrada/
-FAIL local: 000 http://localhost:4321/neighborhoods/little-valley/
-FAIL local: 000 http://localhost:4321/neighborhoods/washington-fields/
-FAIL local: 000 http://localhost:4321/neighborhoods/apple-valley/
-FAIL local: 000 http://localhost:4321/neighborhoods/dammeron-valley/
-FAIL local: 000 http://localhost:4321/neighborhoods/diamond-valley/
-FAIL local: 000 http://localhost:4321/neighborhoods/veyo/
-FAIL local: 000 http://localhost:4321/neighborhoods/central/
-FAIL local: 000 http://localhost:4321/neighborhoods/new-harmony/
-FAIL local: 000 http://localhost:4321/neighborhoods/enterprise/
+PASS local: 200 http://localhost:4321/
+PASS local: 200 http://localhost:4321/about/
+PASS local: 200 http://localhost:4321/buyers/
+PASS local: 200 http://localhost:4321/sellers/
+PASS local: 200 http://localhost:4321/relocation/
+PASS local: 200 http://localhost:4321/contact/
+PASS local: 200 http://localhost:4321/blog/
+PASS local: 200 http://localhost:4321/blog/st-george-market-guidance/
+PASS local: 200 http://localhost:4321/horse-properties/
+PASS local: 200 http://localhost:4321/seller-financing/
+PASS local: 200 http://localhost:4321/neighborhoods/
+PASS local: 200 http://localhost:4321/neighborhoods/st-george/
+PASS local: 200 http://localhost:4321/neighborhoods/washington/
+PASS local: 200 http://localhost:4321/neighborhoods/hurricane/
+PASS local: 200 http://localhost:4321/neighborhoods/ivins/
+PASS local: 200 http://localhost:4321/neighborhoods/santa-clara/
+PASS local: 200 http://localhost:4321/neighborhoods/entrada/
+PASS local: 200 http://localhost:4321/neighborhoods/little-valley/
+PASS local: 200 http://localhost:4321/neighborhoods/washington-fields/
+PASS local: 200 http://localhost:4321/neighborhoods/apple-valley/
+PASS local: 200 http://localhost:4321/neighborhoods/dammeron-valley/
+PASS local: 200 http://localhost:4321/neighborhoods/diamond-valley/
+PASS local: 200 http://localhost:4321/neighborhoods/veyo/
+PASS local: 200 http://localhost:4321/neighborhoods/central/
+PASS local: 200 http://localhost:4321/neighborhoods/new-harmony/
+PASS local: 200 http://localhost:4321/neighborhoods/enterprise/
 
 === GENERATED NEIGHBORHOOD PAGES ===
 apps/site/dist/neighborhoods/apple-valley/index.html
@@ -136,4 +136,4 @@ apps/site/dist/sellers/index.html
 
 === SUMMARY ===
 DIST: PASS
-LOCAL: FAIL
+LOCAL: PASS

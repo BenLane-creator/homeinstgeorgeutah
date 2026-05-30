@@ -1,10 +1,11 @@
 {
-	"name": "@home/config",
-	"private": true,
-	"type": "module",
-	"exports": {
-		"./site": "./site.ts",
-		"./seo": "./seo.ts",
-		"./routes": "./routes.ts"
-	}
+  "name": "@home/config",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./site": "./site.ts",
+    "./compliance": "./compliance.ts",
+    "./seo": "./seo.ts",
+    "./routes": "./routes.ts"
+  }
 }

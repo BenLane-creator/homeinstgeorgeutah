@@ -1,110 +1,79 @@
-# HomeInStGeorgeUtah.com
+# HomeInStGeorgeUtah Modern Stack
 
-Custom real estate website, lead engine, and MLS-ready platform for Joel Robertson, a St. George, Utah broker/Realtor with 20+ years of experience.
+This repository implements the custom HomeInStGeorgeUtah.com website and owned lead engine.
 
-## Production domain
+## Production direction
 
-HomeInStGeorgeUtah.com
+```txt
+homeinstgeorgeutah.com             -> Astro public site on Cloudflare Pages
+homeinstgeorgeutah.com/api/*       -> Cloudflare Worker API
+Cloudflare D1                      -> operational source of truth
+Spark® / RESO Web API              -> MLS-approved Source Layer access
+Washington County BOR - IDX        -> MLS authorization/display rules
+```
 
-The older homeinstgeorge.com domain is still live but is unrelated to this project. Do not use it for production deployment, canonical URLs, Cloudflare routing, MLS/API configuration, redirect planning, or launch assumptions for this repository.
+## Architecture rule
 
-## Architecture direction
+The system is divided into four layers:
 
-This project is a custom Cloudflare-first real estate platform.
+1. **Source Layer** — MLS-approved listing access, RESO-shaped provider interfaces, media/open-house access, and compliance/display-rights boundary.
+2. **Product Layer** — custom website, search UX, property pages, accounts, saved homes/searches, lead flows, city/neighborhood pages, and SEO landing pages.
+3. **Logic Layer** — lead normalization, contact identity merge/dedupe, attribution, routing decisions, workflow assignment, AI enrichment, booking handoff generation, and CRM sync orchestration.
+4. **Utility Layer** — CRM sink, booking utility, email/SMS delivery, analytics exports, and file/object storage.
 
-- Frontend: React, Vite, React Router
-- API: Hono on Cloudflare Workers
-- Database: Cloudflare D1
-- Storage: Cloudflare R2
-- MLS data: FBS / Spark / RESO Web API through provider adapters
-- Deployment: Cloudflare Pages and Workers
-
-The website is the primary product. It is not a wrapper around a vendor website, hosted IDX theme, CRM workflow, booking tool, or WordPress plugin.
-
-## Permanent layers
-
-1. Source Layer: MLS-approved listing data access, RESO-shaped provider adapters, compliance rules, display rights, attribution, and media permissions.
-2. Product Layer: public website, search UX, property pages, user accounts, saved homes, saved searches, alerts, city pages, neighborhood pages, and lead forms.
-3. Logic Layer: lead intake, contact identity, dedupe, attribution, routing, workflow assignment, AI enrichment, booking handoffs, CRM sync orchestration, reporting, and conversion data.
-4. Utility Layer: CRM sync, booking utility, email delivery, SMS delivery, analytics exports, and file storage.
-
-Only the Source Layer may depend on external real estate data vendors.
+Only the Source Layer may depend on external real estate data vendors. CRM, booking, email, SMS, and analytics are downstream utilities only.
 
 ## Apps
 
-- apps/site: current public website and content seed
-- apps/api: Cloudflare Worker API
-- apps/app: React Router app zone for dashboard, portal, saved homes, saved searches, internal tools, and authenticated workflows
+```txt
+apps/site  Astro public website and search shell
+apps/api   Cloudflare Worker API and lead engine
+apps/app   Future React Router dashboard/client/admin zone
+```
 
 ## Packages
 
-- packages/config: shared site config, SEO helpers, navigation, and route configuration
-- packages/ui: shared UI primitives and reusable components
-- packages/db: database schema and helpers
+```txt
+packages/config  site, SEO, routes, service-area data, compliance policies
+packages/db      D1/SQLite schema and foundation migration
+packages/ui      shared UI primitives
+```
 
-Cloudflare D1 is the operational source of truth.
+## Run locally
 
-## Core API direction
+```bash
+bun install
+cp .env.example .env
+bun run dev:site
+bun run dev:api
+bun run dev:app
+```
 
-- POST /api/v1/leads/intake
-- POST /api/v1/valuation/request
-- POST /api/v1/properties/inquiry
-- POST /api/v1/properties/showing
-- POST /api/v1/search/execute
-- POST /api/v1/search/map
-- POST /api/v1/search/save
-- POST /api/v1/homes/save
-- POST /api/v1/homes/unsave
-- POST /api/v1/alerts/subscribe
-- POST /api/v1/auth/register
-- POST /api/v1/auth/login
-- POST /api/v1/vow/register
-- POST /api/v1/vow/accept-terms
-- POST /api/v1/bookings/create-handoff
-- POST /api/v1/crm/sync
-- POST /api/v1/listings/reindex
-- GET /api/v1/listings/:id
-- GET /api/v1/reports/market/:geo
+## Validate
 
-## Lead routing lanes
+```bash
+bun run fix
+bun run check
+bun run build:site
+bun --filter @home/api typecheck
+bun --filter @home/app build
+python3 scripts/audit-neighborhood-links.py
+python3 scripts/audit-architecture-drift.py
+```
 
-- seller_high_priority
-- valuation
-- buyer_active_search
-- buyer_early_stage
-- relocation
-- property_inquiry
-- showing_request
-- general_contact
-- booked_consult
-- nurture
+## D1 migration
 
-## Non-goals
+Apply the foundation schema after creating the Cloudflare D1 database and replacing the placeholder database id in `apps/api/wrangler.toml`:
 
-- No production dependency on homeinstgeorge.com
-- No GoDaddy production hosting
-- No WordPress production dependency
-- No WordPress/Flexmls plugin as the product core
-- No hosted vendor website as the primary UX
-- No vendor-owned lead forms
-- No vendor-owned saved-search logic
-- No CRM as source of truth
-- No booking tool as workflow owner
-- No scraping or copying MLS data outside approved MLS/API rules
+```bash
+bunx wrangler d1 execute homeinstgeorgeutah --file=packages/db/migrations/0001_foundation.sql --config apps/api/wrangler.toml
+```
 
-## Local validation
+## Guardrails
 
-Run from the repository root:
-
-- bun install
-- bun run fix
-- bun run check
-- bun run build:site
-- bun --filter @home/api typecheck
-- bun --filter @home/app build
-
-## Current status
-
-Phase 1 source consolidation is complete.
-
-Next phase: Phase 2 — Owned lead engine foundation.
+- Do not scrape old IDX pages.
+- Do not copy MLS photos, remarks, listing fields, or listing detail pages outside approved API/display rules.
+- Do not make a hosted vendor website the product core.
+- Do not make CRM the source of truth.
+- Do not make booking software the workflow engine.
+- Do not let provider quirks leak into product UI.

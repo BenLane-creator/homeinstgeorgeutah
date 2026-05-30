@@ -6,29 +6,56 @@ import Funnels from "../components/Funnels.astro";
 import CTA from "../components/CTA.astro";
 import { site } from "@home/config/site";
 ---
-<BaseLayout title="St. George Real Estate">
+<BaseLayout title="St. George Real Estate" pathname="/">
   <Hero />
-  <NeighborhoodCards />
-  <Funnels />
-  <section class="bg-white px-5 py-20">
-    <div class="mx-auto grid max-w-7xl gap-8 md:grid-cols-3">
-      <div class="rounded-3xl border border-stone-200 p-8">
-        <p class="text-sm font-semibold uppercase tracking-[0.2em] text-amber-900/70">Local market</p>
-        <h2 class="mt-3 font-serif text-3xl font-semibold">Southern Utah clarity</h2>
-        <p class="mt-4 text-stone-600">Market stats can be embedded through Flexmls widgets on WordPress or summarized manually on Astro pages.</p>
-      </div>
-      <div class="rounded-3xl border border-stone-200 p-8">
-        <p class="text-sm font-semibold uppercase tracking-[0.2em] text-amber-900/70">IDX safe</p>
-        <h2 class="mt-3 font-serif text-3xl font-semibold">Flexmls stays intact</h2>
-        <p class="mt-4 text-stone-600">Listing search, results, details, saved searches, and portal behavior remain where Flexmls supports them.</p>
-      </div>
-      <div class="rounded-3xl border border-stone-200 p-8">
-        <p class="text-sm font-semibold uppercase tracking-[0.2em] text-amber-900/70">Fast pages</p>
-        <h2 class="mt-3 font-serif text-3xl font-semibold">Modern static shell</h2>
-        <p class="mt-4 text-stone-600">Astro ships mostly HTML with islands only for forms and interactive components.</p>
+
+  <section class="bg-white px-5 py-14">
+    <div class="mx-auto max-w-7xl rounded-3xl border border-stone-200 bg-[#fffaf3] p-6 shadow-sm md:p-8">
+      <p class="text-sm font-semibold uppercase tracking-[0.25em] text-amber-900/70">Start with the search</p>
+      <form action="/homes/search/" method="get" class="mt-5 grid gap-3 md:grid-cols-[1.2fr_0.7fr_0.7fr_auto]">
+        <input name="q" placeholder="City, neighborhood, feature, or MLS keyword" class="rounded-2xl border border-stone-200 bg-white px-4 py-4" />
+        <input name="maxPrice" inputmode="numeric" placeholder="Max price" class="rounded-2xl border border-stone-200 bg-white px-4 py-4" />
+        <select name="beds" class="rounded-2xl border border-stone-200 bg-white px-4 py-4">
+          <option value="">Beds</option>
+          <option value="2">2+</option>
+          <option value="3">3+</option>
+          <option value="4">4+</option>
+          <option value="5">5+</option>
+        </select>
+        <button type="submit" class="rounded-2xl bg-stone-950 px-6 py-4 font-semibold text-white">Search homes</button>
+      </form>
+      <div class="mt-4 flex flex-wrap gap-2 text-sm font-semibold">
+        <a href="/homes/search/?q=new-construction" class="rounded-full bg-white px-4 py-2 text-stone-700 ring-1 ring-stone-200">New construction</a>
+        <a href="/homes/search/?q=golf" class="rounded-full bg-white px-4 py-2 text-stone-700 ring-1 ring-stone-200">Golf communities</a>
+        <a href="/homes/search/?q=view" class="rounded-full bg-white px-4 py-2 text-stone-700 ring-1 ring-stone-200">View homes</a>
+        <a href="/homes/search/?q=horse-property" class="rounded-full bg-white px-4 py-2 text-stone-700 ring-1 ring-stone-200">Horse properties</a>
       </div>
     </div>
   </section>
+
+  <NeighborhoodCards />
+  <Funnels />
+
+  <section class="bg-white px-5 py-20">
+    <div class="mx-auto grid max-w-7xl gap-8 md:grid-cols-3">
+      <div class="rounded-3xl border border-stone-200 p-8">
+        <p class="text-sm font-semibold uppercase tracking-[0.2em] text-amber-900/70">Owned product</p>
+        <h2 class="mt-3 font-serif text-3xl font-semibold">First-party search and lead flow</h2>
+        <p class="mt-4 text-stone-600">Search behavior, contact context, lead events, attribution, workflow lane, and reporting belong to the website instead of a vendor dashboard.</p>
+      </div>
+      <div class="rounded-3xl border border-stone-200 p-8">
+        <p class="text-sm font-semibold uppercase tracking-[0.2em] text-amber-900/70">MLS safe</p>
+        <h2 class="mt-3 font-serif text-3xl font-semibold">Approved source boundary</h2>
+        <p class="mt-4 text-stone-600">Listing data is accessed only through Washington County BOR IDX and Spark® / RESO Web API rules, with display permissions handled in the app.</p>
+      </div>
+      <div class="rounded-3xl border border-stone-200 p-8">
+        <p class="text-sm font-semibold uppercase tracking-[0.2em] text-amber-900/70">Mobile first</p>
+        <h2 class="mt-3 font-serif text-3xl font-semibold">Built for quick decisions</h2>
+        <p class="mt-4 text-stone-600">Buyers, sellers, and relocating clients get fast search paths, tap-ready CTAs, and forms that carry the page and device context into the lead engine.</p>
+      </div>
+    </div>
+  </section>
+
   <section class="bg-[#fffaf3] px-5 py-20">
     <div class="mx-auto grid max-w-7xl gap-10 md:grid-cols-[1.1fr_0.9fr] md:items-center">
       <div>

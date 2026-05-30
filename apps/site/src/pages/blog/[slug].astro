@@ -17,7 +17,7 @@ export async function getStaticPaths() {
         ?.replace(/\.mdx$/, "") ?? "";
 
     const text = String(raw ?? "");
-    const data: Record<string, string> = {};
+    let data = {};
     let body = text.trim();
 
     if (text.startsWith("---")) {
@@ -61,15 +61,7 @@ export async function getStaticPaths() {
   });
 }
 
-const { slug, title, description, pubDate, author, category, body } = Astro.props as {
-  slug: string;
-  title: string;
-  description: string;
-  pubDate?: string;
-  author?: string;
-  category?: string;
-  body: string;
-};
+const { slug, title, description, pubDate, author, category, body } = Astro.props;
 
 const paragraphs = String(body ?? "")
   .split(/\n{2,}/)

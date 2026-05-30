@@ -19,7 +19,6 @@ IGNORE_PREFIXES = (
 
 RUNTIME_ALLOWED_PREFIXES = (
     "/api/",
-    "/st-george-homes-for-sale/",
     "/idx/",
     "/homes/search/",
     "/homes/search",

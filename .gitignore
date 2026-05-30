@@ -1,54 +1,41 @@
-# Dependencies
-node_modules/
-**/node_modules/
+node_modules
+**/node_modules
+bun.lock
+bun.lockb
+package-lock.json
+pnpm-lock.yaml
+yarn.lock
 
-# Build output and local framework state
-dist/
-**/dist/
-.astro/
-**/.astro/
-.wrangler/
-**/.wrangler/
-**/.vite/
-**/.cache/
-**/.mf/
+# Build outputs
+dist
+**/dist
+.astro
+**/.astro
+.vite
+**/.vite
+.cache
+**/.cache
+.mf
+**/.mf
+apps/app/build
 
-# Environment files
+# Cloudflare local state
+.wrangler
+**/.wrangler
+.dev.vars
+
+# Environment and secrets
 .env
 .env.*
 !.env.example
 
-# Test and coverage output
-coverage/
-playwright-report/
-test-results/
+# Test and reports
+coverage
+playwright-report
+test-results
 
-# OS/editor noise
+# OS / editor
 .DS_Store
-
-# dependencies
-node_modules/
-**/node_modules/
-
-# build output
-dist/
-build/
-**/dist/
-**/build/
-
-# framework/cache output
-.astro/
-.wrangler/
-.vite/
-.cache/
-.mf/
-**/.astro/
-**/.wrangler/
-**/.vite/
-**/.cache/
-**/.mf/
-
-# test output
-coverage/
-playwright-report/
-test-results/
+Thumbs.db
+.vscode
+.idea

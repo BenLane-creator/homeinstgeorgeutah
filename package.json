@@ -1,30 +1,31 @@
 {
-	"name": "homeinstgeorge-modern-stack",
-	"private": true,
-	"type": "module",
-	"workspaces": [
-		"apps/*",
-		"packages/*"
-	],
-	"scripts": {
-		"dev:site": "bun --filter @home/site dev",
-		"dev:api": "bun --filter @home/api dev",
-		"dev:app": "bun --filter @home/app dev",
-		"build": "bun --filter '*' build",
-		"check": "bunx biome check .",
-		"format": "bunx biome format --write .",
-		"test": "bun --filter '*' test",
-		"test:e2e": "bunx playwright test",
-		"build:site": "bun --filter @home/site build",
-		"fix": "bunx biome check --write ."
-	},
-	"devDependencies": {
-		"@biomejs/biome": "latest",
-		"@playwright/test": "latest",
-		"typescript": "latest"
-	},
-	"engines": {
-		"node": ">=22.12.0"
-	},
-	"packageManager": "bun@1.2.0"
+  "name": "homeinstgeorge-modern-stack",
+  "private": true,
+  "type": "module",
+  "packageManager": "bun@1.2.15",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev:site": "bun --filter @home/site dev",
+    "dev:api": "bun --filter @home/api dev",
+    "dev:app": "bun --filter @home/app dev",
+    "build": "bun --filter '*' build",
+    "check": "bunx biome check .",
+    "fix": "bunx biome check --write .",
+    "format": "bunx biome format --write .",
+    "test": "bun --filter '*' test",
+    "test:e2e": "bunx playwright test",
+    "build:site": "bun --filter @home/site build",
+    "audit:architecture": "python3 scripts/audit-architecture-drift.py"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "latest",
+    "@playwright/test": "latest",
+    "typescript": "latest"
+  }
 }

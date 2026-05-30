@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://homeinstgeorge.com/sitemap.xml
+Sitemap: https://homeinstgeorgeutah.com/sitemap.xml

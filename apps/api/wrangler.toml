@@ -1,13 +1,26 @@
 name = "homeinstgeorgeutah-api"
 main = "src/index.ts"
-compatibility_date = "2026-05-25"
+compatibility_date = "2026-05-28"
 
 routes = [
-  { pattern = "HomeInStGeorgeUtah.com/api/*", zone_name = "HomeInStGeorgeUtah.com" },
-  { pattern = "www.HomeInStGeorgeUtah.com/api/*", zone_name = "HomeInStGeorgeUtah.com" }
+  { pattern = "homeinstgeorgeutah.com/api/*", zone_name = "homeinstgeorgeutah.com" },
+  { pattern = "www.homeinstgeorgeutah.com/api/*", zone_name = "homeinstgeorgeutah.com" }
 ]
+
+[vars]
+SPARK_API_BASE_URL = ""
+API_WRITE_ORIGINS = "https://homeinstgeorgeutah.com,https://www.homeinstgeorgeutah.com,https://benlane.us,http://localhost:4321,http://localhost:8787"
+
+# Set secrets after credentials are issued:
+# bunx wrangler secret put SPARK_ACCESS_TOKEN --config apps/api/wrangler.toml
+# bunx wrangler secret put TURNSTILE_SECRET_KEY --config apps/api/wrangler.toml
 
 [[d1_databases]]
 binding = "DB"
 database_name = "homeinstgeorgeutah"
-database_id = "79ff9457-a4ce-459c-ac55-c528c3de8a87"
+database_id = "replace_with_cloudflare_d1_database_id"
+
+# Optional fallback only; D1 remains the source of truth.
+# [[kv_namespaces]]
+# binding = "LEADS_KV"
+# id = "replace_with_cloudflare_kv_namespace_id"
