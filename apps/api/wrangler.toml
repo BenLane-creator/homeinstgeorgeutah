@@ -1,6 +1,7 @@
 name = "homeinstgeorgeutah-api"
 main = "src/index.ts"
 compatibility_date = "2026-05-28"
+account_id = "5c2c50cd82516e7f000aac929d48c0d2"
 
 routes = [
   { pattern = "homeinstgeorgeutah.com/api/*", zone_name = "homeinstgeorgeutah.com" },
@@ -18,7 +19,8 @@ API_WRITE_ORIGINS = "https://homeinstgeorgeutah.com,https://www.homeinstgeorgeut
 [[d1_databases]]
 binding = "DB"
 database_name = "homeinstgeorgeutah"
-database_id = "replace_with_cloudflare_d1_database_id"
+database_id = "8ca08d07-6614-4533-b7eb-3c92db623282"
+migrations_dir = "../../packages/db/migrations"
 
 # Optional fallback only; D1 remains the source of truth.
 # [[kv_namespaces]]
