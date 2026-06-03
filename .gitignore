@@ -1,0 +1,41 @@
+node_modules
+**/node_modules
+bun.lock
+bun.lockb
+package-lock.json
+pnpm-lock.yaml
+yarn.lock
+
+# Build outputs
+dist
+**/dist
+.astro
+**/.astro
+.vite
+**/.vite
+.cache
+**/.cache
+.mf
+**/.mf
+apps/app/build
+
+# Cloudflare local state
+.wrangler
+**/.wrangler
+.dev.vars
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+
+# Test and reports
+coverage
+playwright-report
+test-results
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode
+.idea

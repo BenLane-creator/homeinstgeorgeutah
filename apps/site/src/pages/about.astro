@@ -1,0 +1,49 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import CTA from "../components/CTA.astro";
+import { site } from "@home/config/site";
+
+const pageTitle = "About Joel Robertson";
+---
+
+<BaseLayout title={pageTitle} pathname="/about/">
+  <section class="bg-[#fffaf3] px-5 py-24">
+    <div class="mx-auto max-w-5xl">
+      <p class="text-sm font-semibold uppercase tracking-[0.25em] text-amber-900/70">About</p>
+      <h1 class="mt-4 max-w-4xl font-serif text-5xl font-semibold tracking-tight text-stone-950 md:text-6xl">
+        Local St. George real estate guidance from Joel Robertson.
+      </h1>
+      <p class="mt-6 max-w-3xl text-lg leading-8 text-stone-700">
+        Joel Robertson of Robertson Real Estate helps buyers, sellers, and relocating clients make clear real estate decisions across St. George and Southern Utah. His guidance is backed by 20+ years of local market experience, practical negotiation insight, and direct broker-level service.
+      </p>
+      <div class="mt-8 flex flex-col gap-3 sm:flex-row">
+        <a href="/homes/search/" class="rounded-full bg-stone-950 px-6 py-3 text-center font-semibold text-white hover:bg-stone-800">Search homes</a>
+        <a href="/contact/" class="rounded-full bg-white px-6 py-3 text-center font-semibold text-stone-950 ring-1 ring-stone-200 hover:bg-stone-50">Contact Joel</a>
+      </div>
+    </div>
+  </section>
+
+  <section class="bg-white px-5 py-20">
+    <div class="mx-auto grid max-w-7xl gap-8 md:grid-cols-3">
+      <div class="rounded-3xl border border-stone-200 p-8">
+        <p class="text-sm font-semibold uppercase tracking-[0.2em] text-amber-900/70">Experience</p>
+        <h2 class="mt-3 font-serif text-3xl font-semibold text-stone-950">20+ years locally</h2>
+        <p class="mt-4 leading-7 text-stone-600">Joel brings long-term Southern Utah market context to pricing, neighborhood selection, offer strategy, seller preparation, and negotiation.</p>
+      </div>
+      <div class="rounded-3xl border border-stone-200 p-8">
+        <p class="text-sm font-semibold uppercase tracking-[0.2em] text-amber-900/70">Brokerage</p>
+        <h2 class="mt-3 font-serif text-3xl font-semibold text-stone-950">Robertson Real Estate</h2>
+        <p class="mt-4 leading-7 text-stone-600">The site is designed to make Joel directly accessible while keeping MLS search and listing details safely served through the first-party search layer with Spark/RESO as the approved MLS data boundary.</p>
+      </div>
+      <div class="rounded-3xl border border-stone-200 p-8">
+        <p class="text-sm font-semibold uppercase tracking-[0.2em] text-amber-900/70">Contact</p>
+        <h2 class="mt-3 font-serif text-3xl font-semibold text-stone-950">Talk to Joel</h2>
+        <p class="mt-4 leading-7 text-stone-600">
+          Call <a class="font-semibold text-stone-950" href={site.phoneHref}>{site.phone}</a> or email <a class="font-semibold text-stone-950" href={`mailto:${site.email}`}>{site.email}</a>.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <CTA />
+</BaseLayout>

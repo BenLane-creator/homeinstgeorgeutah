@@ -1,0 +1,30 @@
+{
+  "name": "@home/site",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@astrojs/cloudflare": "latest",
+    "@astrojs/mdx": "latest",
+    "@astrojs/react": "latest",
+    "@tailwindcss/vite": "latest",
+    "astro": "latest",
+    "motion": "latest",
+    "react": "latest",
+    "react-dom": "latest",
+    "tailwindcss": "latest",
+    "@home/config": "workspace:*",
+    "@home/ui": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/react": "latest",
+    "@types/react-dom": "latest",
+    "vite": "7.2.7",
+    "vitest": "latest"
+  }
+}

@@ -1,0 +1,26 @@
+# Flexmls IDX Integration Plan
+
+## Safe implementation
+
+- WordPress stays installed and runs the Flexmls IDX plugin.
+- Create WordPress pages for:
+  - `/homes/search`
+  - `/homes/results`
+  - `/homes/listing-details`
+  - `/homes/account`
+  - any required saved-search or portal pages
+- Astro links primary search CTAs to `/homes/search`.
+- Cloudflare can route `/homes/*` to WordPress, but only after testing cookies, forms, scripts, maps, canonical tags, and compliance disclaimers.
+
+## Unsafe until approved
+
+- Scraping listing data from Flexmls pages.
+- Rebuilding MLS listing cards from cached data without approved feed rights.
+- Caching IDX HTML aggressively.
+- Replacing Flexmls lead forms if that breaks portal/saved-search behavior.
+
+## Styling strategy
+
+- Use a lightweight WordPress theme for the IDX enclave.
+- Match global typography/colors/header/footer as much as possible.
+- Add a minimal CSS plugin or child theme stylesheet only after staging tests.

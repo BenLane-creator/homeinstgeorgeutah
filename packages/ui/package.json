@@ -1,0 +1,16 @@
+{
+  "name": "@home/ui",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./button": "./button.tsx",
+    "./card": "./card.tsx"
+  },
+  "dependencies": {
+    "@radix-ui/react-slot": "latest",
+    "class-variance-authority": "latest",
+    "clsx": "latest",
+    "tailwind-merge": "latest",
+    "react": "latest"
+  }
+}

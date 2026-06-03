@@ -1,0 +1,113 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import CTA from "../components/CTA.astro";
+import { site } from "@home/config/site";
+
+const searchUrl = site.customSearchUrl.endsWith("/")
+  ? site.customSearchUrl
+  : `${site.customSearchUrl}/`;
+---
+
+<BaseLayout
+  title="Horse Properties in St. George & Southern Utah"
+  pathname="/horse-properties/"
+  description="Explore horse properties, larger-lot homes, rural properties, and equestrian real estate considerations in St. George and Southern Utah with Joel Robertson."
+>
+  <section class="bg-[#fffaf3] px-5 py-24">
+    <div class="mx-auto max-w-5xl">
+      <p class="text-sm font-semibold uppercase tracking-[0.25em] text-amber-900/70">
+        Horse Properties
+      </p>
+
+      <h1 class="mt-4 max-w-4xl font-serif text-5xl font-semibold tracking-tight text-stone-950 md:text-6xl">
+        Horse properties and larger-lot homes in Southern Utah.
+      </h1>
+
+      <p class="mt-6 max-w-3xl text-lg leading-8 text-stone-700">
+        Buying a horse property is not just about acreage. Joel Robertson helps buyers evaluate zoning, utilities, access, animal-use rules, fencing, outbuildings, water considerations, and long-term resale factors across St. George and Southern Utah.
+      </p>
+
+      <div class="mt-8 flex flex-col gap-3 sm:flex-row">
+        <a href={searchUrl} class="rounded-full bg-stone-950 px-6 py-3 text-center font-semibold text-white hover:bg-stone-800">
+          Search homes
+        </a>
+
+        <a href="/contact/" class="rounded-full bg-white px-6 py-3 text-center font-semibold text-stone-950 ring-1 ring-stone-200 hover:bg-stone-50">
+          Ask Joel about horse properties
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <section class="bg-white px-5 py-20">
+    <div class="mx-auto grid max-w-7xl gap-8 md:grid-cols-3">
+      {[
+        ["Location and land use", "Compare rural corridors, zoning, animal allowances, setbacks, easements, and neighborhood restrictions before assuming a property works for horses."],
+        ["Property improvements", "Review barns, corrals, fencing, irrigation, pasture layout, trailer access, storage, drainage, and existing equestrian improvements."],
+        ["Due diligence", "Verify water, septic, utilities, access roads, floodplain or wash issues, HOA rules, title matters, and resale considerations before writing an offer."],
+      ].map(([title, copy]) => (
+        <div class="rounded-3xl border border-stone-200 p-8">
+          <h2 class="font-serif text-3xl font-semibold text-stone-950">{title}</h2>
+          <p class="mt-4 leading-7 text-stone-600">{copy}</p>
+        </div>
+      ))}
+    </div>
+  </section>
+
+  <section class="bg-[#fffaf3] px-5 py-20">
+    <div class="mx-auto max-w-6xl">
+      <h2 class="font-serif text-4xl font-semibold text-stone-950">
+        Areas buyers often compare
+      </h2>
+
+      <p class="mt-5 max-w-3xl leading-8 text-stone-700">
+        Horse-property buyers often look beyond central St. George and compare larger-lot or rural options throughout Washington County and the surrounding Southern Utah market.
+      </p>
+
+      <div class="mt-8 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        {[
+          ["/neighborhoods/washington-fields/", "Washington Fields"],
+          ["/neighborhoods/dammeron-valley/", "Dammeron Valley"],
+          ["/neighborhoods/diamond-valley/", "Diamond Valley"],
+          ["/neighborhoods/veyo/", "Veyo"],
+          ["/neighborhoods/central/", "Central"],
+          ["/neighborhoods/new-harmony/", "New Harmony"],
+          ["/neighborhoods/apple-valley/", "Apple Valley"],
+          ["/neighborhoods/hurricane/", "Hurricane"],
+          ["/neighborhoods/enterprise/", "Enterprise"],
+        ].map(([href, label]) => (
+          <a href={href} class="rounded-2xl border border-stone-200 bg-white p-5 font-semibold text-stone-950 hover:bg-stone-50">
+            {label}
+          </a>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <section class="bg-white px-5 py-20">
+    <div class="mx-auto max-w-5xl">
+      <h2 class="font-serif text-4xl font-semibold text-stone-950">
+        Horse-property checklist
+      </h2>
+
+      <div class="mt-8 grid gap-4 sm:grid-cols-2">
+        {[
+          "Animal-use zoning and local ordinances",
+          "Water, irrigation, and utility availability",
+          "Barns, corrals, fencing, and pasture layout",
+          "Trailer access, driveway width, and road conditions",
+          "Septic, wells, drainage, floodplain, and wash concerns",
+          "HOA rules, CC&Rs, easements, and title restrictions",
+          "Outbuilding condition and permitted improvements",
+          "Resale potential and buyer pool for the property type",
+        ].map((item) => (
+          <div class="rounded-2xl border border-stone-200 p-5 text-stone-700">
+            {item}
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <CTA />
+</BaseLayout>

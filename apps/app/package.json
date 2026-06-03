@@ -1,0 +1,31 @@
+{
+  "name": "@home/app",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "react-router dev",
+    "build": "react-router build",
+    "start": "react-router-serve ./build/server/index.js",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@react-router/cloudflare": "latest",
+    "@react-router/dev": "latest",
+    "@react-router/node": "latest",
+    "@react-router/serve": "latest",
+    "@tailwindcss/vite": "latest",
+    "react": "latest",
+    "react-dom": "latest",
+    "react-router": "latest",
+    "tailwindcss": "latest",
+    "@home/ui": "workspace:*",
+    "isbot": "^5"
+  },
+  "devDependencies": {
+    "@types/react": "latest",
+    "@types/react-dom": "latest",
+    "typescript": "latest",
+    "vite": "latest",
+    "vitest": "latest"
+  }
+}
