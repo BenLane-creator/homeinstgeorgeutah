@@ -602,8 +602,9 @@ export default {
       return handleSearch(request, env);
     }
 
-    if (pathname.startsWith("/api/listings/") || pathname.startsWith("/api/v1/listings/")) {
-      const listingId = decodeURIComponent(pathname.replace(/^\/api\/(v1\/)?listings\//, ""));
+    const listingMatch = pathname.match(/^\/api\/(?:v1\/)?listings\/([^/]+)$/);
+    if (listingMatch) {
+      const listingId = decodeURIComponent(listingMatch[1] ?? "");
       return handleListingDetail(request, env, listingId);
     }
 
@@ -628,7 +629,11 @@ export default {
     if (pathname === "/api/v1/bookings/create-handoff") return handleSaveStub(request, env, "booking_handoff");
     if (pathname === "/api/v1/crm/sync") return handleSaveStub(request, env, "crm_sync");
     if (pathname === "/api/v1/idx/events") return handleSaveStub(request, env, "idx_event");
-    if (pathname.startsWith("/api/v1/reports/market/")) return handleSaveStub(request, env, "market_report");
+
+    const marketReportMatch = pathname.match(/^\/api\/v1\/reports\/market\/([^/]+)$/);
+    if (marketReportMatch) {
+      return handleSaveStub(request, env, "market_report");
+    }
 
     if (pathname === "/api/mls-status" || pathname === "/api/v1/mls-status") {
       return json(
