@@ -36,6 +36,14 @@
       "!**/.wrangler",
       "!**/.vite",
       "!**/.cache",
+      "!**/.mf",
+      "!**/node_modules",
+      "!**/dist",
+      "!**/build",
+      "!**/.astro",
+      "!**/.wrangler",
+      "!**/.vite",
+      "!**/.cache",
       "!**/.mf"
     ]
   },
