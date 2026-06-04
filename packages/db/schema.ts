@@ -64,8 +64,12 @@ export const leadEvents = sqliteTable(
   {
     id: text("id").primaryKey(),
     contactId: text("contact_id").references(() => contacts.id),
-    attributionSessionId: text("attribution_session_id").references(() => attributionSessions.id),
-    propertyContextId: text("property_context_id").references(() => propertyContext.id),
+    attributionSessionId: text("attribution_session_id").references(
+      () => attributionSessions.id,
+    ),
+    propertyContextId: text("property_context_id").references(
+      () => propertyContext.id,
+    ),
     eventType: text("event_type").notNull(),
     intentType: text("intent_type").notNull(),
     workflowLane: text("workflow_lane").notNull(),
@@ -241,7 +245,9 @@ export const searchSubscriptions = sqliteTable(
     lastSentAt: text("last_sent_at"),
     createdAt: text("created_at").notNull().default("CURRENT_TIMESTAMP"),
   },
-  (table) => [index("search_subscriptions_saved_search_idx").on(table.savedSearchId)],
+  (table) => [
+    index("search_subscriptions_saved_search_idx").on(table.savedSearchId),
+  ],
 );
 
 export const propertyInquiries = sqliteTable(
@@ -289,7 +295,9 @@ export const intentSnapshots = sqliteTable("intent_snapshots", {
 export const userPreferences = sqliteTable("user_preferences", {
   id: text("id").primaryKey(),
   userAccountId: text("user_account_id").references(() => userAccounts.id),
-  preferenceJson: text("preference_json", { mode: "json" }).notNull().default({}),
+  preferenceJson: text("preference_json", { mode: "json" })
+    .notNull()
+    .default({}),
   createdAt: text("created_at").notNull().default("CURRENT_TIMESTAMP"),
   updatedAt: text("updated_at").notNull().default("CURRENT_TIMESTAMP"),
 });
