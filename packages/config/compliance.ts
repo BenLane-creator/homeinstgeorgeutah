@@ -1,4 +1,8 @@
-export type UserDisplayState = "public" | "registered" | "vow_accepted" | "broker_admin";
+export type UserDisplayState =
+  | "public"
+  | "registered"
+  | "vow_accepted"
+  | "broker_admin";
 export type ListingAgreementScope = "idx" | "vow" | "broker_back_office";
 
 export type ListingDisplayPolicyInput = {
@@ -40,11 +44,16 @@ const registeredOnlyFields = new Set([
   "AssociationFeeFrequency",
 ]);
 
-export function canDisplayField({ fieldName, userState, agreementScope = "idx" }: ListingDisplayPolicyInput) {
+export function canDisplayField({
+  fieldName,
+  userState,
+  agreementScope = "idx",
+}: ListingDisplayPolicyInput) {
   if (userState === "broker_admin") return true;
   if (agreementScope === "broker_back_office") return false;
   if (publicIdxFields.has(fieldName)) return true;
-  if (registeredOnlyFields.has(fieldName)) return userState === "registered" || userState === "vow_accepted";
+  if (registeredOnlyFields.has(fieldName))
+    return userState === "registered" || userState === "vow_accepted";
   if (agreementScope === "vow") return userState === "vow_accepted";
   return false;
 }
@@ -53,17 +62,28 @@ export function requiresRegistration(fieldName: string) {
   return registeredOnlyFields.has(fieldName);
 }
 
-export function canDisplayMedia(input: { listingStatus?: string; userState: UserDisplayState; mediaRightsAllowed?: boolean }) {
+export function canDisplayMedia(input: {
+  listingStatus?: string;
+  userState: UserDisplayState;
+  mediaRightsAllowed?: boolean;
+}) {
   if (input.mediaRightsAllowed === false) return false;
   if (!input.listingStatus) return false;
 
   const status = input.listingStatus.toLowerCase();
-  if (["active", "coming soon", "pending", "active under contract"].includes(status)) return true;
+  if (
+    ["active", "coming soon", "pending", "active under contract"].includes(
+      status,
+    )
+  )
+    return true;
 
   return input.userState === "broker_admin";
 }
 
-export function requiredDisclaimers(provider = "Washington County MLS + Iron County MLS") {
+export function requiredDisclaimers(
+  provider = "Washington County MLS + Iron County MLS",
+) {
   return [
     `Listing data is provided through ${provider} and the approved Spark® / RESO Web API access path.`,
     "Display fields, media, attribution, update timestamps, and registered-user gating must follow the applicable MLS/provider agreement.",

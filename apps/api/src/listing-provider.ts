@@ -1,4 +1,8 @@
-export type ViewerState = "public" | "registered" | "vow_accepted" | "broker_admin";
+export type ViewerState =
+  | "public"
+  | "registered"
+  | "vow_accepted"
+  | "broker_admin";
 export type ListingAgreementScope = "idx" | "vow" | "broker_back_office";
 
 export type ViewerContext = {
@@ -86,7 +90,11 @@ export type ListingOpenHouse = {
 };
 export type SimilarListingsInput = ListingSearchInput & { listingId: string };
 export type ListingSyncCursorInput = { cursor?: string; limit?: number };
-export type ListingSyncResult = { nextCursor?: string; changed: number; raw?: unknown };
+export type ListingSyncResult = {
+  nextCursor?: string;
+  changed: number;
+  raw?: unknown;
+};
 export type SavedSearchRecord = Record<string, unknown>;
 export type SavedListingRecord = Record<string, unknown>;
 

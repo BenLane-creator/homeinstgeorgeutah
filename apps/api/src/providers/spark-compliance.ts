@@ -43,26 +43,42 @@ const registeredOnlyFields = new Set([
   "AssociationFeeFrequency",
 ]);
 
-export function canDisplayField({ fieldName, userState, agreementScope = "idx" }: ListingDisplayPolicyInput) {
+export function canDisplayField({
+  fieldName,
+  userState,
+  agreementScope = "idx",
+}: ListingDisplayPolicyInput) {
   if (userState === "broker_admin") return true;
   if (agreementScope === "broker_back_office") return false;
   if (publicIdxFields.has(fieldName)) return true;
-  if (registeredOnlyFields.has(fieldName)) return userState === "registered" || userState === "vow_accepted";
+  if (registeredOnlyFields.has(fieldName))
+    return userState === "registered" || userState === "vow_accepted";
   if (agreementScope === "vow") return userState === "vow_accepted";
   return false;
 }
 
-export function canDisplayMedia(input: { listingStatus?: string | null; userState: ViewerState; mediaRightsAllowed?: boolean }) {
+export function canDisplayMedia(input: {
+  listingStatus?: string | null;
+  userState: ViewerState;
+  mediaRightsAllowed?: boolean;
+}) {
   if (input.mediaRightsAllowed === false) return false;
   if (!input.listingStatus) return false;
 
   const status = input.listingStatus.toLowerCase();
-  if (["active", "coming soon", "pending", "active under contract"].includes(status)) return true;
+  if (
+    ["active", "coming soon", "pending", "active under contract"].includes(
+      status,
+    )
+  )
+    return true;
 
   return input.userState === "broker_admin";
 }
 
-export function requiredDisclaimers(provider = "Spark / RESO via approved Flexmls/FBS access") {
+export function requiredDisclaimers(
+  provider = "Spark / RESO via approved Flexmls/FBS access",
+) {
   return [
     `Listing data is provided through ${provider} and approved MLS access.`,
     "Display fields, media, attribution, update timestamps, registered-user gates, and VOW access must follow the applicable MLS/provider agreement.",

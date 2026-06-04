@@ -1,6 +1,11 @@
 import type { ListingSearchInput } from "../listing-provider";
 
-function boundedPositiveInt(value: string | undefined, fallback: number, min: number, max: number) {
+function boundedPositiveInt(
+  value: string | undefined,
+  fallback: number,
+  min: number,
+  max: number,
+) {
   const parsed = Number.parseInt(String(value ?? ""), 10);
   if (!Number.isFinite(parsed) || Number.isNaN(parsed)) return fallback;
   return Math.min(Math.max(parsed, min), max);
@@ -23,7 +28,17 @@ export function parseSearchInput(url: URL): ListingSearchInput {
     baths: optionalNumber(url.searchParams.get("baths") ?? undefined),
     propertyType: url.searchParams.get("propertyType")?.trim() || undefined,
     status: url.searchParams.get("status")?.trim() || "Active",
-    page: boundedPositiveInt(url.searchParams.get("page") ?? undefined, 1, 1, 10000),
-    limit: boundedPositiveInt(url.searchParams.get("limit") ?? undefined, 12, 1, 25),
+    page: boundedPositiveInt(
+      url.searchParams.get("page") ?? undefined,
+      1,
+      1,
+      10000,
+    ),
+    limit: boundedPositiveInt(
+      url.searchParams.get("limit") ?? undefined,
+      12,
+      1,
+      25,
+    ),
   };
 }
