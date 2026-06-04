@@ -5,10 +5,11 @@ export const site = {
   url: "https://homeinstgeorgeutah.com",
   market: "Southern Utah",
   primaryMlsMarkets: ["Washington County MLS", "Iron County MLS"],
-  description: "St. George and Southern Utah real estate guidance backed by 20+ years of local experience.",
+  description:
+    "St. George and Southern Utah real estate guidance backed by 20+ years of local experience.",
   phone: "(435) 773-1220",
   phoneHref: "tel:+14357731220",
-  email: "joel@homeinstgeorge.com",
+  email: "joel@homeinstgeorgeutah.com",
   address: "St. George, UT",
   idxBaseUrl: "/homes",
   customSearchUrl: "/homes/search/",
