@@ -1,11 +1,13 @@
-import { site } from "@home/config/site";
 import { normalizePathname } from "@home/config/seo";
+import { site } from "@home/config/site";
 
 function slugFromPath(path: string) {
-  return path
-    .split("/")
-    .pop()
-    ?.replace(/\.mdx$/, "") ?? "";
+  return (
+    path
+      .split("/")
+      .pop()
+      ?.replace(/\.mdx$/, "") ?? ""
+  );
 }
 
 function parseFrontmatter(raw: unknown) {
@@ -47,7 +49,7 @@ export async function GET() {
     "/",
     "/about/",
     "/homes/",
-  "/buyers/",
+    "/buyers/",
     "/sellers/",
     "/relocation/",
     "/seller-financing/",
@@ -70,11 +72,13 @@ export async function GET() {
     import: "default",
   });
 
-  const neighborhoodRoutes = Object.entries(neighborhoods).map(([path, raw]) => {
-    const frontmatter = parseFrontmatter(raw);
-    const slug = frontmatter.slug || slugFromPath(path);
-    return `/neighborhoods/${slug}/`;
-  });
+  const neighborhoodRoutes = Object.entries(neighborhoods).map(
+    ([path, raw]) => {
+      const frontmatter = parseFrontmatter(raw);
+      const slug = frontmatter.slug || slugFromPath(path);
+      return `/neighborhoods/${slug}/`;
+    },
+  );
 
   const blogRoutes = Object.entries(blogPosts).map(([path, raw]) => {
     const frontmatter = parseFrontmatter(raw);
@@ -82,7 +86,9 @@ export async function GET() {
     return `/blog/${slug}/`;
   });
 
-  const routes = [...new Set([...staticRoutes, ...neighborhoodRoutes, ...blogRoutes])];
+  const routes = [
+    ...new Set([...staticRoutes, ...neighborhoodRoutes, ...blogRoutes]),
+  ];
 
   const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
@@ -92,7 +98,7 @@ ${routes
     <loc>${url(route)}</loc>
     <changefreq>${route.includes("/blog/") ? "monthly" : "weekly"}</changefreq>
     <priority>${route === "/" ? "1.0" : route.includes("/neighborhoods/") ? "0.8" : "0.7"}</priority>
-  </url>`
+  </url>`,
   )
   .join("\n")}
 </urlset>`;
