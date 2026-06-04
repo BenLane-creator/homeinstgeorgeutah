@@ -9,16 +9,16 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@home/ui": "workspace:*",
     "@react-router/cloudflare": "latest",
     "@react-router/dev": "latest",
-    "@react-router/node": "latest",
+    "@react-router/node": "^7.16.0",
     "@react-router/serve": "latest",
     "@tailwindcss/vite": "latest",
     "react": "latest",
     "react-dom": "latest",
     "react-router": "latest",
     "tailwindcss": "latest",
-    "@home/ui": "workspace:*",
     "isbot": "^5"
   },
   "devDependencies": {
