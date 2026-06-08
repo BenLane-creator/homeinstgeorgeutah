@@ -1,0 +1,26 @@
+---
+import { site } from "@home/config/site";
+import { featuredSearches, navItems } from "@home/config/routes";
+---
+<footer class="border-t border-stone-200 bg-stone-950 text-white">
+  <div class="mx-auto grid max-w-7xl gap-10 px-5 py-12 md:grid-cols-[1.4fr_1fr_1fr]">
+    <div>
+      <p class="font-serif text-2xl font-semibold">{site.name}</p>
+      <p class="mt-4 max-w-md text-sm leading-6 text-stone-300">Real estate search, local guidance, and seller strategy for {site.market}.</p>
+      <p class="mt-4 text-sm text-stone-300">{site.phone} · {site.email}</p>
+    </div>
+    <div>
+      <p class="font-semibold">Explore</p>
+      <div class="mt-4 grid gap-2 text-sm text-stone-300">
+        {navItems.map((item) => <a class="hover:text-white" href={item.href}>{item.label}</a>)}
+      </div>
+    </div>
+    <div>
+      <p class="font-semibold">Featured searches</p>
+      <div class="mt-4 grid gap-2 text-sm text-stone-300">
+        {featuredSearches.map((item) => <a class="hover:text-white" href={item.href}>{item.label}</a>)}
+      </div>
+    </div>
+  </div>
+  <div class="border-t border-white/10 px-5 py-5 text-center text-xs text-stone-400">© {new Date().getFullYear()} {site.name}. MLS/IDX data, display requirements, and disclaimers are controlled by the approved IDX provider and local MLS rules.</div>
+</footer>

@@ -1,0 +1,26 @@
+{
+  "name": "homeinstgeorgeutah",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev:site": "bun --filter @home/site dev",
+    "dev:api": "bun --filter @home/api dev",
+    "dev:app": "bun --filter @home/app dev",
+    "build": "bun --filter '*' build",
+    "check": "bunx biome check .",
+    "format": "bunx biome format --write .",
+    "test": "bun --filter '*' test",
+    "test:e2e": "bunx playwright test",
+    "build:site": "bun --filter @home/site build",
+    "fix": "bunx biome check --write ."
+  },
+  "devDependencies": {
+    "@biomejs/biome": "latest",
+    "@playwright/test": "latest",
+    "typescript": "latest"
+  }
+}

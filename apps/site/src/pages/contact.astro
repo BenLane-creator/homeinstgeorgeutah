@@ -1,0 +1,19 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import CTA from "../components/CTA.astro";
+const pageTitle = "Contact";
+---
+<BaseLayout title={pageTitle} pathname="/contact/">
+  <section class="bg-[#fffaf3] px-5 py-20">
+    <div class="mx-auto max-w-5xl">
+      <p class="text-sm font-semibold uppercase tracking-[0.25em] text-amber-900/70">{pageTitle}</p>
+      <h1 class="mt-4 font-serif text-5xl font-semibold text-stone-950">{pageTitle} in St. George & Southern Utah</h1>
+      <p class="mt-6 max-w-3xl text-lg leading-8 text-stone-700">Custom copy goes here. This page is intentionally static and fast, with CTAs that route either to Flexmls IDX search or the custom lead API.</p>
+      <div class="mt-8 flex gap-3">
+        <a href="/homes/search/" class="rounded-full bg-stone-950 px-6 py-3 font-semibold text-white">Search homes</a>
+        <a href="/contact/" class="rounded-full bg-white px-6 py-3 font-semibold text-stone-950 ring-1 ring-stone-200">Contact</a>
+      </div>
+    </div>
+  </section>
+  <CTA />
+</BaseLayout>

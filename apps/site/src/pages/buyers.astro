@@ -1,0 +1,99 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import CTA from "../components/CTA.astro";
+import { site } from "@home/config/site";
+---
+
+<BaseLayout
+  title="Buying a Home in St. George"
+  pathname="/buyers/"
+  description="Buyer guidance for St. George and Southern Utah real estate from Joel Robertson of Robertson Real Estate."
+>
+  <section class="bg-[#fffaf3] px-5 py-24">
+    <div class="mx-auto max-w-5xl">
+      <p class="text-sm font-semibold uppercase tracking-[0.25em] text-amber-900/70">
+        Buyers
+      </p>
+
+      <h1 class="mt-4 max-w-4xl font-serif text-5xl font-semibold tracking-tight text-stone-950 md:text-6xl">
+        Buy with clear local guidance before you make a move.
+      </h1>
+
+      <p class="mt-6 max-w-3xl text-lg leading-8 text-stone-700">
+        Joel Robertson helps buyers evaluate St. George and Southern Utah homes with 20+ years of local market experience, practical negotiation guidance, and property-specific advice.
+      </p>
+
+      <div class="mt-8 flex flex-col gap-3 sm:flex-row">
+        <a href={site.flexmlsSearchUrl} class="rounded-full bg-stone-950 px-6 py-3 text-center font-semibold text-white hover:bg-stone-800">
+          Search homes
+        </a>
+        <a href="/contact/" class="rounded-full bg-white px-6 py-3 text-center font-semibold text-stone-950 ring-1 ring-stone-200 hover:bg-stone-50">
+          Talk to Joel
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <section class="bg-white px-5 py-20">
+    <div class="mx-auto grid max-w-7xl gap-8 md:grid-cols-3">
+      {[
+        ["Understand the area", "Compare St. George, Washington, Hurricane, Ivins, Santa Clara, and nearby Southern Utah communities before narrowing your search."],
+        ["Evaluate the property", "Review condition, location, HOA terms, utilities, zoning, lot usability, resale factors, and inspection issues before writing an offer."],
+        ["Negotiate with context", "Use local market data, seller motivation, competing inventory, and property-specific details to shape a stronger offer strategy."],
+      ].map(([title, copy]) => (
+        <div class="rounded-3xl border border-stone-200 p-8">
+          <h2 class="font-serif text-3xl font-semibold text-stone-950">{title}</h2>
+          <p class="mt-4 leading-7 text-stone-600">{copy}</p>
+        </div>
+      ))}
+    </div>
+  </section>
+
+  <section class="bg-[#fffaf3] px-5 py-20">
+    <div class="mx-auto max-w-6xl">
+      <h2 class="font-serif text-4xl font-semibold text-stone-950">
+        Buyer resources
+      </h2>
+
+      <div class="mt-8 grid gap-4 md:grid-cols-2">
+        {[
+          ["/neighborhoods/", "Explore Southern Utah communities"],
+          ["/horse-properties/", "Horse properties"],
+          ["/seller-financing/", "Seller financing options"],
+          ["/relocation/", "Relocation guidance"],
+          ["/contact/", "Ask Joel before you write an offer"],
+          [site.flexmlsSearchUrl, "Search live listings"],
+        ].map(([href, label]) => (
+          <a href={href} class="rounded-2xl border border-stone-200 bg-white p-5 font-semibold text-stone-950 hover:bg-stone-50">
+            {label}
+          </a>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <section class="bg-white px-5 py-20">
+    <div class="mx-auto max-w-5xl">
+      <h2 class="font-serif text-4xl font-semibold text-stone-950">
+        What buyers should verify
+      </h2>
+
+      <div class="mt-8 grid gap-4 sm:grid-cols-2">
+        {[
+          "MLS availability and pricing",
+          "Property condition and inspection findings",
+          "HOA dues, rules, and rental restrictions",
+          "Zoning, utilities, septic, or water details",
+          "Floodplain, drainage, and geologic considerations",
+          "Resale potential and neighborhood fit",
+        ].map((item) => (
+          <div class="rounded-2xl border border-stone-200 p-5 text-stone-700">
+            {item}
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <CTA />
+</BaseLayout>

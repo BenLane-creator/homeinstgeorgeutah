@@ -1,0 +1,17 @@
+export const site = {
+  name: "Home In St. George",
+  brokerName: "Joel Robertson",
+  companyName: "Robertson Real Estate",
+  url: "https://homeinstgeorgeutah.com",
+  market: "St. George & Southern Utah",
+  description:
+    "St. George and Southern Utah real estate guidance backed by 20+ years of local experience.",
+  phone: "(435) 773-1220",
+  phoneHref: "tel:+14357731220",
+  email: "joel@homeinstgeorge.com",
+  address: "St. George, UT",
+  idxBaseUrl: "/homes",
+  flexmlsSearchUrl: "/homes/search/",
+  mlsProvider: "Washington County BOR - IDX",
+  mlsApi: "Spark® / RESO Web API",
+};
