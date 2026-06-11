@@ -2,10 +2,16 @@
 import { site } from "@home/config/site";
 ---
 
-<nav class="fixed inset-x-0 bottom-0 z-50 border-t border-stone-200 bg-white/95 px-3 py-2 shadow-2xl shadow-stone-950/15 backdrop-blur md:hidden" aria-label="Primary mobile actions">
-  <div class="grid grid-cols-3 gap-2 text-center text-xs font-semibold">
-    <a href={site.phoneHref} class="rounded-2xl bg-stone-950 px-3 py-3 text-white">Call Joel</a>
-    <a href="/homes/search/" class="rounded-2xl bg-[#fffaf3] px-3 py-3 text-stone-950 ring-1 ring-stone-200">Search</a>
-    <a href="/contact/" class="rounded-2xl bg-white px-3 py-3 text-stone-950 ring-1 ring-stone-200">Ask</a>
+<nav class="fixed inset-x-0 bottom-0 z-50 border-t border-[#e3d8ca] bg-[#fffaf3]/95 px-3 py-2 shadow-[0_-12px_30px_rgba(28,25,23,0.12)] backdrop-blur-xl md:hidden" aria-label="Mobile quick actions">
+  <div class="mx-auto grid max-w-md grid-cols-3 gap-2">
+    <a href="/homes/search/" class="rounded-full bg-[#1c1917] px-3 py-3 text-center text-[0.68rem] font-bold uppercase tracking-[0.12em] text-white">
+      Search
+    </a>
+    <a href={site.phoneHref} class="rounded-full border border-[#7A8B75]/50 bg-white px-3 py-3 text-center text-[0.68rem] font-bold uppercase tracking-[0.12em] text-[#1c1917]">
+      Call
+    </a>
+    <a href="/contact/" class="rounded-full bg-[#7A8B75] px-3 py-3 text-center text-[0.68rem] font-bold uppercase tracking-[0.12em] text-white">
+      Contact
+    </a>
   </div>
 </nav>

@@ -1,27 +1,120 @@
 ---
-const neighborhoods = [
-  { name: "Downtown St. George", href: "/neighborhoods/downtown-st-george/", copy: "Walkable blocks, historic character, restaurants, and central access." },
-  { name: "Entrada", href: "/neighborhoods/entrada/", copy: "Desert golf, red-rock views, and a private-resort feel." },
-  { name: "Little Valley", href: "/neighborhoods/little-valley/", copy: "Family-friendly streets, newer homes, parks, and schools." },
-  { name: "Washington Fields", href: "/neighborhoods/washington-fields/", copy: "Larger lots, newer builds, and quick access to east-side amenities." },
+const featuredAreas = [
+  {
+    name: "Winchester Hills",
+    slug: "winchester-hills",
+    description:
+      "Quiet foothill living with larger lots, open views, and quick access to St. George.",
+    short:
+      "Quiet foothill living with larger lots, open views, and quick access to St. George.",
+    image: "/brand/portfolio/residential-home-evening.webp",
+  },
+  {
+    name: "Dammeron Valley",
+    slug: "dammeron-valley",
+    description:
+      "Cooler rural living with acreage, open space, and mountain views north of town.",
+    short:
+      "Cooler rural living, acreage, open space, and mountain views north of town.",
+    image: "/brand/portfolio/st-george-luxury-evening-home.webp",
+  },
+  {
+    name: "Sunbrook",
+    slug: "sunbrook",
+    description:
+      "Golf, red-rock views, established neighborhoods, and convenient west St. George access.",
+    short:
+      "Golf, red-rock views, established neighborhoods, and convenient west St. George access.",
+    image: "/brand/portfolio/hero-modern-real-estate-local-precision.webp",
+  },
+  {
+    name: "Ivins",
+    slug: "ivins",
+    description:
+      "Red-rock scenery, arts, trails, resort-style neighborhoods, and a quieter desert pace.",
+    short:
+      "Red-rock scenery, arts, trails, resort-style neighborhoods, and a quieter desert pace.",
+    image: "/brand/portfolio/craftsman-home-entry.webp",
+  },
 ];
 ---
-<section class="bg-white px-5 py-20">
+
+<section class="bg-[#fffaf3] px-5 py-16 sm:py-20">
   <div class="mx-auto max-w-7xl">
-    <div class="flex flex-col justify-between gap-6 md:flex-row md:items-end">
+    <div class="flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
       <div>
-        <p class="text-sm font-semibold uppercase tracking-[0.25em] text-amber-900/70">Featured areas</p>
-        <h2 class="mt-3 font-serif text-4xl font-semibold text-stone-950">Explore Southern Utah neighborhoods</h2>
+        <p class="brand-eyebrow">Featured areas</p>
+        <h2 class="mt-3 max-w-3xl font-serif text-4xl font-semibold tracking-tight text-[#1c1917] sm:text-5xl">
+          Explore focused Southern Utah communities.
+        </h2>
+        <p class="mt-4 max-w-2xl text-base leading-7 text-[#4f4942] sm:text-lg sm:leading-8">
+          Start with areas that match the current brand direction: scenic, higher-intent, local, and specific.
+        </p>
       </div>
-      <a href="/neighborhoods/" class="font-semibold text-stone-950 underline underline-offset-4">View all areas</a>
+
+      <a
+        href="/neighborhoods/"
+        class="inline-flex min-h-12 w-full items-center justify-center rounded-full border border-[#d8c8b8] bg-white px-6 py-3 text-center text-xs font-bold uppercase tracking-[0.14em] text-[#1c1917] shadow-sm transition hover:bg-[#f5f0e8] sm:w-auto"
+      >
+        View all areas
+      </a>
     </div>
-    <div class="mt-10 grid gap-5 md:grid-cols-4">
-      {neighborhoods.map((area) => (
-        <a href={area.href} class="rounded-3xl border border-stone-200 bg-stone-50 p-6 transition hover:-translate-y-1 hover:bg-white hover:shadow-xl hover:shadow-stone-900/10">
-          <h3 class="font-serif text-2xl font-semibold text-stone-950">{area.name}</h3>
-          <p class="mt-3 text-sm leading-6 text-stone-600">{area.copy}</p>
-        </a>
-      ))}
+
+    <div class="mt-9 grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
+      {
+        featuredAreas.map((area) => (
+          <a
+            href={`/neighborhoods/${area.slug}/`}
+            class="group flex min-h-[25rem] overflow-hidden rounded-[1.75rem] border border-[#e3d8ca] bg-white shadow-[0_18px_50px_rgba(28,25,23,0.08)] transition hover:-translate-y-1 hover:shadow-[0_22px_58px_rgba(28,25,23,0.12)]"
+          >
+            <article class="flex w-full flex-col">
+              <div class="relative h-48 overflow-hidden bg-[#f5f0e8] sm:h-52 xl:h-44">
+                <img
+                  src={area.image}
+                  alt={`${area.name} real estate area in Southern Utah`}
+                  class="h-full w-full object-cover transition duration-500 group-hover:scale-[1.04]"
+                  loading="lazy"
+                  decoding="async"
+                />
+                <div class="absolute inset-0 bg-[linear-gradient(180deg,rgba(28,25,23,0.04),rgba(28,25,23,0.36))]" />
+                <img
+                  src="/brand/logos/robertson-seal-light.webp"
+                  alt=""
+                  class="absolute bottom-4 right-4 h-16 w-16 rounded-full opacity-92 shadow-[0_10px_24px_rgba(28,25,23,0.22)]"
+                  loading="lazy"
+                  decoding="async"
+                />
+              </div>
+
+              <div class="flex flex-1 flex-col p-6 sm:p-7">
+                <h3 class="font-serif text-2xl font-semibold leading-tight text-[#1c1917] sm:text-3xl">
+                  {area.name}
+                </h3>
+
+                <p class="mt-4 hidden flex-1 text-sm leading-6 text-[#4f4942] sm:block">
+                  {area.description}
+                </p>
+
+                <p class="mt-4 flex-1 text-sm leading-6 text-[#4f4942] sm:hidden">
+                  {area.short}
+                </p>
+
+                <div class="mt-6 flex items-center justify-between gap-4 border-t border-[#e3d8ca] pt-5">
+                  <span class="text-xs font-bold uppercase tracking-[0.14em] text-[#7A8B75]">
+                    Explore area
+                  </span>
+                  <span
+                    aria-hidden="true"
+                    class="grid h-10 w-10 place-items-center rounded-full bg-[#1c1917] text-white transition group-hover:bg-[#7A8B75]"
+                  >
+                    →
+                  </span>
+                </div>
+              </div>
+            </article>
+          </a>
+        ))
+      }
     </div>
   </div>
 </section>

@@ -4,7 +4,7 @@ import { useState } from "react";
 type Status = "idle" | "submitting" | "success" | "error";
 
 export default function LeadFormIsland({
-  intent = "general",
+  intent = "general_contact",
 }: {
   intent?: string;
 }) {
@@ -44,45 +44,59 @@ export default function LeadFormIsland({
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
       onSubmit={submit}
-      className="rounded-3xl border border-stone-200 bg-white p-6 shadow-xl shadow-stone-900/5"
+      className="rounded-[1.75rem] border border-[#e3d8ca] bg-white/88 p-6 shadow-[0_18px_50px_rgba(28,25,23,0.10)] backdrop-blur"
     >
       <div className="grid gap-4">
+        <div>
+          <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#7A8B75]">
+            Contact Joel
+          </p>
+          <h3 className="mt-2 font-serif text-3xl font-semibold text-[#1c1917]">
+            Start the conversation.
+          </h3>
+        </div>
+
         <input
-          className="rounded-2xl border border-stone-200 px-4 py-3"
+          className="min-h-12 rounded-2xl border border-[#d8c8b8] bg-[#fffaf3] px-4 py-3 text-[#1c1917] placeholder:text-[#6f665d]"
           name="name"
           placeholder="Name"
           required
         />
         <input
-          className="rounded-2xl border border-stone-200 px-4 py-3"
+          className="min-h-12 rounded-2xl border border-[#d8c8b8] bg-[#fffaf3] px-4 py-3 text-[#1c1917] placeholder:text-[#6f665d]"
           name="email"
           placeholder="Email"
           type="email"
           required
         />
         <input
-          className="rounded-2xl border border-stone-200 px-4 py-3"
+          className="min-h-12 rounded-2xl border border-[#d8c8b8] bg-[#fffaf3] px-4 py-3 text-[#1c1917] placeholder:text-[#6f665d]"
           name="phone"
           placeholder="Phone"
         />
         <textarea
-          className="min-h-32 rounded-2xl border border-stone-200 px-4 py-3"
+          className="min-h-32 rounded-2xl border border-[#d8c8b8] bg-[#fffaf3] px-4 py-3 text-[#1c1917] placeholder:text-[#6f665d]"
           name="message"
           placeholder="How can we help?"
         />
-        <label className="flex gap-3 text-sm text-stone-600">
-          <input name="consent" type="checkbox" className="mt-1" required />I
-          agree to be contacted about my real estate request.
+        <label className="flex gap-3 text-sm leading-6 text-[#4f4942]">
+          <input
+            name="consent"
+            type="checkbox"
+            className="mt-1 accent-[#7A8B75]"
+            required
+          />
+          I agree to be contacted about my real estate request.
         </label>
         <button
           type="submit"
           disabled={status === "submitting"}
-          className="rounded-full bg-stone-950 px-6 py-3 font-semibold text-white disabled:opacity-60"
+          className="min-h-12 rounded-full bg-[#1c1917] px-6 py-3 text-sm font-bold uppercase tracking-[0.14em] text-white disabled:opacity-60"
         >
           {status === "submitting" ? "Sending..." : "Send request"}
         </button>
         {status === "success" && (
-          <p className="text-sm font-medium text-green-700">Request sent.</p>
+          <p className="text-sm font-medium text-[#4d6b44]">Request sent.</p>
         )}
         {status === "error" && (
           <p className="text-sm font-medium text-red-700">

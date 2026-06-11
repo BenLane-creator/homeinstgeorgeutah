@@ -1,34 +1,31 @@
 ---
-import BaseLayout from "../layouts/BaseLayout.astro";
+import CTA from "../components/CTA.astro";
+import Funnels from "../components/Funnels.astro";
 import Hero from "../components/Hero.astro";
 import NeighborhoodCards from "../components/NeighborhoodCards.astro";
-import Funnels from "../components/Funnels.astro";
-import CTA from "../components/CTA.astro";
+import BaseLayout from "../layouts/BaseLayout.astro";
 import { site } from "@home/config/site";
 ---
-<BaseLayout title="St. George Real Estate" pathname="/">
+
+<BaseLayout title="St. George Real Estate">
   <Hero />
 
-  <section class="bg-white px-5 py-14">
-    <div class="mx-auto max-w-7xl rounded-3xl border border-stone-200 bg-[#fffaf3] p-6 shadow-sm md:p-8">
-      <p class="text-sm font-semibold uppercase tracking-[0.25em] text-amber-900/70">Start with the search</p>
-      <form action="/homes/search/" method="get" class="mt-5 grid gap-3 md:grid-cols-[1.2fr_0.7fr_0.7fr_auto]">
-        <input name="q" placeholder="City, neighborhood, feature, or MLS keyword" class="rounded-2xl border border-stone-200 bg-white px-4 py-4" />
-        <input name="maxPrice" inputmode="numeric" placeholder="Max price" class="rounded-2xl border border-stone-200 bg-white px-4 py-4" />
-        <select name="beds" class="rounded-2xl border border-stone-200 bg-white px-4 py-4">
-          <option value="">Beds</option>
-          <option value="2">2+</option>
-          <option value="3">3+</option>
-          <option value="4">4+</option>
-          <option value="5">5+</option>
-        </select>
-        <button type="submit" class="rounded-2xl bg-stone-950 px-6 py-4 font-semibold text-white">Search homes</button>
-      </form>
-      <div class="mt-4 flex flex-wrap gap-2 text-sm font-semibold">
-        <a href="/homes/search/?q=new-construction" class="rounded-full bg-white px-4 py-2 text-stone-700 ring-1 ring-stone-200">New construction</a>
-        <a href="/homes/search/?q=golf" class="rounded-full bg-white px-4 py-2 text-stone-700 ring-1 ring-stone-200">Golf communities</a>
-        <a href="/homes/search/?q=view" class="rounded-full bg-white px-4 py-2 text-stone-700 ring-1 ring-stone-200">View homes</a>
-        <a href="/homes/search/?q=horse-property" class="rounded-full bg-white px-4 py-2 text-stone-700 ring-1 ring-stone-200">Horse properties</a>
+  <section class="bg-[#fffaf3] px-5 py-20">
+    <div class="mx-auto grid max-w-7xl gap-8 md:grid-cols-3">
+      <div class="brand-card rounded-[1.75rem] p-8">
+        <p class="brand-eyebrow">Local market</p>
+        <h2 class="mt-3 font-serif text-3xl font-semibold">Southern Utah clarity</h2>
+        <p class="mt-4 text-[#4f4942]">Local guidance for St. George, Washington, Santa Clara, Ivins, Hurricane, and the surrounding Southern Utah market.</p>
+      </div>
+      <div class="brand-card rounded-[1.75rem] p-8">
+        <p class="brand-eyebrow">Owned search path</p>
+        <h2 class="mt-3 font-serif text-3xl font-semibold">First-party experience</h2>
+        <p class="mt-4 text-[#4f4942]">The public site, lead forms, attribution, saved-interest paths, and contact history remain owned by HomeInStGeorgeUtah.com.</p>
+      </div>
+      <div class="brand-card rounded-[1.75rem] p-8">
+        <p class="brand-eyebrow">Mobile first</p>
+        <h2 class="mt-3 font-serif text-3xl font-semibold">Fast on phones</h2>
+        <p class="mt-4 text-[#4f4942]">The interface is designed around mobile search behavior, clear tap targets, readable property paths, and fast conversion flow.</p>
       </div>
     </div>
   </section>
@@ -36,66 +33,54 @@ import { site } from "@home/config/site";
   <NeighborhoodCards />
   <Funnels />
 
-  <section class="bg-white px-5 py-20">
-    <div class="mx-auto grid max-w-7xl gap-8 md:grid-cols-3">
-      <div class="rounded-3xl border border-stone-200 p-8">
-        <p class="text-sm font-semibold uppercase tracking-[0.2em] text-amber-900/70">Owned product</p>
-        <h2 class="mt-3 font-serif text-3xl font-semibold">First-party search and lead flow</h2>
-        <p class="mt-4 text-stone-600">Search behavior, contact context, lead events, attribution, workflow lane, and reporting belong to the website instead of a vendor dashboard.</p>
+  <section class="bg-[#f5f0e8] px-5 py-20">
+    <div class="mx-auto grid max-w-7xl gap-10 md:grid-cols-[0.78fr_1fr] md:items-center">
+      <div class="brand-card overflow-hidden rounded-[2rem] bg-white p-4">
+        <img
+          src="/brand/portrait/joel-robertson-portrait-formal.webp"
+          alt="Joel Robertson, Robertson Real Estate advisor in Saint George, Utah"
+          class="aspect-[4/5] max-h-[620px] w-full rounded-[1.5rem] object-cover object-top"
+          loading="lazy"
+          decoding="async"
+        />
       </div>
-      <div class="rounded-3xl border border-stone-200 p-8">
-        <p class="text-sm font-semibold uppercase tracking-[0.2em] text-amber-900/70">MLS safe</p>
-        <h2 class="mt-3 font-serif text-3xl font-semibold">Approved source boundary</h2>
-        <p class="mt-4 text-stone-600">Listing data is accessed only through Washington County BOR IDX and Spark® / RESO Web API rules, with display permissions handled in the app.</p>
-      </div>
-      <div class="rounded-3xl border border-stone-200 p-8">
-        <p class="text-sm font-semibold uppercase tracking-[0.2em] text-amber-900/70">Mobile first</p>
-        <h2 class="mt-3 font-serif text-3xl font-semibold">Built for quick decisions</h2>
-        <p class="mt-4 text-stone-600">Buyers, sellers, and relocating clients get fast search paths, tap-ready CTAs, and forms that carry the page and device context into the lead engine.</p>
-      </div>
-    </div>
-  </section>
 
-  <section class="bg-[#fffaf3] px-5 py-20">
-    <div class="mx-auto grid max-w-7xl gap-10 md:grid-cols-[1.1fr_0.9fr] md:items-center">
       <div>
-        <p class="text-sm font-semibold uppercase tracking-[0.25em] text-amber-900/70">Broker guidance</p>
-        <h2 class="mt-4 max-w-3xl font-serif text-4xl font-semibold tracking-tight text-stone-950 md:text-5xl">
+        <p class="brand-eyebrow">Broker guidance</p>
+        <h2 class="mt-4 max-w-3xl font-serif text-4xl font-semibold tracking-tight text-[#1c1917] md:text-5xl">
           Work directly with Joel Robertson of Robertson Real Estate.
         </h2>
-        <p class="mt-6 max-w-2xl text-lg leading-8 text-stone-700">
-          Joel brings 20+ years of St. George and Southern Utah real estate experience to buyers, sellers, and relocating clients who want clear advice before making a move.
+        <p class="mt-6 max-w-2xl text-lg leading-8 text-[#4f4942]">
+          Joel brings long-standing St. George and Southern Utah real estate experience to buyers, sellers, and relocating clients who want clear advice before making a move.
         </p>
+        <div class="mt-8 grid gap-4 rounded-[1.75rem] border border-[#e3d8ca] bg-[#fffaf3]/80 p-6 sm:grid-cols-[1fr_1fr_auto] sm:items-center">
+          <div>
+            <p class="text-xs font-bold uppercase tracking-[0.16em] text-[#7A8B75]">Broker</p>
+            <p class="mt-2 font-serif text-2xl font-semibold">{site.brokerName}</p>
+          </div>
+          <div>
+            <p class="text-xs font-bold uppercase tracking-[0.16em] text-[#7A8B75]">Company</p>
+            <p class="mt-2 font-serif text-2xl font-semibold">{site.companyName}</p>
+          </div>
+          <img
+            src="/brand/logos/robertson-seal-light.webp"
+            alt="Robertson Real Estate seal"
+            class="hidden h-20 w-20 rounded-full object-cover sm:block"
+            loading="lazy"
+            decoding="async"
+          />
+        </div>
         <div class="mt-8 flex flex-col gap-3 sm:flex-row">
-          <a href="/contact/" class="rounded-full bg-stone-950 px-7 py-4 text-center font-semibold text-white hover:bg-stone-800">
+          <a href="/contact/" class="brand-button-primary">
             Contact Joel
           </a>
-          <a href="/about/" class="rounded-full bg-white px-7 py-4 text-center font-semibold text-stone-950 ring-1 ring-stone-200 hover:bg-stone-50">
+          <a href="/about/" class="brand-button-outline">
             Learn about Joel
           </a>
         </div>
       </div>
-
-      <div class="rounded-3xl border border-stone-200 bg-white p-8 shadow-sm">
-        <dl class="grid gap-6">
-          <div>
-            <dt class="text-sm font-semibold uppercase tracking-[0.2em] text-stone-500">Broker</dt>
-            <dd class="mt-2 text-2xl font-semibold text-stone-950">{site.brokerName}</dd>
-          </div>
-          <div>
-            <dt class="text-sm font-semibold uppercase tracking-[0.2em] text-stone-500">Company</dt>
-            <dd class="mt-2 text-2xl font-semibold text-stone-950">{site.companyName}</dd>
-          </div>
-          <div>
-            <dt class="text-sm font-semibold uppercase tracking-[0.2em] text-stone-500">Direct contact</dt>
-            <dd class="mt-2 text-lg text-stone-700">
-              <a class="font-semibold text-stone-950" href={site.phoneHref}>{site.phone}</a><br />
-              <a class="font-semibold text-stone-950" href={`mailto:${site.email}`}>{site.email}</a>
-            </dd>
-          </div>
-        </dl>
-      </div>
     </div>
   </section>
+
   <CTA />
 </BaseLayout>

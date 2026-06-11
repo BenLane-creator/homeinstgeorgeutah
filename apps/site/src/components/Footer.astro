@@ -1,26 +1,58 @@
 ---
-import { site } from "@home/config/site";
 import { featuredSearches, navItems } from "@home/config/routes";
+import { site } from "@home/config/site";
 ---
-<footer class="border-t border-stone-200 bg-stone-950 text-white">
-  <div class="mx-auto grid max-w-7xl gap-10 px-5 py-12 md:grid-cols-[1.4fr_1fr_1fr]">
+
+<footer class="brand-dark relative overflow-hidden border-t border-white/10">
+<div class="mx-auto grid max-w-7xl gap-10 px-5 py-12 md:grid-cols-[1.4fr_1fr_1fr]">
     <div>
-      <p class="font-serif text-2xl font-semibold">{site.name}</p>
-      <p class="mt-4 max-w-md text-sm leading-6 text-stone-300">Real estate search, local guidance, and seller strategy for {site.market}.</p>
-      <p class="mt-4 text-sm text-stone-300">{site.phone} · {site.email}</p>
+      <div class="inline-flex rounded-xl bg-[#fffaf3] p-2.5 shadow-sm">
+        <img
+          src="/brand/logos/robertson-logo-lockup-transparent.png"
+          alt="Robertson Real Estate"
+          class="brand-logo-clean h-12 w-auto max-w-[260px]"
+          loading="lazy"
+          decoding="async"
+        />
+      </div>
+      <p class="mt-5 max-w-md text-sm leading-6 text-[#f5f0e8]/78">
+        Real estate search, local guidance, and seller strategy for {site.market}. HomeInStGeorgeUtah.com is the first-party website and owned lead engine for Joel Robertson.
+      </p>
+      <p class="mt-5 text-sm text-[#f5f0e8]/78">
+        <a class="font-semibold text-white" href={site.phoneHref}>{site.phone}</a> · <a class="font-semibold text-white" href={`mailto:${site.email}`}>{site.email}</a>
+      </p>
     </div>
+
     <div>
-      <p class="font-semibold">Explore</p>
-      <div class="mt-4 grid gap-2 text-sm text-stone-300">
+      <p class="font-bold uppercase tracking-[0.16em] text-[#edd8cd]">Explore</p>
+      <div class="mt-4 grid gap-2 text-sm text-[#f5f0e8]/78">
         {navItems.map((item) => <a class="hover:text-white" href={item.href}>{item.label}</a>)}
       </div>
     </div>
+
     <div>
-      <p class="font-semibold">Featured searches</p>
-      <div class="mt-4 grid gap-2 text-sm text-stone-300">
+      <p class="font-bold uppercase tracking-[0.16em] text-[#edd8cd]">Featured searches</p>
+      <div class="mt-4 grid gap-2 text-sm text-[#f5f0e8]/78">
         {featuredSearches.map((item) => <a class="hover:text-white" href={item.href}>{item.label}</a>)}
       </div>
     </div>
   </div>
-  <div class="border-t border-white/10 px-5 py-5 text-center text-xs text-stone-400">© {new Date().getFullYear()} {site.name}. MLS/IDX data, display requirements, and disclaimers are controlled by the approved IDX provider and local MLS rules.</div>
+
+
+  <div class="border-t border-white/10 px-5 py-6">
+    <nav class="mx-auto flex max-w-7xl flex-wrap justify-center gap-x-6 gap-y-3 text-xs font-bold uppercase tracking-[0.14em] text-[#f5f0e8]/72" aria-label="Footer quick links">
+      <a class="hover:text-white" href="/buyers/">Buyers</a>
+      <a class="hover:text-white" href="/sellers/">Sellers</a>
+      <a class="hover:text-white" href="/relocation/">Relocation</a>
+      <a class="hover:text-white" href="/sellers/">Home valuation</a>
+      <a class="hover:text-white" href="/homes/search/">Search homes</a>
+      <a class="hover:text-white" href="/neighborhoods/">Neighborhoods</a>
+      <a class="hover:text-white" href="/blog/">Resources</a>
+      <a class="hover:text-white" href="/contact/">Contact</a>
+    </nav>
+  </div>
+
+  <div class="border-t border-white/10 px-5 py-5 text-center text-xs text-[#f5f0e8]/58">
+    © {new Date().getFullYear()} Robertson Real Estate. MLS/IDX data, display requirements, and disclaimers are controlled by approved data providers and MLS rules.
+  </div>
 </footer>

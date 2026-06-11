@@ -1,0 +1,132 @@
+/* Robertson Real Estate — Core Brand Tokens */
+:root {
+  color-scheme: light;
+
+  /* Locked core palette */
+  --brand-ink: #1c1917; /* Deep warm charcoal */
+  --brand-sand: #f5f0e8; /* Warm cream */
+  --brand-clay: #edd8cd; /* Soft pink-sand */
+  --brand-bg: #fffaf3; /* Warm ivory / alabaster white */
+  --brand-sage: #7a8b75; /* Silver sage */
+
+  /* Accent support */
+  --brand-gold: #b08a4a; /* Muted brass / logo gold */
+  --brand-white: #ffffff;
+  --brand-black: #111111;
+
+  /* Text */
+  --text-primary: var(--brand-ink);
+  --text-muted: #4f4942;
+  --text-soft: #6f665d;
+
+  /* Surfaces */
+  --surface-page: var(--brand-bg);
+  --surface-card: #ffffff;
+  --surface-warm: var(--brand-sand);
+  --surface-clay: var(--brand-clay);
+  --surface-dark: var(--brand-ink);
+
+  /* Borders */
+  --border-soft: #e3d8ca;
+  --border-warm: #d8c8b8;
+  --border-sage: rgba(122, 139, 117, 0.35);
+
+  /* Buttons */
+  --button-primary-bg: var(--brand-ink);
+  --button-primary-text: #ffffff;
+  --button-secondary-bg: var(--brand-sage);
+  --button-secondary-text: #ffffff;
+  --button-accent-bg: var(--brand-gold);
+  --button-accent-text: #ffffff;
+
+  /* Focus */
+  --focus-ring: rgba(122, 139, 117, 0.45);
+
+  /* Typography */
+  --font-heading: "Playfair Display", "Cormorant Garamond", Georgia, serif;
+  --font-ui: "Montserrat", Inter, system-ui, sans-serif;
+  --font-body: "Montserrat", Inter, system-ui, sans-serif;
+
+  /* Layout */
+  --radius-sm: 10px;
+  --radius-md: 18px;
+  --radius-lg: 28px;
+  --shadow-soft: 0 18px 50px rgba(28, 25, 23, 0.1);
+}
+
+body {
+  background: var(--surface-page);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+}
+
+.brand-button-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 48px;
+  padding: 0 22px;
+  border: 1px solid var(--brand-ink);
+  border-radius: 999px;
+  background: var(--button-primary-bg);
+  color: var(--button-primary-text);
+  font-family: var(--font-ui);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  text-decoration: none;
+}
+
+.brand-button-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 48px;
+  padding: 0 22px;
+  border: 1px solid var(--brand-sage);
+  border-radius: 999px;
+  background: var(--button-secondary-bg);
+  color: var(--button-secondary-text);
+  font-family: var(--font-ui);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  text-decoration: none;
+}
+
+.brand-button-outline {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 48px;
+  padding: 0 22px;
+  border: 1px solid var(--border-warm);
+  border-radius: 999px;
+  background: rgba(255, 250, 243, 0.74);
+  color: var(--brand-ink);
+  font-family: var(--font-ui);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  text-decoration: none;
+}
+
+.brand-eyebrow {
+  color: var(--brand-sage);
+  font-family: var(--font-ui);
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.brand-hero-overlay {
+  background: linear-gradient(
+    90deg,
+    rgba(28, 25, 23, 0.7),
+    rgba(28, 25, 23, 0.14)
+  );
+}

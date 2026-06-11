@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">Robertson Real Estate R Mark</title>
+  <desc id="desc">Minimal geometric R-inspired monogram using the Robertson Real Estate brand palette.</desc>
+  <rect width="512" height="512" rx="72" fill="#fffaf3"/>
+  <path d="M150 376V122h132c61 0 103 39 103 95 0 47-30 80-76 91l94 68h-58l-116-89h52c42 0 69-26 69-65 0-40-29-65-74-65h-91v219h-35Z" fill="none" stroke="#1c1917" stroke-width="22" stroke-linejoin="round" stroke-linecap="round"/>
+</svg>
