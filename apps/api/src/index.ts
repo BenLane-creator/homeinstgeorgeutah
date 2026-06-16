@@ -32,12 +32,12 @@ type ApiResponse = {
 };
 
 const providerMeta = {
-  provider: "Washington County BOR - IDX",
+  provider: "Washington + Iron MLS via approved Spark/Flexmls/FBS access",
   source: "Spark® / RESO Web API",
   compliance: [
-    "Display only MLS fields approved by IDX/Web API agreement.",
-    "Do not scrape, cache, or copy MLS content outside permitted API rules.",
-    "Listing availability, attribution, update timestamps, and disclaimers must be handled before production launch.",
+    "Display only MLS fields approved by IDX/VOW/Web API agreements.",
+    "Do not expose raw MLS payloads to the browser.",
+    "Listing availability, attribution, update timestamps, media rights, public/registered/VOW gates, and disclaimers must be enforced before production launch.",
   ],
 };
 
