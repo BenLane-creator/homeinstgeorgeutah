@@ -8,11 +8,14 @@ Production target:
 
 ```text
 homeinstgeorgeutah.com
-Cloudflare Pages
-Cloudflare Workers
-Cloudflare D1
-Washington County BOR - IDX
-Spark® / RESO Web API
+Mobile-first public UX
+Near-zero monthly cost by default
+Cloudflare Pages where static-first delivery is optimal
+Cloudflare Workers for API and owned logic
+Cloudflare D1 as operational source of truth
+Cloudflare R2 for assets, files, generated objects, and permitted media caches
+Washington County MLS + Iron County MLS
+Spark® / RESO Web API through replaceable Source Layer adapters
 ```
 
 ## Current routes
@@ -43,17 +46,24 @@ POST /api/v1/bookings/create-handoff
 
 The Worker returns stub search/listing responses until Spark® / RESO credentials are configured.
 
-Lead intake validates payloads, captures attribution/device context, classifies workflow lane, and persists to D1 when the `DB` binding is configured. If D1 is not bound, it can fall back to `LEADS_KV` for local/dev only.
+Lead intake validates payloads, captures attribution/device context, classifies workflow lane, and persists to D1-backed contacts, attribution sessions, property context, lead events, and routing decisions. Production lead writes require the `DB` binding.
 
 Required production environment:
 
 ```text
-SPARK_API_BASE_URL
-SPARK_ACCESS_TOKEN secret
 DB D1 binding
+API_WRITE_ORIGINS
 ```
 
-Recommended production security:
+Source Layer configuration:
+
+```text
+SPARK_API_BASE_URL
+SPARK_ACCESS_TOKEN secret
+MLS_PROVIDER_NAME optional
+```
+
+Production write/security configuration:
 
 ```text
 API_WRITE_ORIGINS
@@ -66,7 +76,7 @@ Do not scrape old IDX pages.
 
 Do not copy MLS photos, remarks, listing fields, or listing detail pages from the old WordPress site.
 
-Only return/display MLS fields approved by Washington County BOR IDX and Spark® / RESO Web API rules.
+Only return/display MLS fields approved by Washington County MLS, Iron County MLS, Spark® / RESO Web API, and applicable FBS/Flexmls rules.
 
 Before production launch, verify:
 
@@ -76,6 +86,7 @@ Before production launch, verify:
 - update timestamp display
 - field-level display permissions
 - public vs registered-user gating
+- VOW/authenticated-user requirements
 - photo/media display permissions
 - sold/off-market handling
 - caching limits
