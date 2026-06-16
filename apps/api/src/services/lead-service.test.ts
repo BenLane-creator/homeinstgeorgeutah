@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { classifyWorkflowLane } from "./lead-service";
+import { classifyWorkflowLane, storeLeadIntake } from "./lead-service";
 
 describe("classifyWorkflowLane", () => {
   test("keeps explicit general_contact as general_contact", () => {
@@ -81,5 +81,79 @@ describe("classifyWorkflowLane", () => {
         "/api/v1/leads/intake",
       ),
     ).toBe("general_contact");
+  });
+});
+
+type CapturedStatement = {
+  sql: string;
+  values: unknown[];
+};
+
+function createMockLeadEnv() {
+  const statements: CapturedStatement[] = [];
+
+  const db = {
+    prepare(sql: string) {
+      return {
+        bind(...values: unknown[]) {
+          statements.push({ sql, values });
+
+          return {
+            first: async <T>() => null as T | null,
+            run: async () => ({ success: true }),
+          };
+        },
+      };
+    },
+    batch: async () => [],
+  } as unknown as D1Database;
+
+  return {
+    env: { DB: db },
+    statements,
+  };
+}
+
+describe("storeLeadIntake", () => {
+  test("maps nested attribution and device context into attribution session", async () => {
+    const { env, statements } = createMockLeadEnv();
+
+    await storeLeadIntake(env, {
+      pathname: "/api/v1/leads/intake",
+      requestUrl: "https://homeinstgeorgeutah.com/api/v1/leads/intake",
+      referrer: "https://example.com/referrer",
+      userAgent: "Unit Test Browser",
+      body: {
+        name: "Mapper Test Lead",
+        email: "mapper-test@example.com",
+        phone: "555-010-0111",
+        intent: "general_contact",
+        message: "Mapper test.",
+        consent: true,
+        pageUrl: "https://homeinstgeorgeutah.com/contact/",
+        attribution: {
+          source: "production-smoke-test",
+          medium: "manual",
+          campaign: "lead-engine-verification",
+        },
+        device: {
+          category: "desktop",
+          screenWidth: "1280",
+          screenHeight: "800",
+        },
+      },
+    });
+
+    const attributionInsert = statements.find((statement) =>
+      statement.sql.includes("insert into attribution_sessions"),
+    );
+
+    expect(attributionInsert).toBeDefined();
+    expect(attributionInsert?.values[4]).toBe("production-smoke-test");
+    expect(attributionInsert?.values[5]).toBe("manual");
+    expect(attributionInsert?.values[6]).toBe("lead-engine-verification");
+    expect(attributionInsert?.values[7]).toBe("desktop");
+    expect(attributionInsert?.values[8]).toBe("1280");
+    expect(attributionInsert?.values[9]).toBe("800");
   });
 });
