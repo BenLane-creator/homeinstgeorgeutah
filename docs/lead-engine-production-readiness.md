@@ -2,7 +2,7 @@
 
 ## Current status
 
-The D1 lead-intake foundation is merged to `main`.
+The D1-backed lead-intake foundation is merged to `main`.
 
 Implemented:
 
@@ -15,6 +15,13 @@ Implemented:
 - D1-backed routing decision
 - Routing classification tests
 - Local D1 smoke script
+- Local D1 schema verification script
+- Guarded local/remote smoke cleanup script
+- Remote-readiness schema verification script
+- Origin-aware write CORS
+- `Cache-Control: no-store` for lead/write responses
+- `OPTIONS` preflight handling for lead/write routes
+- Optional server-side Turnstile verification when `TURNSTILE_SECRET_KEY` is configured
 
 ## Verified locally
 
@@ -39,7 +46,7 @@ Local smoke test confirmed:
 
 ## Remote D1 status
 
-Read-only migration check reported no pending migrations.
+Remote migration listing previously reported no pending migrations, but that does not replace table/column verification.
 
 Do not apply remote migrations unless explicitly authorized.
 
@@ -67,9 +74,13 @@ Lead/write responses should:
 
 Still needed before live production lead routing:
 
-- Turnstile server-side verification
-- Rate limiting / abuse protection
+- Configure production `API_WRITE_ORIGINS`
+- Configure frontend Turnstile token submission
+- Configure production `TURNSTILE_SECRET_KEY` only when ready to enforce
+- Replace rate-limit placeholder with real abuse protection
+- Confirm remote D1 schema read-only
+- Run one controlled production D1/API test lead
+- Confirm production test-data cleanup procedure
 - CRM sync job processing
 - Booking handoff eligibility
 - Email/SMS delivery handoff
-- Production test-data cleanup process
