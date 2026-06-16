@@ -1,7 +1,9 @@
+import { asString, hasConsent, storeLeadIntake } from "./services/lead-service";
+
 export interface Env {
   SPARK_API_BASE_URL?: string;
   SPARK_ACCESS_TOKEN?: string;
-  LEADS_KV?: KVNamespace;
+  DB: D1Database;
 }
 
 type JsonValue =
@@ -173,7 +175,12 @@ async function handleHealth() {
     data: {
       service: "homeinstgeorgeutah-api",
       status: "ok",
-      routes: ["/api/search", "/api/listings/:id", "/api/leads"],
+      routes: [
+        "/api/search",
+        "/api/listings/:id",
+        "/api/leads",
+        "/api/v1/leads/intake",
+      ],
     },
     meta: {
       ...providerMeta,
@@ -279,7 +286,7 @@ async function handleLead(request: Request, env: Env) {
         ok: false,
         error: {
           code: "METHOD_NOT_ALLOWED",
-          message: "Use POST for /api/leads.",
+          message: "Use POST for /api/leads or /api/v1/leads/intake.",
         },
         meta: {
           ...providerMeta,
@@ -298,41 +305,38 @@ async function handleLead(request: Request, env: Env) {
     return badRequest("Invalid JSON body.");
   }
 
-  const name = String(body.name || "").trim();
-  const email = String(body.email || "").trim();
-  const phone = String(body.phone || "").trim();
-  const message = String(body.message || "").trim();
-  const sourcePath = String(body.sourcePath || "").trim();
-  const listingId = String(body.listingId || "").trim();
+  const url = new URL(request.url);
+  const name = asString(body.name);
+  const email = asString(body.email);
+  const consent = hasConsent(body.consent);
 
   if (!name || !email) {
     return badRequest("Name and email are required.");
   }
 
-  const lead = {
-    id: crypto.randomUUID(),
-    name,
-    email,
-    phone,
-    message,
-    sourcePath,
-    listingId,
-    createdAt: new Date().toISOString(),
-  };
-
-  if (env.LEADS_KV) {
-    await env.LEADS_KV.put(`lead:${lead.id}`, JSON.stringify(lead));
+  if (!email.includes("@")) {
+    return badRequest("A valid email is required.");
   }
+
+  if (!consent) {
+    return badRequest("Consent is required.");
+  }
+
+  const storedLead = await storeLeadIntake(env, {
+    body,
+    requestUrl: request.url,
+    pathname: url.pathname,
+    referrer: request.headers.get("referer"),
+    userAgent: request.headers.get("user-agent"),
+  });
 
   return json(
     {
       ok: true,
       data: {
-        mode: env.LEADS_KV ? "stored" : "stub",
-        message: env.LEADS_KV
-          ? "Lead captured."
-          : "Lead endpoint is wired. Bind LEADS_KV or add email/CRM delivery before production.",
-        lead,
+        mode: "stored",
+        message: "Lead captured and stored in D1.",
+        ...storedLead,
       },
       meta: {
         ...providerMeta,
@@ -370,7 +374,7 @@ export default {
       return handleListingDetail(request, env, listingId);
     }
 
-    if (pathname === "/api/leads") {
+    if (pathname === "/api/leads" || pathname === "/api/v1/leads/intake") {
       return handleLead(request, env);
     }
 
@@ -380,7 +384,8 @@ export default {
         data: {
           configured: Boolean(env.SPARK_API_BASE_URL && env.SPARK_ACCESS_TOKEN),
           requiredEnv: ["SPARK_API_BASE_URL", "SPARK_ACCESS_TOKEN"],
-          optionalBindings: ["LEADS_KV"],
+          requiredBindings: ["DB"],
+          optionalBindings: [],
         },
         meta: {
           ...providerMeta,
