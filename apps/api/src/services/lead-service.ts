@@ -37,6 +37,21 @@ export function hasConsent(value: unknown) {
   );
 }
 
+function asRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : {};
+}
+
+function firstString(...values: unknown[]) {
+  for (const value of values) {
+    const normalized = asString(value);
+    if (normalized) return normalized;
+  }
+
+  return "";
+}
+
 function normalizeEmail(email: string) {
   return email.trim().toLowerCase();
 }
@@ -186,6 +201,9 @@ export async function storeLeadIntake(
   const listingId = asString(body.listingId);
   const sourceListingKey = asString(body.sourceListingKey);
 
+  const attribution = asRecord(body.attribution);
+  const device = asRecord(body.device);
+
   const workflowLane = classifyWorkflowLane(body, input.pathname);
   const contactId = await upsertContact(env, { fullName: name, email, phone });
   const attributionSessionId = crypto.randomUUID();
@@ -204,12 +222,16 @@ export async function storeLeadIntake(
       contactId,
       pageUrl || null,
       input.referrer || asString(body.referrer) || null,
-      asString(body.utmSource) || null,
-      asString(body.utmMedium) || null,
-      asString(body.utmCampaign) || null,
-      asString(body.deviceCategory) || null,
-      asString(body.screenWidth) || null,
-      asString(body.screenHeight) || null,
+      firstString(body.utmSource, body.utm_source, attribution.source) || null,
+      firstString(body.utmMedium, body.utm_medium, attribution.medium) || null,
+      firstString(body.utmCampaign, body.utm_campaign, attribution.campaign) ||
+        null,
+      firstString(body.deviceCategory, body.device_category, device.category) ||
+        null,
+      firstString(body.screenWidth, body.screen_width, device.screenWidth) ||
+        null,
+      firstString(body.screenHeight, body.screen_height, device.screenHeight) ||
+        null,
       input.userAgent || asString(body.userAgent) || null,
     ),
     env.DB.prepare(
