@@ -3,6 +3,7 @@ import { asString, hasConsent, storeLeadIntake } from "./services/lead-service";
 export interface Env {
   SPARK_API_BASE_URL?: string;
   SPARK_ACCESS_TOKEN?: string;
+  API_WRITE_ORIGINS?: string;
   DB: D1Database;
 }
 
@@ -279,6 +280,43 @@ async function handleListingDetail(
   });
 }
 
+function parseAllowedOrigins(env: Env) {
+  return (env.API_WRITE_ORIGINS || "")
+    .split(",")
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+}
+
+function resolveWriteOrigin(request: Request, env: Env) {
+  const origin = request.headers.get("origin");
+  const allowedOrigins = parseAllowedOrigins(env);
+
+  if (origin && allowedOrigins.includes(origin)) {
+    return origin;
+  }
+
+  return allowedOrigins[0] || "https://homeinstgeorgeutah.com";
+}
+
+function withWriteResponseHeaders(
+  request: Request,
+  env: Env,
+  response: Response,
+) {
+  const headers = new Headers(response.headers);
+  headers.set("access-control-allow-origin", resolveWriteOrigin(request, env));
+  headers.set("access-control-allow-headers", "content-type,authorization");
+  headers.set("access-control-allow-methods", "POST,OPTIONS");
+  headers.set("cache-control", "no-store");
+  headers.append("vary", "Origin");
+
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers,
+  });
+}
+
 async function handleLead(request: Request, env: Env) {
   if (request.method !== "POST") {
     return json(
@@ -375,7 +413,11 @@ export default {
     }
 
     if (pathname === "/api/leads" || pathname === "/api/v1/leads/intake") {
-      return handleLead(request, env);
+      return withWriteResponseHeaders(
+        request,
+        env,
+        await handleLead(request, env),
+      );
     }
 
     if (pathname === "/api/mls-status") {
