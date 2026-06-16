@@ -4,6 +4,7 @@ export interface Env {
   SPARK_API_BASE_URL?: string;
   SPARK_ACCESS_TOKEN?: string;
   API_WRITE_ORIGINS?: string;
+  TURNSTILE_SECRET_KEY?: string;
   DB: D1Database;
 }
 
@@ -317,7 +318,76 @@ function withWriteResponseHeaders(
   });
 }
 
+function getClientIp(request: Request) {
+  return (
+    request.headers.get("cf-connecting-ip") ||
+    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+    "unknown"
+  );
+}
+
+function isLikelyAutomatedSubmission(request: Request) {
+  const userAgent = request.headers.get("user-agent") || "";
+
+  return !userAgent || userAgent.length < 8;
+}
+
+function writePreflightResponse(request: Request, env: Env) {
+  return withWriteResponseHeaders(
+    request,
+    env,
+    new Response(null, {
+      status: 204,
+    }),
+  );
+}
+
+async function verifyTurnstileIfConfigured(
+  request: Request,
+  env: Env,
+  body: Record<string, unknown>,
+) {
+  if (!env.TURNSTILE_SECRET_KEY) {
+    return true;
+  }
+
+  const token =
+    asString(body.turnstileToken) || asString(body["cf-turnstile-response"]);
+
+  if (!token) {
+    return false;
+  }
+
+  const response = await fetch(
+    "https://challenges.cloudflare.com/turnstile/v0/siteverify",
+    {
+      method: "POST",
+      body: new URLSearchParams({
+        secret: env.TURNSTILE_SECRET_KEY,
+        response: token,
+        remoteip: getClientIp(request),
+      }),
+    },
+  );
+
+  if (!response.ok) {
+    return false;
+  }
+
+  const result = (await response.json()) as { success?: boolean };
+
+  return result.success === true;
+}
+
+function rateLimitPlaceholderAllows(_request: Request, _env: Env) {
+  return true;
+}
+
 async function handleLead(request: Request, env: Env) {
+  if (request.method === "OPTIONS") {
+    return writePreflightResponse(request, env);
+  }
+
   if (request.method !== "POST") {
     return json(
       {
@@ -335,12 +405,52 @@ async function handleLead(request: Request, env: Env) {
     );
   }
 
+  if (!rateLimitPlaceholderAllows(request, env)) {
+    return json(
+      {
+        ok: false,
+        error: {
+          code: "rate_limited",
+          message: "Too many requests.",
+        },
+      },
+      {
+        status: 429,
+      },
+    );
+  }
+
+  if (isLikelyAutomatedSubmission(request)) {
+    return json(
+      {
+        ok: false,
+        error: {
+          code: "invalid_request",
+          message: "A valid user agent is required.",
+        },
+      },
+      {
+        status: 400,
+      },
+    );
+  }
+
   let body: Record<string, unknown>;
 
   try {
     body = await request.json();
   } catch {
     return badRequest("Invalid JSON body.");
+  }
+
+  const turnstileVerified = await verifyTurnstileIfConfigured(
+    request,
+    env,
+    body,
+  );
+
+  if (!turnstileVerified) {
+    return badRequest("Bot protection verification failed.");
   }
 
   const url = new URL(request.url);
@@ -387,15 +497,26 @@ async function handleLead(request: Request, env: Env) {
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
+    const url = new URL(request.url);
+    const pathname = url.pathname.replace(/\/$/, "") || "/";
+
+    if (
+      request.method === "OPTIONS" &&
+      (pathname === "/api/leads" || pathname === "/api/v1/leads/intake")
+    ) {
+      return withWriteResponseHeaders(
+        request,
+        env,
+        await handleLead(request, env),
+      );
+    }
+
     if (request.method === "OPTIONS") {
       return json({
         ok: true,
         meta: { generatedAt: new Date().toISOString() },
       });
     }
-
-    const url = new URL(request.url);
-    const pathname = url.pathname.replace(/\/$/, "") || "/";
 
     if (pathname === "/" || pathname === "/api" || pathname === "/api/health") {
       return handleHealth();
