@@ -24,7 +24,7 @@ import { site } from "@home/config/site";
       </p>
 
       <div class="mt-8 flex flex-col gap-3 sm:flex-row">
-        <a href="/contact/" class="rounded-full bg-stone-950 px-6 py-3 text-center font-semibold text-white hover:bg-stone-800">
+        <a href="/contact/?intent=seller_high_priority" class="rounded-full bg-stone-950 px-6 py-3 text-center font-semibold text-white hover:bg-stone-800">
           Request seller consultation
         </a>
         <a href={site.customSearchUrl} class="rounded-full bg-white px-6 py-3 text-center font-semibold text-stone-950 ring-1 ring-stone-200 hover:bg-stone-50">
@@ -57,7 +57,7 @@ import { site } from "@home/config/site";
 
       <div class="mt-8 grid gap-4 md:grid-cols-2">
         {[
-          ["/contact/", "Request a home value review"],
+          ["/contact/?intent=valuation", "Request a home value review"],
           ["/seller-financing/", "Consider seller financing options"],
           ["/neighborhoods/", "Review local area pages"],
           [site.customSearchUrl, "See competing listings"],
