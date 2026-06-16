@@ -3,10 +3,40 @@ import { useState } from "react";
 
 type Status = "idle" | "submitting" | "success" | "error";
 
+type LeadFormVariant =
+  | "general"
+  | "valuation"
+  | "relocation"
+  | "property_inquiry"
+  | "showing_request";
+
+const allowedIntents = new Set([
+  "seller_high_priority",
+  "valuation",
+  "buyer_active_search",
+  "buyer_early_stage",
+  "relocation",
+  "property_inquiry",
+  "showing_request",
+  "general_contact",
+  "booked_consult",
+  "nurture",
+]);
+
+const allowedVariants = new Set([
+  "general",
+  "valuation",
+  "relocation",
+  "property_inquiry",
+  "showing_request",
+]);
+
 export default function LeadFormIsland({
   intent = "general_contact",
+  variant = "general",
 }: {
   intent?: string;
+  variant?: LeadFormVariant;
 }) {
   const [status, setStatus] = useState<Status>("idle");
 
@@ -15,6 +45,7 @@ export default function LeadFormIsland({
     setStatus("submitting");
     const form = event.currentTarget;
     const formData = new FormData(form);
+    const get = (name: string) => String(formData.get(name) || "").trim();
 
     const searchParams = new URLSearchParams(window.location.search);
     const screenWidth = String(window.screen?.width || window.innerWidth || "");
@@ -26,22 +57,18 @@ export default function LeadFormIsland({
         ? "tablet"
         : "mobile"
       : "desktop";
+
     const requestedIntent = searchParams.get("intent") || "";
-    const allowedIntents = new Set([
-      "seller_high_priority",
-      "valuation",
-      "buyer_active_search",
-      "buyer_early_stage",
-      "relocation",
-      "property_inquiry",
-      "showing_request",
-      "general_contact",
-      "booked_consult",
-      "nurture",
-    ]);
+    const requestedVariant = searchParams.get("form") || "";
     const effectiveIntent = allowedIntents.has(requestedIntent)
       ? requestedIntent
       : intent;
+    const effectiveVariant = allowedVariants.has(requestedVariant)
+      ? (requestedVariant as LeadFormVariant)
+      : variant;
+
+    const listingId = get("listingId");
+    const sourceListingKey = get("sourceListingKey");
 
     try {
       const response = await fetch("/api/v1/leads/intake", {
@@ -49,6 +76,8 @@ export default function LeadFormIsland({
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
           intent: effectiveIntent,
+          workflowLane: effectiveIntent,
+          formVariant: effectiveVariant,
           name: formData.get("name"),
           email: formData.get("email"),
           phone: formData.get("phone"),
@@ -56,6 +85,21 @@ export default function LeadFormIsland({
           pageUrl: window.location.href,
           referrer: document.referrer,
           consent: formData.get("consent") === "on",
+          listingId: listingId || undefined,
+          sourceListingKey: sourceListingKey || undefined,
+          details: {
+            propertyAddress: get("propertyAddress"),
+            targetPriceRange: get("targetPriceRange"),
+            currentAddress: get("currentAddress"),
+            sellingTimeline: get("sellingTimeline"),
+            movingFrom: get("movingFrom"),
+            moveTimeline: get("moveTimeline"),
+            preferredAreas: get("preferredAreas"),
+            buyerBudget: get("buyerBudget"),
+            propertyQuestion: get("propertyQuestion"),
+            showingDate: get("showingDate"),
+            showingTime: get("showingTime"),
+          },
           attribution: {
             source: searchParams.get("utm_source") || "",
             medium: searchParams.get("utm_medium") || "",
@@ -105,6 +149,97 @@ export default function LeadFormIsland({
           name="phone"
           placeholder="Phone"
         />
+
+        {variant === "valuation" && (
+          <>
+            <input
+              className="rounded-2xl border border-stone-200 px-4 py-3"
+              name="currentAddress"
+              placeholder="Property address"
+            />
+            <select
+              className="rounded-2xl border border-stone-200 px-4 py-3"
+              name="sellingTimeline"
+            >
+              <option value="">Selling timeline</option>
+              <option value="now">Now</option>
+              <option value="30_90_days">30–90 days</option>
+              <option value="3_6_months">3–6 months</option>
+              <option value="researching">Researching</option>
+            </select>
+          </>
+        )}
+
+        {variant === "relocation" && (
+          <>
+            <input
+              className="rounded-2xl border border-stone-200 px-4 py-3"
+              name="movingFrom"
+              placeholder="Where are you moving from?"
+            />
+            <input
+              className="rounded-2xl border border-stone-200 px-4 py-3"
+              name="moveTimeline"
+              placeholder="Target move timeline"
+            />
+            <input
+              className="rounded-2xl border border-stone-200 px-4 py-3"
+              name="preferredAreas"
+              placeholder="Preferred areas or communities"
+            />
+            <input
+              className="rounded-2xl border border-stone-200 px-4 py-3"
+              name="buyerBudget"
+              placeholder="Target budget"
+            />
+          </>
+        )}
+
+        {variant === "property_inquiry" && (
+          <>
+            <input
+              className="rounded-2xl border border-stone-200 px-4 py-3"
+              name="propertyAddress"
+              placeholder="Property address or MLS number"
+            />
+            <input
+              className="rounded-2xl border border-stone-200 px-4 py-3"
+              name="listingId"
+              placeholder="Listing ID, if available"
+            />
+            <textarea
+              className="min-h-24 rounded-2xl border border-stone-200 px-4 py-3"
+              name="propertyQuestion"
+              placeholder="What would you like to know about this property?"
+            />
+          </>
+        )}
+
+        {variant === "showing_request" && (
+          <>
+            <input
+              className="rounded-2xl border border-stone-200 px-4 py-3"
+              name="propertyAddress"
+              placeholder="Property address or MLS number"
+            />
+            <input
+              className="rounded-2xl border border-stone-200 px-4 py-3"
+              name="listingId"
+              placeholder="Listing ID, if available"
+            />
+            <input
+              className="rounded-2xl border border-stone-200 px-4 py-3"
+              name="showingDate"
+              type="date"
+            />
+            <input
+              className="rounded-2xl border border-stone-200 px-4 py-3"
+              name="showingTime"
+              placeholder="Preferred time"
+            />
+          </>
+        )}
+
         <textarea
           className="min-h-32 rounded-2xl border border-stone-200 px-4 py-3"
           name="message"
