@@ -54,7 +54,7 @@ function splitName(fullName: string) {
   };
 }
 
-function classifyWorkflowLane(
+export function classifyWorkflowLane(
   body: Record<string, unknown>,
   pathname: string,
 ): WorkflowLane {
