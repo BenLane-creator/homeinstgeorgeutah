@@ -4,7 +4,7 @@ import { useState } from "react";
 type Status = "idle" | "submitting" | "success" | "error";
 
 export default function LeadFormIsland({
-  intent = "general",
+  intent = "general_contact",
 }: {
   intent?: string;
 }) {
@@ -26,13 +26,29 @@ export default function LeadFormIsland({
         ? "tablet"
         : "mobile"
       : "desktop";
+    const requestedIntent = searchParams.get("intent") || "";
+    const allowedIntents = new Set([
+      "seller_high_priority",
+      "valuation",
+      "buyer_active_search",
+      "buyer_early_stage",
+      "relocation",
+      "property_inquiry",
+      "showing_request",
+      "general_contact",
+      "booked_consult",
+      "nurture",
+    ]);
+    const effectiveIntent = allowedIntents.has(requestedIntent)
+      ? requestedIntent
+      : intent;
 
     try {
       const response = await fetch("/api/v1/leads/intake", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
-          intent,
+          intent: effectiveIntent,
           name: formData.get("name"),
           email: formData.get("email"),
           phone: formData.get("phone"),
