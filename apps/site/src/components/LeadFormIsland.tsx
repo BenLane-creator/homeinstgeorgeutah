@@ -16,6 +16,17 @@ export default function LeadFormIsland({
     const form = event.currentTarget;
     const formData = new FormData(form);
 
+    const searchParams = new URLSearchParams(window.location.search);
+    const screenWidth = String(window.screen?.width || window.innerWidth || "");
+    const screenHeight = String(
+      window.screen?.height || window.innerHeight || "",
+    );
+    const deviceCategory = window.matchMedia("(pointer: coarse)").matches
+      ? window.innerWidth >= 768
+        ? "tablet"
+        : "mobile"
+      : "desktop";
+
     try {
       const response = await fetch("/api/v1/leads/intake", {
         method: "POST",
@@ -27,7 +38,20 @@ export default function LeadFormIsland({
           phone: formData.get("phone"),
           message: formData.get("message"),
           pageUrl: window.location.href,
+          referrer: document.referrer,
           consent: formData.get("consent") === "on",
+          attribution: {
+            source: searchParams.get("utm_source") || "",
+            medium: searchParams.get("utm_medium") || "",
+            campaign: searchParams.get("utm_campaign") || "",
+          },
+          device: {
+            category: deviceCategory,
+            screenWidth,
+            screenHeight,
+            language: navigator.language || "",
+            timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "",
+          },
         }),
       });
       if (!response.ok) throw new Error("Lead request failed");
