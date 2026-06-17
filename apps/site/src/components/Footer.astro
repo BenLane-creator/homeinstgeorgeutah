@@ -1,26 +1,86 @@
 ---
 import { site } from "@home/config/site";
 import { featuredSearches, navItems } from "@home/config/routes";
+
+const footerExploreItems = navItems.filter((item) =>
+  ["Search Homes", "Neighborhoods", "Buyers", "Sellers", "Relocation", "Contact"].includes(
+    item.label,
+  ),
+);
+
+const footerResourceItems = navItems.filter((item) =>
+  ["Financing Options", "Horse Properties", "Market Guides"].includes(item.label),
+);
 ---
-<footer class="border-t border-stone-200 bg-stone-950 text-white">
-  <div class="mx-auto grid max-w-7xl gap-10 px-5 py-12 md:grid-cols-[1.4fr_1fr_1fr]">
+
+<footer class="border-t border-[var(--brand-pink-sand)] bg-[var(--brand-ink)] text-[var(--brand-warm-ivory)]">
+  <div class="mx-auto grid max-w-7xl gap-10 px-5 py-12 md:grid-cols-[1.25fr_0.75fr_0.75fr_0.9fr]">
     <div>
-      <p class="font-serif text-2xl font-semibold">{site.name}</p>
-      <p class="mt-4 max-w-md text-sm leading-6 text-stone-300">Real estate search, local guidance, and seller strategy for {site.market}.</p>
-      <p class="mt-4 text-sm text-stone-300">{site.phone} · {site.email}</p>
+      <div class="flex items-center gap-3">
+        <span class="flex h-12 w-12 shrink-0 items-center justify-center">
+          <img
+            src="/brand/marks/robertson-r-mark-vectorized.svg"
+            alt=""
+            class="h-10 w-10"
+            loading="lazy"
+          />
+        </span>
+
+        <div class="leading-none">
+          <p class="text-base font-bold tracking-[0.18em]">ROBERTSON</p>
+          <p class="mt-1 text-xs font-bold tracking-[0.24em] text-[var(--brand-gold)]">
+            REAL ESTATE
+          </p>
+          <p class="mt-1 text-[0.62rem] font-semibold tracking-[0.2em] text-[var(--brand-pink-sand)]">
+            SAINT GEORGE, UTAH
+          </p>
+        </div>
+      </div>
+
+      <p class="mt-5 max-w-md text-sm leading-6 text-[var(--brand-pink-sand)]">
+        Real estate search, local guidance, and seller strategy for {site.market}.
+      </p>
+
+      <p class="mt-4 text-sm font-semibold text-[var(--brand-warm-ivory)]">
+        {site.phone} · {site.email}
+      </p>
     </div>
+
     <div>
-      <p class="font-semibold">Explore</p>
-      <div class="mt-4 grid gap-2 text-sm text-stone-300">
-        {navItems.map((item) => <a class="hover:text-white" href={item.href}>{item.label}</a>)}
+      <p class="font-bold text-[var(--brand-clay)]">Explore</p>
+      <div class="mt-4 grid gap-2 text-sm text-[var(--brand-pink-sand)]">
+        {footerExploreItems.map((item) => (
+          <a class="transition hover:text-[var(--brand-warm-ivory)]" href={item.href}>
+            {item.label}
+          </a>
+        ))}
       </div>
     </div>
+
     <div>
-      <p class="font-semibold">Featured searches</p>
-      <div class="mt-4 grid gap-2 text-sm text-stone-300">
-        {featuredSearches.map((item) => <a class="hover:text-white" href={item.href}>{item.label}</a>)}
+      <p class="font-bold text-[var(--brand-clay)]">Resources</p>
+      <div class="mt-4 grid gap-2 text-sm text-[var(--brand-pink-sand)]">
+        {footerResourceItems.map((item) => (
+          <a class="transition hover:text-[var(--brand-warm-ivory)]" href={item.href}>
+            {item.label}
+          </a>
+        ))}
+      </div>
+    </div>
+
+    <div>
+      <p class="font-bold text-[var(--brand-clay)]">Featured searches</p>
+      <div class="mt-4 grid gap-2 text-sm text-[var(--brand-pink-sand)]">
+        {featuredSearches.map((item) => (
+          <a class="transition hover:text-[var(--brand-warm-ivory)]" href={item.href}>
+            {item.label}
+          </a>
+        ))}
       </div>
     </div>
   </div>
-  <div class="border-t border-white/10 px-5 py-5 text-center text-xs text-stone-400">© {new Date().getFullYear()} {site.name}. MLS/IDX data, display requirements, and disclaimers are controlled by the approved IDX provider and local MLS rules.</div>
+
+  <div class="border-t border-white/10 px-5 py-5 text-center text-xs leading-6 text-[var(--brand-pink-sand)]">
+    © {new Date().getFullYear()} {site.name}. MLS/IDX data, display requirements, and disclaimers are controlled by the approved IDX provider and local MLS rules.
+  </div>
 </footer>

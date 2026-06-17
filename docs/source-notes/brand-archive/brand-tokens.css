@@ -1,0 +1,17 @@
+:root {
+  --brand-ink: #16191b;
+  --brand-warm-ivory: #f6f2ea;
+  --brand-pink-sand: #d8d2c7;
+  --brand-clay: #edd8cd;
+  --brand-gold: #b9945a;
+  --brand-favicon-gold: #f6e6b8;
+  --brand-silvery-sage: #c1cab8;
+  --brand-deep-olive: #4f5a4a;
+
+  --font-heading:
+    "Geist Sans", "Inter", system-ui, -apple-system, BlinkMacSystemFont,
+    "Segoe UI", sans-serif;
+  --font-body:
+    "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    sans-serif;
+}

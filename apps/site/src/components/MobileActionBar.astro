@@ -2,10 +2,30 @@
 import { site } from "@home/config/site";
 ---
 
-<nav class="fixed inset-x-0 bottom-0 z-50 border-t border-stone-200 bg-white/95 px-3 py-2 shadow-2xl shadow-stone-950/15 backdrop-blur md:hidden" aria-label="Primary mobile actions">
-  <div class="grid grid-cols-3 gap-2 text-center text-xs font-semibold">
-    <a href={site.phoneHref} class="rounded-2xl bg-stone-950 px-3 py-3 text-white">Call Joel</a>
-    <a href="/homes/search/" class="rounded-2xl bg-[#fffaf3] px-3 py-3 text-stone-950 ring-1 ring-stone-200">Search</a>
-    <a href="/contact/?intent=general_contact" class="rounded-2xl bg-white px-3 py-3 text-stone-950 ring-1 ring-stone-200">Ask</a>
+<nav
+  class="fixed inset-x-0 bottom-0 z-50 border-t border-[var(--brand-pink-sand)] bg-[var(--brand-warm-ivory)]/95 px-3 py-2 shadow-2xl shadow-stone-950/15 backdrop-blur md:hidden"
+  aria-label="Primary mobile actions"
+>
+  <div class="grid grid-cols-3 gap-2 text-center text-xs font-bold">
+    <a
+      href={site.phoneHref}
+      class="rounded-2xl bg-[var(--brand-ink)] px-3 py-3 text-[var(--brand-warm-ivory)]"
+    >
+      Call Joel
+    </a>
+
+    <a
+      href="/homes/search/"
+      class="rounded-2xl bg-white px-3 py-3 text-[var(--brand-ink)] ring-1 ring-[var(--brand-clay)]"
+    >
+      Search
+    </a>
+
+    <a
+      href="/contact/?intent=general_contact"
+      class="rounded-2xl bg-white px-3 py-3 text-[var(--brand-ink)] ring-1 ring-[var(--brand-pink-sand)]"
+    >
+      Ask
+    </a>
   </div>
 </nav>

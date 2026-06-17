@@ -1,0 +1,24 @@
+{
+  "brand": "Robertson Real Estate",
+  "broker": "Joel Robertson",
+  "market": "Saint George, Utah / Southern Utah",
+  "headline": "Modern real estate, guided with precision.",
+  "positioning": "Ultra-modern broker authority with warm local expertise.",
+  "logo_layout": "[R mark] | ROBERTSON / REAL ESTATE / SAINT GEORGE, UTAH",
+  "heading_font": "Geist Sans",
+  "heading_weights": "600-700",
+  "body_font": "Inter",
+  "body_weights": "400-700",
+  "hero": "Final SOT Hero Image",
+  "favicon": "Ink background + Favicon Gold R mark",
+  "palette": {
+    "brand_ink": "#16191B",
+    "brand_warm_ivory": "#F6F2EA",
+    "brand_pink_sand": "#D8D2C7",
+    "brand_clay": "#EDD8CD",
+    "brand_gold": "#B9945A",
+    "brand_favicon_gold": "#F6E6B8",
+    "brand_silvery_sage": "#C1CAB8",
+    "brand_deep_olive": "#4F5A4A"
+  }
+}
