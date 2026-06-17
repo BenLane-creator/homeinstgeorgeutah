@@ -1,6 +1,14 @@
 ---
 import { site } from "@home/config/site";
 import { navItems } from "@home/config/routes";
+
+const primaryNavItems = navItems.filter((item) =>
+  ["Search Homes", "Neighborhoods", "Buyers", "Sellers", "About"].includes(item.label),
+);
+
+const resourceNavItems = navItems.filter((item) =>
+  ["Relocation", "Financing Options", "Horse Properties", "Blog"].includes(item.label),
+);
 ---
 
 <header class="sticky top-0 z-[60] border-b border-[var(--brand-pink-sand)] bg-[var(--brand-warm-ivory)] shadow-sm shadow-stone-950/5">
@@ -30,12 +38,45 @@ import { navItems } from "@home/config/routes";
       </span>
     </a>
 
-    <nav class="hidden items-center gap-5 text-sm font-semibold text-stone-700 lg:flex">
-      {navItems.slice(0, 7).map((item) => (
+    <nav class="hidden items-center gap-5 text-sm font-semibold text-stone-700 lg:flex" aria-label="Primary navigation">
+      {primaryNavItems.map((item) => (
         <a class="transition hover:text-[var(--brand-ink)]" href={item.href}>
           {item.label}
         </a>
       ))}
+
+      <div class="relative" data-resources-menu>
+        <button
+          type="button"
+          class="flex items-center gap-1 transition hover:text-[var(--brand-ink)]"
+          aria-expanded="false"
+          aria-controls="resources-menu-panel"
+          data-resources-button
+        >
+          Resources
+          <span class="text-[0.65rem] text-[var(--brand-gold)] transition" data-resources-caret>
+            ▾
+          </span>
+        </button>
+
+        <div
+          id="resources-menu-panel"
+          class="absolute left-1/2 top-full z-[70] mt-4 w-64 -translate-x-1/2 rounded-3xl border border-[var(--brand-pink-sand)] bg-[var(--brand-warm-ivory)] p-3 shadow-2xl shadow-stone-950/10"
+          data-resources-panel
+          hidden
+        >
+          <nav class="grid gap-1" aria-label="Resources navigation">
+            {resourceNavItems.map((item) => (
+              <a
+                class="rounded-2xl px-4 py-3 text-sm font-semibold text-stone-700 transition hover:bg-white hover:text-[var(--brand-ink)]"
+                href={item.href}
+              >
+                {item.label}
+              </a>
+            ))}
+          </nav>
+        </div>
+      </div>
     </nav>
 
     <div class="hidden items-center gap-3 lg:flex">
@@ -59,9 +100,9 @@ import { navItems } from "@home/config/routes";
         Menu
       </summary>
 
-      <div class="absolute right-0 mt-3 w-72 rounded-3xl border border-[var(--brand-pink-sand)] bg-[var(--brand-warm-ivory)] p-4 shadow-xl">
-        <nav class="grid gap-1">
-          {navItems.map((item) => (
+      <div class="absolute right-0 mt-3 max-h-[calc(100svh-6rem)] w-72 overflow-y-auto rounded-3xl border border-[var(--brand-pink-sand)] bg-[var(--brand-warm-ivory)] p-4 shadow-xl">
+        <nav class="grid gap-1" aria-label="Mobile navigation">
+          {primaryNavItems.map((item) => (
             <a
               class="rounded-2xl px-4 py-3 text-sm font-semibold text-stone-700 transition hover:bg-white hover:text-[var(--brand-ink)]"
               href={item.href}
@@ -70,6 +111,23 @@ import { navItems } from "@home/config/routes";
             </a>
           ))}
         </nav>
+
+        <div class="mt-4 border-t border-[var(--brand-pink-sand)] pt-4">
+          <p class="px-4 text-[0.65rem] font-bold uppercase tracking-[0.24em] text-[var(--brand-deep-olive)]">
+            Resources
+          </p>
+
+          <nav class="mt-2 grid gap-1" aria-label="Mobile resources navigation">
+            {resourceNavItems.map((item) => (
+              <a
+                class="rounded-2xl px-4 py-3 text-sm font-semibold text-stone-700 transition hover:bg-white hover:text-[var(--brand-ink)]"
+                href={item.href}
+              >
+                {item.label}
+              </a>
+            ))}
+          </nav>
+        </div>
 
         <div class="mt-4 grid gap-2 border-t border-[var(--brand-pink-sand)] pt-4">
           <a
@@ -90,3 +148,57 @@ import { navItems } from "@home/config/routes";
     </details>
   </div>
 </header>
+
+<script is:inline>
+  (() => {
+    const root = document.querySelector("[data-resources-menu]");
+    if (!root) return;
+
+    const button = root.querySelector("[data-resources-button]");
+    const panel = root.querySelector("[data-resources-panel]");
+    const caret = root.querySelector("[data-resources-caret]");
+    const links = panel?.querySelectorAll("a") ?? [];
+
+    if (!button || !panel) return;
+
+    const setOpen = (open) => {
+      button.setAttribute("aria-expanded", String(open));
+      panel.hidden = !open;
+      caret?.classList.toggle("rotate-180", open);
+    };
+
+    button.addEventListener("click", () => {
+      setOpen(panel.hidden);
+    });
+
+    button.addEventListener("keydown", (event) => {
+      if (event.key === "ArrowDown") {
+        event.preventDefault();
+        setOpen(true);
+        links[0]?.focus();
+      }
+
+      if (event.key === "Escape") {
+        setOpen(false);
+        button.focus();
+      }
+    });
+
+    panel.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") {
+        setOpen(false);
+        button.focus();
+      }
+    });
+
+    links.forEach((link) => {
+      link.addEventListener("click", () => setOpen(false));
+    });
+
+    document.addEventListener("click", (event) => {
+      if (!root.contains(event.target)) {
+        setOpen(false);
+      }
+    });
+  })();
+</script>
