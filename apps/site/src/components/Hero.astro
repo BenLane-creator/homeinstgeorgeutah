@@ -2,68 +2,64 @@
 import { site } from "@home/config/site";
 ---
 
-<section class="relative isolate overflow-hidden bg-[var(--brand-ink)]">
-  <div class="absolute inset-0">
-    <picture>
-      <source srcset="/brand/hero/robertson-final-sot-hero-master.webp" type="image/webp" />
-      <img
-        src="/brand/hero/robertson-final-sot-hero-master.png"
-        alt=""
-        class="h-full w-full object-cover object-[62%_center] md:object-center"
-        loading="eager"
-        fetchpriority="high"
-      />
-    </picture>
-    <div class="absolute inset-0 bg-gradient-to-r from-[var(--brand-ink)] via-[var(--brand-ink)]/72 to-[var(--brand-ink)]/8"></div>
-    <div class="absolute inset-0 bg-gradient-to-t from-[var(--brand-ink)]/55 via-transparent to-transparent"></div>
-  </div>
-
-  <div class="relative mx-auto grid min-h-[calc(100svh-4.75rem)] max-w-7xl items-center px-5 py-16 sm:py-20 md:min-h-[720px] lg:grid-cols-[0.95fr_1.05fr] lg:py-28">
-    <div class="max-w-3xl">
-      <p class="text-xs font-bold uppercase tracking-[0.28em] text-[var(--brand-clay)] sm:text-sm">
+<section class="bg-[var(--brand-warm-ivory)] px-5 py-12 sm:py-16 lg:py-20">
+  <div class="mx-auto grid max-w-7xl items-center gap-8 lg:grid-cols-[0.92fr_1.08fr]">
+    <div class="rounded-[2rem] border border-[var(--brand-pink-sand)] bg-white/70 p-6 shadow-xl shadow-stone-900/5 sm:p-8 lg:p-10">
+      <p class="text-xs font-bold uppercase tracking-[0.28em] text-[var(--brand-deep-olive)] sm:text-sm">
         St. George · Southern Utah
       </p>
 
-      <h1 class="mt-5 max-w-4xl text-5xl font-bold leading-[0.96] tracking-[-0.06em] text-[var(--brand-warm-ivory)] sm:text-6xl md:text-7xl">
+      <h1 class="mt-5 max-w-4xl text-5xl font-bold leading-[0.96] tracking-[-0.06em] text-[var(--brand-ink)] sm:text-6xl md:text-7xl">
         Modern real estate, guided with precision.
       </h1>
 
-      <p class="mt-6 max-w-2xl text-base leading-8 text-[var(--brand-pink-sand)] sm:text-lg">
+      <p class="mt-6 max-w-2xl text-base leading-8 text-stone-700 sm:text-lg">
         A premium local advisory experience for St. George and Southern Utah, built around clear guidance, first-party search, and direct broker-level service from Joel Robertson.
       </p>
 
       <div class="mt-8 flex flex-col gap-3 sm:flex-row">
         <a
           href={site.customSearchUrl}
-          class="rounded-full bg-[var(--brand-warm-ivory)] px-7 py-4 text-center text-sm font-bold text-[var(--brand-ink)] shadow-xl shadow-black/20 transition hover:bg-white sm:text-base"
+          class="rounded-full bg-[var(--brand-ink)] px-7 py-4 text-center text-sm font-bold text-[var(--brand-warm-ivory)] shadow-xl shadow-stone-900/10 transition hover:bg-[var(--brand-deep-olive)] sm:text-base"
         >
           Search homes
         </a>
 
         <a
           href="/contact/?intent=valuation"
-          class="rounded-full border border-[var(--brand-clay)] bg-[var(--brand-ink)]/45 px-7 py-4 text-center text-sm font-bold text-[var(--brand-warm-ivory)] backdrop-blur transition hover:bg-[var(--brand-ink)] sm:text-base"
+          class="rounded-full border border-[var(--brand-clay)] bg-white px-7 py-4 text-center text-sm font-bold text-[var(--brand-ink)] shadow-sm transition hover:bg-[var(--brand-clay)] sm:text-base"
         >
           Get home value
         </a>
       </div>
 
-      <div class="mt-10 grid max-w-2xl gap-3 border-l border-[var(--brand-gold)]/70 pl-5 text-sm leading-6 text-[var(--brand-pink-sand)] sm:grid-cols-3 sm:border-l-0 sm:border-t sm:pl-0 sm:pt-5">
+      <div class="mt-10 grid max-w-2xl gap-3 border-l border-[var(--brand-gold)]/70 pl-5 text-sm leading-6 text-stone-700 sm:grid-cols-3 sm:border-l-0 sm:border-t sm:pl-0 sm:pt-5">
         <p>
-          <span class="block font-bold text-[var(--brand-warm-ivory)]">20+ years</span>
+          <span class="block font-bold text-[var(--brand-ink)]">20+ years</span>
           Southern Utah experience
         </p>
         <p>
-          <span class="block font-bold text-[var(--brand-warm-ivory)]">First-party</span>
+          <span class="block font-bold text-[var(--brand-ink)]">First-party</span>
           search and lead flow
         </p>
         <p>
-          <span class="block font-bold text-[var(--brand-warm-ivory)]">Broker-level</span>
+          <span class="block font-bold text-[var(--brand-ink)]">Broker-level</span>
           local guidance
         </p>
       </div>
     </div>
 
-    <div class="hidden lg:block"></div>
+    <div class="overflow-hidden rounded-[2rem] border border-[var(--brand-pink-sand)] bg-white shadow-2xl shadow-stone-900/10">
+      <picture>
+        <source srcset="/brand/hero/robertson-final-sot-hero-master.webp" type="image/webp" />
+        <img
+          src="/brand/hero/robertson-final-sot-hero-master.png"
+          alt="Luxury Southern Utah home with red rock landscape"
+          class="aspect-[4/3] w-full object-cover object-center lg:aspect-[5/4]"
+          loading="eager"
+          fetchpriority="high"
+        />
+      </picture>
+    </div>
   </div>
 </section>
