@@ -7,7 +7,7 @@ export const navItems = [
   { label: "Relocation", href: "/relocation/" },
   { label: "About", href: "/about/" },
   { label: "Horse Properties", href: "/horse-properties/" },
-  { label: "Blog", href: "/blog/" },
+  { label: "Market Guides", href: "/blog/" },
   { label: "Contact", href: "/contact/" },
 ];
 
