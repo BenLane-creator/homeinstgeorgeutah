@@ -1,10 +1,20 @@
 ---
 import { site } from "@home/config/site";
 import { featuredSearches, navItems } from "@home/config/routes";
+
+const footerExploreItems = navItems.filter((item) =>
+  ["Search Homes", "Neighborhoods", "Buyers", "Sellers", "Relocation", "Contact"].includes(
+    item.label,
+  ),
+);
+
+const footerResourceItems = navItems.filter((item) =>
+  ["Financing Options", "Horse Properties", "Market Guides"].includes(item.label),
+);
 ---
 
 <footer class="border-t border-[var(--brand-pink-sand)] bg-[var(--brand-ink)] text-[var(--brand-warm-ivory)]">
-  <div class="mx-auto grid max-w-7xl gap-10 px-5 py-12 md:grid-cols-[1.35fr_1fr_1fr]">
+  <div class="mx-auto grid max-w-7xl gap-10 px-5 py-12 md:grid-cols-[1.25fr_0.75fr_0.75fr_0.9fr]">
     <div>
       <div class="flex items-center gap-3">
         <span class="flex h-12 w-12 shrink-0 items-center justify-center">
@@ -39,7 +49,18 @@ import { featuredSearches, navItems } from "@home/config/routes";
     <div>
       <p class="font-bold text-[var(--brand-clay)]">Explore</p>
       <div class="mt-4 grid gap-2 text-sm text-[var(--brand-pink-sand)]">
-        {navItems.map((item) => (
+        {footerExploreItems.map((item) => (
+          <a class="transition hover:text-[var(--brand-warm-ivory)]" href={item.href}>
+            {item.label}
+          </a>
+        ))}
+      </div>
+    </div>
+
+    <div>
+      <p class="font-bold text-[var(--brand-clay)]">Resources</p>
+      <div class="mt-4 grid gap-2 text-sm text-[var(--brand-pink-sand)]">
+        {footerResourceItems.map((item) => (
           <a class="transition hover:text-[var(--brand-warm-ivory)]" href={item.href}>
             {item.label}
           </a>
