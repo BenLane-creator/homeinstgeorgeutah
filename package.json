@@ -21,7 +21,8 @@
     "test": "bun --filter '*' test",
     "test:e2e": "bunx playwright test",
     "build:site": "bun --filter @home/site build",
-    "audit:architecture": "python3 scripts/audit-architecture-drift.py"
+    "audit:architecture": "python3 scripts/audit-architecture-drift.py",
+    "build:site:cloudflare": "bun install --frozen-lockfile && bun run build:site"
   },
   "devDependencies": {
     "@biomejs/biome": "latest",
