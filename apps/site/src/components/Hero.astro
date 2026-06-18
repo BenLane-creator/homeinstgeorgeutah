@@ -2,25 +2,25 @@
 import { site } from "@home/config/site";
 ---
 
-<section class="relative min-h-[calc(100svh-4.75rem)] overflow-hidden bg-[var(--brand-ink)]">
+<section class="relative min-h-[760px] overflow-hidden bg-[var(--brand-ink)]">
   <picture class="absolute inset-0">
     <img
       src="/brand/hero/sot-hero-image-final.png"
       alt="Luxury Southern Utah home with red rock landscape"
-      class="h-full w-full object-cover object-[62%_center] md:object-center"
+      class="h-full w-full object-cover object-[82%_center] md:object-center"
       loading="eager"
       fetchpriority="high"
     />
   </picture>
 
   <div class="relative mx-auto flex min-h-[calc(100svh-4.75rem)] max-w-7xl items-start px-5 py-7 sm:py-9 lg:py-12">
-    <div class="max-w-xl rounded-[1.75rem] border border-white/35 bg-[var(--brand-warm-ivory)]/52 p-5 shadow-md shadow-stone-950/10 backdrop-blur-[0.5px] sm:p-7 lg:p-8">
+    <div class="ml-4 mr-auto w-[64%] max-w-[278px] rounded-[1.75rem] border border-white/35 bg-[var(--brand-warm-ivory)]/56 p-4 shadow-md shadow-stone-950/10 backdrop-blur-[0.5px] sm:p-7 md:ml-0 md:w-auto md:max-w-[640px] lg:p-8">
       <p class="text-[0.65rem] font-bold uppercase tracking-[0.28em] text-[var(--brand-deep-olive)] sm:text-xs">
-        St. George · Southern Utah
+        Broker-level guidance for buyers and sellers seeking an elevated real estate experience.
       </p>
 
       <h1 class="mt-4 text-4xl font-bold leading-[0.96] tracking-[-0.055em] text-[var(--brand-ink)] sm:text-5xl lg:text-6xl">
-        Modern real estate, guided with precision.
+        Exceptional Homes. Expert Representation.
       </h1>
 
       <p class="mt-5 max-w-lg text-sm leading-7 text-stone-700 sm:text-base">
@@ -30,14 +30,14 @@ import { site } from "@home/config/site";
       <div class="mt-7 flex flex-col gap-3 sm:flex-row">
         <a
           href={site.customSearchUrl}
-          class="rounded-full bg-[var(--brand-ink)] px-6 py-3.5 text-center text-sm font-bold text-[var(--brand-warm-ivory)] shadow-xl shadow-stone-900/10 transition hover:bg-[var(--brand-deep-olive)]"
+          class="inline-flex rounded-full bg-[var(--brand-ink)] px-6 py-3.5 text-center text-sm font-bold text-[var(--brand-warm-ivory)] shadow-xl shadow-stone-900/10 transition hover:bg-[var(--brand-deep-olive)]"
         >
           Search homes
         </a>
 
         <a
           href="/contact/?intent=valuation"
-          class="rounded-full border border-[var(--brand-clay)] bg-white/85 px-6 py-3.5 text-center text-sm font-bold text-[var(--brand-ink)] shadow-sm transition hover:bg-[var(--brand-clay)]"
+          class="hidden md:inline-flex rounded-full border border-[var(--brand-clay)] bg-white/68 px-6 py-3.5 text-center text-sm font-bold text-[var(--brand-ink)] shadow-sm transition hover:bg-[var(--brand-clay)]"
         >
           Get home value
         </a>
