@@ -262,11 +262,10 @@ function sanitizeSearchParams(url: URL) {
   const limit = Math.min(Math.max(Number(params.limit || 12), 1), 25);
   const page = Math.max(Number(params.page || 1), 1);
 
-  return {
-    ...params,
-    limit: String(limit),
-    page: String(page),
-  };
+  params.limit = String(limit);
+  params.page = String(page);
+
+  return params;
 }
 
 type SearchParams = ReturnType<typeof sanitizeSearchParams>;
