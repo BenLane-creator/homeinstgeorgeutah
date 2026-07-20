@@ -48,7 +48,7 @@ for path in sorted(SITE_SRC.rglob("*")):
 search_island = SITE_SRC / "components" / "SearchResultsIsland.tsx"
 if search_island.exists():
     text = search_island.read_text(errors="ignore")
-    if '"/api/search' not in text:
+    if "/api/search" not in text:
         errors.append("Search results do not call the Worker /api/search endpoint.")
     if "/api/v1/search/execute" in text:
         errors.append("Legacy search endpoint remains in SearchResultsIsland.")
@@ -100,7 +100,8 @@ if DIST.exists():
 
     for path in html_files:
         html = path.read_text(errors="ignore")
-        if not canonical_pattern.search(html):
+        is_redirect = 'http-equiv="refresh"' in html.lower()
+        if not is_redirect and not canonical_pattern.search(html):
             errors.append(f"Canonical domain missing from {path.relative_to(DIST)}")
         if not noindex_pattern.search(html):
             errors.append(f"Prelaunch noindex missing from {path.relative_to(DIST)}")
