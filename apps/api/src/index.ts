@@ -259,13 +259,97 @@ function sanitizeSearchParams(url: URL) {
     }
   }
 
-  const limit = Math.min(Math.max(Number(params.limit || 12), 1), 50);
+  const limit = Math.min(Math.max(Number(params.limit || 12), 1), 25);
   const page = Math.max(Number(params.page || 1), 1);
 
   return {
     ...params,
     limit: String(limit),
     page: String(page),
+  };
+}
+
+type SearchParams = ReturnType<typeof sanitizeSearchParams>;
+
+function escapeODataString(value: string) {
+  return value.replace(/'/g, "''");
+}
+
+function validSearchNumber(value: string | undefined) {
+  if (!value) return null;
+  const number = Number(value);
+  return Number.isFinite(number) ? number : null;
+}
+
+function buildProviderSearchParams(params: SearchParams) {
+  const filters: string[] = [];
+  const status = params.status || "Active";
+
+  filters.push(`StandardStatus eq '${escapeODataString(status)}'`);
+
+  if (params.city) {
+    filters.push(`City eq '${escapeODataString(params.city)}'`);
+  }
+
+  if (params.neighborhood) {
+    filters.push(
+      `contains(SubdivisionName,'${escapeODataString(params.neighborhood)}')`,
+    );
+  }
+
+  if (params.propertyType) {
+    filters.push(
+      `PropertyType eq '${escapeODataString(params.propertyType)}'`,
+    );
+  }
+
+  if (params.q) {
+    const query = escapeODataString(params.q);
+    filters.push(
+      `(contains(UnparsedAddress,'${query}') or contains(City,'${query}') or contains(SubdivisionName,'${query}') or ListingId eq '${query}')`,
+    );
+  }
+
+  const minPrice = validSearchNumber(params.minPrice);
+  const maxPrice = validSearchNumber(params.maxPrice);
+  const beds = validSearchNumber(params.beds);
+  const baths = validSearchNumber(params.baths);
+
+  if (minPrice !== null) filters.push(`ListPrice ge ${minPrice}`);
+  if (maxPrice !== null) filters.push(`ListPrice le ${maxPrice}`);
+  if (beds !== null) filters.push(`BedroomsTotal ge ${beds}`);
+  if (baths !== null) {
+    filters.push(`BathroomsTotalInteger ge ${baths}`);
+  }
+
+  const page = Number(params.page);
+  const limit = Number(params.limit);
+
+  return {
+    "$top": String(limit),
+    "$skip": String((page - 1) * limit),
+    "$count": "true",
+    "$orderby": "ModificationTimestamp desc",
+    "$filter": filters.join(" and "),
+    "$select": [
+      "ListingKey",
+      "ListingId",
+      "StandardStatus",
+      "ListPrice",
+      "PropertyType",
+      "PropertySubType",
+      "UnparsedAddress",
+      "City",
+      "StateOrProvince",
+      "PostalCode",
+      "BedroomsTotal",
+      "BathroomsTotalInteger",
+      "LivingArea",
+      "LotSizeAcres",
+      "ListOfficeName",
+      "ModificationTimestamp",
+    ].join(","),
+    "$expand": "Media($top=1)",
   };
 }
 
@@ -325,18 +409,16 @@ async function handleSearch(request: Request, env: Env) {
   const url = new URL(request.url);
   const params = sanitizeSearchParams(url);
 
-  const providerParams = { ...params };
-  delete providerParams.sort;
+  const providerParams = buildProviderSearchParams(params);
 
   const liveResult = await callSparkReso(
     env,
     "/Property",
     providerParams,
   ).catch((error) => ({
-      sparkError:
-        error instanceof Error ? error.message : "Unknown Spark/RESO error",
-    }),
-  );
+    sparkError:
+      error instanceof Error ? error.message : "Unknown Spark/RESO error",
+  }));
 
   if (!liveResult) {
     return json({
@@ -382,6 +464,10 @@ async function handleSearch(request: Request, env: Env) {
   }
 
   const listings = normalizeSparkListings(liveResult);
+  const resultRecord = asRecord(liveResult);
+  const total =
+    (resultRecord && firstNumber(resultRecord, ["@odata.count"])) ??
+    listings.length;
 
   return json({
     ok: true,
@@ -394,6 +480,7 @@ async function handleSearch(request: Request, env: Env) {
         page: Number(params.page),
         limit: Number(params.limit),
         count: listings.length,
+        total,
       },
     },
     meta: {
@@ -412,9 +499,11 @@ async function handleListingDetail(
     return badRequest("Missing listing id.");
   }
 
+  const listingKey = escapeODataString(listingId);
   const liveResult = await callSparkReso(
     env,
-    `/Property('${encodeURIComponent(listingId)}')`,
+    `/Property('${listingKey}')`,
+    { "$expand": "Media($top=1)" },
   ).catch((error) => ({
     sparkError:
       error instanceof Error ? error.message : "Unknown Spark/RESO error",
