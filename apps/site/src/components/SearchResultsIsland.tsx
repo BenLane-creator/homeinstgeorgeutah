@@ -227,11 +227,8 @@ export default function SearchResultsIsland() {
       </div>
 
       {activeFilters.length > 0 && (
-        <div
-          className="flex flex-wrap gap-2 border-b border-stone-200 py-4"
-          role="group"
-          aria-label="Active search filters"
-        >
+        <fieldset className="flex flex-wrap gap-2 border-b border-stone-200 py-4">
+          <legend className="sr-only">Active search filters</legend>
           {activeFilters.map((filter) => (
             <button
               key={filter.key}
@@ -244,7 +241,7 @@ export default function SearchResultsIsland() {
               <span aria-hidden="true">×</span>
             </button>
           ))}
-        </div>
+        </fieldset>
       )}
 
       <div aria-live="polite" aria-busy={requestState === "loading"}>
