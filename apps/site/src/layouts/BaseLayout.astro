@@ -25,13 +25,17 @@ const {
   title: pageTitle,
   description = site.description,
   pathname = Astro.url.pathname,
-  image = "/og-image.jpg",
+  image = "/brand/hero/sot-hero-image-final.png",
   noindex = false,
 } = Astro.props;
 
 const fullTitle = makeTitle(pageTitle);
 const canonicalUrl = canonical(pathname);
 const ogImageUrl = new URL(image, site.url).toString();
+const prelaunch = import.meta.env.PUBLIC_PRELAUNCH !== "false";
+const shouldNoindex = noindex || prelaunch;
+const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY;
+const isHome = pathname === "/";
 
 const schemas = [
   realtorSchema(),
@@ -53,30 +57,66 @@ const schemas = [
 
     <title>{fullTitle}</title>
     <meta name="description" content={description} />
+    <meta name="author" content={site.brokerName} />
     <link rel="canonical" href={canonicalUrl} />
 
-    {noindex && <meta name="robots" content="noindex,nofollow" />}
+    <meta
+      name="robots"
+      content={shouldNoindex
+        ? "noindex,nofollow,noarchive"
+        : "index,follow,max-image-preview:large"}
+    />
 
     <meta property="og:type" content="website" />
+    <meta property="og:locale" content="en_US" />
     <meta property="og:site_name" content={site.name} />
     <meta property="og:title" content={fullTitle} />
     <meta property="og:description" content={description} />
     <meta property="og:url" content={canonicalUrl} />
     <meta property="og:image" content={ogImageUrl} />
+    <meta
+      property="og:image:alt"
+      content="Robertson Real Estate in St. George and Southern Utah"
+    />
 
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content={fullTitle} />
     <meta name="twitter:description" content={description} />
     <meta name="twitter:image" content={ogImageUrl} />
 
-    <meta name="theme-color" content="#fffaf3" />
+    <meta name="theme-color" content="#16191b" />
+    <meta name="color-scheme" content="light" />
+
+    {isHome && (
+      <link
+        rel="preload"
+        as="image"
+        href="/brand/hero/sot-hero-image-final.png"
+        fetchpriority="high"
+      />
+    )}
 
     <script type="application/ld+json" set:html={JSON.stringify(schemas)} />
+
+    {turnstileSiteKey && (
+      <script
+        is:inline
+        src="https://challenges.cloudflare.com/turnstile/v0/api.js"
+        async
+        defer
+      ></script>
+    )}
   </head>
 
   <body class="bg-white text-stone-950 antialiased">
+    <a
+      href="#main-content"
+      class="fixed left-4 top-4 z-[100] -translate-y-24 bg-white px-5 py-3 font-bold text-[var(--brand-ink)] shadow-xl transition focus:translate-y-0"
+    >
+      Skip to main content
+    </a>
     <Header />
-    <main>
+    <main id="main-content" tabindex="-1">
       <slot />
     </main>
     <Footer />
