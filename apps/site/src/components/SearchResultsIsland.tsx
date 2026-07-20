@@ -229,6 +229,7 @@ export default function SearchResultsIsland() {
       {activeFilters.length > 0 && (
         <div
           className="flex flex-wrap gap-2 border-b border-stone-200 py-4"
+          role="group"
           aria-label="Active search filters"
         >
           {activeFilters.map((filter) => (
