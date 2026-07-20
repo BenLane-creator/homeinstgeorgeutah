@@ -61,6 +61,7 @@ function firstString(record: UnknownRecord, keys: string[]) {
 function firstNumber(record: UnknownRecord, keys: string[]) {
   for (const key of keys) {
     const value = record[key];
+    if (value === null || value === undefined || value === "") continue;
     const number = typeof value === "number" ? value : Number(value);
     if (Number.isFinite(number)) return number;
   }
@@ -324,8 +325,14 @@ async function handleSearch(request: Request, env: Env) {
   const url = new URL(request.url);
   const params = sanitizeSearchParams(url);
 
-  const liveResult = await callSparkReso(env, "/Property", params).catch(
-    (error) => ({
+  const providerParams = { ...params };
+  delete providerParams.sort;
+
+  const liveResult = await callSparkReso(
+    env,
+    "/Property",
+    providerParams,
+  ).catch((error) => ({
       sparkError:
         error instanceof Error ? error.message : "Unknown Spark/RESO error",
     }),
