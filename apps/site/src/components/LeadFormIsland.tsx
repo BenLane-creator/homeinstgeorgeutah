@@ -1,3 +1,4 @@
+import { site } from "@home/config/site";
 import { motion } from "motion/react";
 import { useState } from "react";
 
@@ -365,10 +366,10 @@ export default function LeadFormIsland({
 
         {status === "error" && (
           <a
-            href="tel:+14357731220"
+            href={site.phoneHref}
             className="inline-flex min-h-11 items-center justify-center text-sm font-bold text-[var(--brand-ink)] underline decoration-[var(--brand-gold)] underline-offset-4"
           >
-            Call Joel at (435) 773-1220
+            Call Joel at {site.phone}
           </a>
         )}
       </div>
