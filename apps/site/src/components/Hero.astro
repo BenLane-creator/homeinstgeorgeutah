@@ -1,47 +1,95 @@
 ---
 import { site } from "@home/config/site";
+
+const proofPoints = [
+  { value: "20+ years", label: "Southern Utah experience" },
+  { value: "Broker-level", label: "Direct representation" },
+  { value: "Local precision", label: "Property and market guidance" },
+  { value: "Buyer + seller", label: "Strategy for every move" },
+];
 ---
 
-<section class="relative min-h-[760px] overflow-hidden bg-[var(--brand-ink)]">
-  <picture class="absolute inset-0">
-    <img
-      src="/brand/hero/sot-hero-image-final.png"
-      alt="Luxury Southern Utah home with red rock landscape"
-      class="h-full w-full object-cover object-[82%_center] md:object-center"
-      loading="eager"
-      fetchpriority="high"
-    />
-  </picture>
+<section class="overflow-hidden bg-[var(--brand-warm-ivory)]">
+  <div class="mx-auto max-w-[96rem]">
+    <div class="grid lg:min-h-[760px] lg:grid-cols-[0.84fr_1.16fr]">
+      <div class="relative z-10 flex items-center px-6 py-16 sm:px-10 sm:py-20 lg:px-12 lg:py-24 xl:px-20">
+        <div class="mx-auto w-full max-w-xl lg:mx-0">
+          <p class="text-[0.68rem] font-bold uppercase tracking-[0.32em] text-[var(--brand-gold)] sm:text-xs">
+            Modern real estate. Local precision.
+          </p>
 
-  <div class="relative mx-auto flex min-h-[calc(100svh-4.75rem)] max-w-7xl items-start px-5 py-7 sm:py-9 lg:py-12">
-    <div class="ml-4 mr-auto w-[64%] max-w-[278px] rounded-[1.75rem] border border-white/35 bg-[var(--brand-warm-ivory)]/56 p-4 shadow-md shadow-stone-950/10 backdrop-blur-[0.5px] sm:p-7 md:ml-0 md:w-auto md:max-w-[640px] lg:p-8">
-      <p class="text-[0.65rem] font-bold uppercase tracking-[0.28em] text-[var(--brand-deep-olive)] sm:text-xs">
-        Broker-level guidance for buyers and sellers seeking an elevated real estate experience.
-      </p>
+          <div class="mt-6 h-px w-16 bg-[var(--brand-gold)]"></div>
 
-      <h1 class="mt-4 text-4xl font-bold leading-[0.96] tracking-[-0.055em] text-[var(--brand-ink)] sm:text-5xl lg:text-6xl">
-        Exceptional Homes. Expert Representation.
-      </h1>
+          <h1 class="mt-8 text-[clamp(3.45rem,15vw,4.8rem)] font-medium leading-[0.91] tracking-[-0.06em] text-[var(--brand-ink)] lg:text-[clamp(4.8rem,6.4vw,7.2rem)]">
+            <span class="block">Better</span>
+            <span class="block">Real Estate</span>
+            <span class="block text-[var(--brand-gold)]">Decisions.</span>
+          </h1>
 
-      <p class="mt-5 max-w-lg text-sm leading-7 text-stone-700 sm:text-base">
-        Local St. George guidance, first-party home search, and direct broker-level service from Joel Robertson.
-      </p>
+          <p class="mt-8 max-w-lg text-base leading-8 text-stone-700 sm:text-lg sm:leading-9">
+            Local insight and more than 20 years of Southern Utah experience—so you can buy or sell with clarity, confidence, and direct broker-level guidance.
+          </p>
 
-      <div class="mt-7 flex flex-col gap-3 sm:flex-row">
-        <a
-          href={site.customSearchUrl}
-          class="inline-flex rounded-full bg-[var(--brand-ink)] px-6 py-3.5 text-center text-sm font-bold text-[var(--brand-warm-ivory)] shadow-xl shadow-stone-900/10 transition hover:bg-[var(--brand-deep-olive)]"
-        >
-          Search homes
-        </a>
+          <div class="mt-10 grid gap-3 sm:flex sm:flex-wrap">
+            <a
+              href={site.customSearchUrl}
+              class="inline-flex min-h-14 items-center justify-center gap-4 bg-[var(--brand-ink)] px-7 py-4 text-sm font-bold uppercase tracking-[0.16em] text-white transition hover:bg-[var(--brand-deep-olive)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--brand-gold)]"
+            >
+              Search homes
+              <span aria-hidden="true" class="text-xl text-[var(--brand-gold)]">→</span>
+            </a>
 
-        <a
-          href="/contact/?intent=valuation"
-          class="hidden md:inline-flex rounded-full border border-[var(--brand-clay)] bg-white/68 px-6 py-3.5 text-center text-sm font-bold text-[var(--brand-ink)] shadow-sm transition hover:bg-[var(--brand-clay)]"
-        >
-          Get home value
-        </a>
+            <a
+              href="/contact/?intent=general_contact"
+              class="inline-flex min-h-14 items-center justify-center border border-[var(--brand-pink-sand)] bg-white px-7 py-4 text-sm font-bold uppercase tracking-[0.14em] text-[var(--brand-ink)] transition hover:border-[var(--brand-gold)] hover:bg-white/70 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--brand-gold)]"
+            >
+              Work with Joel
+            </a>
+          </div>
+
+          <div class="mt-10 flex flex-wrap items-center gap-x-6 gap-y-3 border-t border-[var(--brand-pink-sand)] pt-6 text-sm text-stone-600">
+            <a class="font-semibold text-[var(--brand-ink)] hover:text-[var(--brand-deep-olive)]" href={site.phoneHref}>
+              {site.phone}
+            </a>
+            <span class="hidden h-4 w-px bg-[var(--brand-pink-sand)] sm:block"></span>
+            <span>St. George · Southern Utah</span>
+          </div>
+        </div>
       </div>
+
+      <div class="relative min-h-[34rem] overflow-hidden sm:min-h-[42rem] lg:min-h-full">
+        <img
+          src="/brand/hero/sot-hero-image-final.png"
+          alt="Joel Robertson overlooking a luxury Southern Utah home and red rock landscape"
+          class="absolute inset-0 h-full w-full object-cover object-[78%_center] sm:object-[75%_center] lg:object-[73%_center]"
+          loading="eager"
+          fetchpriority="high"
+          decoding="async"
+        />
+
+        <div class="pointer-events-none absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-black/12 to-transparent lg:hidden"></div>
+        <div class="pointer-events-none absolute inset-y-0 left-0 hidden w-20 bg-gradient-to-r from-[var(--brand-warm-ivory)] to-transparent lg:block"></div>
+
+        <div class="absolute bottom-5 left-5 right-5 sm:bottom-8 sm:left-8 sm:right-auto">
+          <div class="inline-flex items-center gap-3 border border-white/35 bg-[var(--brand-ink)]/88 px-4 py-3 text-xs font-semibold uppercase tracking-[0.18em] text-white shadow-xl backdrop-blur-md">
+            <span class="h-1.5 w-1.5 rounded-full bg-[var(--brand-gold)]"></span>
+            Robertson Real Estate · Saint George, Utah
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="border-y border-[var(--brand-pink-sand)] bg-white">
+    <div class="mx-auto grid max-w-7xl grid-cols-2 gap-px bg-[var(--brand-pink-sand)] lg:grid-cols-4">
+      {proofPoints.map((point) => (
+        <div class="bg-white px-5 py-7 sm:px-8 sm:py-8">
+          <p class="text-sm font-bold uppercase tracking-[0.12em] text-[var(--brand-ink)]">
+            {point.value}
+          </p>
+          <p class="mt-2 text-sm leading-6 text-stone-600">{point.label}</p>
+        </div>
+      ))}
     </div>
   </div>
 </section>
