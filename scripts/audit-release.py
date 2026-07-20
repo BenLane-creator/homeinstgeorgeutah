@@ -60,7 +60,12 @@ if lead_island.exists() and "/api/v1/leads/intake" not in lead_island.read_text(
 base_layout = SITE_SRC / "layouts" / "BaseLayout.astro"
 if base_layout.exists():
     layout_text = base_layout.read_text(errors="ignore")
-    if "PUBLIC_PRELAUNCH" not in layout_text or 'content={robotsContent}' not in layout_text:
+    required_metadata_controls = [
+        "PUBLIC_PRELAUNCH",
+        'name="robots"',
+        "shouldNoindex",
+    ]
+    if any(control not in layout_text for control in required_metadata_controls):
         errors.append("BaseLayout is missing environment-controlled prelaunch noindex metadata.")
 else:
     errors.append("BaseLayout.astro is missing.")
