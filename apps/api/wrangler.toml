@@ -16,13 +16,11 @@ APP_ENV = "production"
 SITE_URL = "https://homeinstgeorgeutah.com"
 MLS_PROVIDER_NAME = "Washington + Iron MLS via approved Spark/Flexmls/FBS access"
 SPARK_API_BASE_URL = ""
-API_WRITE_ORIGINS = "https://homeinstgeorgeutah.com,https://www.homeinstgeorgeutah.com,https://benlane.us,http://localhost:4321,http://localhost:8787"
+API_WRITE_ORIGINS = "https://homeinstgeorgeutah.com,https://www.homeinstgeorgeutah.com,http://localhost:4321,http://localhost:8787"
 
 # Required secrets after credentials are issued:
 # bunx wrangler secret put SPARK_ACCESS_TOKEN --config apps/api/wrangler.toml
 # bunx wrangler secret put TURNSTILE_SECRET_KEY --config apps/api/wrangler.toml
-# bunx wrangler secret put SESSION_SECRET --config apps/api/wrangler.toml
-# bunx wrangler secret put HUBSPOT_ACCESS_TOKEN --config apps/api/wrangler.toml
 #
 # Do not commit live tokens, API keys, session secrets, or MLS credentials.
 
