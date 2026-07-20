@@ -41,14 +41,142 @@ const providerMeta = {
   ],
 };
 
+type UnknownRecord = Record<string, unknown>;
+
+function asRecord(value: unknown): UnknownRecord | null {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as UnknownRecord)
+    : null;
+}
+
+function firstString(record: UnknownRecord, keys: string[]) {
+  for (const key of keys) {
+    const value = record[key];
+    if (typeof value === "string" && value.trim()) return value.trim();
+    if (typeof value === "number") return String(value);
+  }
+  return null;
+}
+
+function firstNumber(record: UnknownRecord, keys: string[]) {
+  for (const key of keys) {
+    const value = record[key];
+    const number = typeof value === "number" ? value : Number(value);
+    if (Number.isFinite(number)) return number;
+  }
+  return null;
+}
+
+function primaryMediaUrl(record: UnknownRecord) {
+  const direct = firstString(record, [
+    "PrimaryPhotoUrl",
+    "PrimaryPhotoURL",
+    "PhotoUrl",
+    "PhotoURL",
+  ]);
+  if (direct) return direct;
+
+  for (const collection of [record.Media, record.Photos, record.Images]) {
+    if (!Array.isArray(collection)) continue;
+
+    for (const item of collection) {
+      const media = asRecord(item);
+      if (!media) continue;
+      const url = firstString(media, [
+        "MediaURL",
+        "MediaUrl",
+        "Uri",
+        "URL",
+        "Url",
+      ]);
+      if (url) return url;
+    }
+  }
+
+  return null;
+}
+
+function listingCandidates(payload: unknown) {
+  const root = asRecord(payload);
+  const nestedD = root ? asRecord(root.d) : null;
+
+  if (root && Array.isArray(root.value)) return root.value;
+  if (root && Array.isArray(root.results)) return root.results;
+  if (nestedD && Array.isArray(nestedD.results)) return nestedD.results;
+  if (nestedD) return [nestedD];
+  if (root) return [root];
+
+  return [];
+}
+
+function normalizeSparkListings(payload: unknown) {
+  return listingCandidates(payload)
+    .map((item, index) => {
+      const listing = asRecord(item);
+      if (!listing) return null;
+
+      const listingId =
+        firstString(listing, [
+          "ListingKey",
+          "ListingId",
+          "ListingID",
+          "Matrix_Unique_ID",
+        ]) || `result-${index + 1}`;
+
+      return {
+        listingId,
+        status: firstString(listing, ["StandardStatus", "MlsStatus", "Status"]),
+        price: firstNumber(listing, ["ListPrice", "CurrentPrice", "Price"]),
+        propertyType: firstString(listing, ["PropertyType"]),
+        propertySubType: firstString(listing, [
+          "PropertySubType",
+          "PropertySubTypeText",
+        ]),
+        addressDisplay:
+          firstString(listing, [
+            "UnparsedAddress",
+            "StreetAddress",
+            "Address",
+          ]) || "Address available through MLS",
+        city: firstString(listing, ["City"]),
+        state: firstString(listing, ["StateOrProvince", "State"]),
+        postalCode: firstString(listing, ["PostalCode", "ZipCode"]),
+        beds: firstNumber(listing, ["BedroomsTotal", "BedsTotal", "Bedrooms"]),
+        baths: firstNumber(listing, [
+          "BathroomsTotalInteger",
+          "BathroomsFull",
+          "BathsTotal",
+          "Bathrooms",
+        ]),
+        livingArea: firstNumber(listing, [
+          "LivingArea",
+          "BuildingAreaTotal",
+          "SquareFeet",
+        ]),
+        lotSizeAcres: firstNumber(listing, ["LotSizeAcres"]),
+        primaryPhotoUrl: primaryMediaUrl(listing),
+        attribution:
+          firstString(listing, [
+            "ListOfficeName",
+            "ListingOfficeName",
+            "BuyerOfficeName",
+          ]) || providerMeta.provider,
+        updatedAt: firstString(listing, [
+          "ModificationTimestamp",
+          "PhotosChangeTimestamp",
+          "StatusChangeTimestamp",
+        ]),
+        requiredDisclaimers: providerMeta.compliance,
+      };
+    })
+    .filter((listing) => listing !== null);
+}
+
 function json(payload: ApiResponse, init: ResponseInit = {}) {
   return new Response(JSON.stringify(payload, null, 2), {
     ...init,
     headers: {
       "content-type": "application/json; charset=utf-8",
-      "access-control-allow-origin": "*",
-      "access-control-allow-methods": "GET,POST,OPTIONS",
-      "access-control-allow-headers": "content-type,authorization",
       ...init.headers,
     },
   });
@@ -117,6 +245,7 @@ function sanitizeSearchParams(url: URL) {
     "baths",
     "propertyType",
     "status",
+    "sort",
     "page",
     "limit",
   ]);
@@ -208,9 +337,15 @@ async function handleSearch(request: Request, env: Env) {
       data: {
         mode: "stub",
         message:
-          "MLS search endpoint is wired, but Spark® / RESO credentials are not configured yet.",
+          "Live listings are being prepared. Contact Joel for current availability.",
         query: params,
-        results: [],
+        listings: [],
+        warnings: [],
+        pagination: {
+          page: Number(params.page),
+          limit: Number(params.limit),
+          count: 0,
+        },
       },
       meta: {
         ...providerMeta,
@@ -219,12 +354,40 @@ async function handleSearch(request: Request, env: Env) {
     });
   }
 
+  const upstreamError = asRecord(liveResult)?.sparkError;
+
+  if (typeof upstreamError === "string") {
+    return json(
+      {
+        ok: false,
+        error: {
+          code: "MLS_UPSTREAM_ERROR",
+          message:
+            "Live listings are temporarily unavailable. Please try again or contact Joel directly.",
+        },
+        meta: {
+          ...providerMeta,
+          generatedAt: new Date().toISOString(),
+        },
+      },
+      { status: 502 },
+    );
+  }
+
+  const listings = normalizeSparkListings(liveResult);
+
   return json({
     ok: true,
     data: {
       mode: "live",
       query: params,
-      result: liveResult as JsonValue,
+      listings,
+      warnings: [],
+      pagination: {
+        page: Number(params.page),
+        limit: Number(params.limit),
+        count: listings.length,
+      },
     },
     meta: {
       ...providerMeta,
@@ -256,7 +419,7 @@ async function handleListingDetail(
       data: {
         mode: "stub",
         message:
-          "Listing detail endpoint is wired, but Spark® / RESO credentials are not configured yet.",
+          "Property details are being prepared. Contact Joel for current information.",
         listingId,
         listing: null,
       },
@@ -267,12 +430,34 @@ async function handleListingDetail(
     });
   }
 
+  const upstreamError = asRecord(liveResult)?.sparkError;
+
+  if (typeof upstreamError === "string") {
+    return json(
+      {
+        ok: false,
+        error: {
+          code: "MLS_UPSTREAM_ERROR",
+          message:
+            "Property details are temporarily unavailable. Please try again or contact Joel directly.",
+        },
+        meta: {
+          ...providerMeta,
+          generatedAt: new Date().toISOString(),
+        },
+      },
+      { status: 502 },
+    );
+  }
+
+  const [listing = null] = normalizeSparkListings(liveResult);
+
   return json({
     ok: true,
     data: {
       mode: "live",
       listingId,
-      result: liveResult as JsonValue,
+      listing,
     },
     meta: {
       ...providerMeta,
