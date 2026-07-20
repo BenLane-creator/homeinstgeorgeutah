@@ -11,7 +11,7 @@ const resourceNavItems = navItems.filter((item) =>
 );
 ---
 
-<header class="sticky top-0 z-[60] border-b border-[var(--brand-pink-sand)] bg-[var(--brand-warm-ivory)] shadow-sm shadow-stone-950/5">
+<header class="sticky top-0 z-[60] border-b border-white/10 bg-[var(--brand-ink)] shadow-lg shadow-black/10">
   <div class="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-5 lg:py-4">
     <a href="/" class="group flex min-w-0 items-center gap-3" aria-label={`${site.name} home`}>
       <span class="flex h-11 w-11 shrink-0 items-center justify-center">
@@ -23,24 +23,24 @@ const resourceNavItems = navItems.filter((item) =>
         />
       </span>
 
-      <span class="hidden h-10 w-px shrink-0 bg-[var(--brand-clay)] sm:block"></span>
+      <span class="hidden h-10 w-px shrink-0 bg-[var(--brand-gold)]/35 sm:block"></span>
 
       <span class="min-w-0 leading-none">
-        <span class="block font-heading text-[0.92rem] font-semibold tracking-[0.18em] text-[var(--brand-ink)] sm:text-base">
+        <span class="block font-heading text-[0.92rem] font-semibold tracking-[0.18em] text-white sm:text-base">
           ROBERTSON
         </span>
         <span class="mt-1 block text-[0.64rem] font-bold tracking-[0.24em] text-[var(--brand-gold)] sm:text-[0.68rem]">
           REAL ESTATE
         </span>
-        <span class="mt-1 hidden text-[0.55rem] font-semibold tracking-[0.2em] text-stone-500 sm:block">
+        <span class="mt-1 hidden text-[0.55rem] font-semibold tracking-[0.2em] text-[var(--brand-pink-sand)] sm:block">
           SAINT GEORGE, UTAH
         </span>
       </span>
     </a>
 
-    <nav class="hidden items-center gap-5 text-sm font-semibold text-stone-700 lg:flex" aria-label="Primary navigation">
+    <nav class="hidden items-center gap-6 text-xs font-semibold uppercase tracking-[0.12em] text-stone-300 lg:flex" aria-label="Primary navigation">
       {primaryNavItems.map((item) => (
-        <a class="transition hover:text-[var(--brand-ink)]" href={item.href}>
+        <a class="transition hover:text-white" href={item.href}>
           {item.label}
         </a>
       ))}
@@ -48,7 +48,7 @@ const resourceNavItems = navItems.filter((item) =>
       <div class="relative" data-resources-menu>
         <button
           type="button"
-          class="flex items-center gap-1 transition hover:text-[var(--brand-ink)]"
+          class="flex items-center gap-1 transition hover:text-white"
           aria-expanded="false"
           aria-controls="resources-menu-panel"
           data-resources-button
@@ -61,14 +61,14 @@ const resourceNavItems = navItems.filter((item) =>
 
         <div
           id="resources-menu-panel"
-          class="absolute left-1/2 top-full z-[70] mt-4 w-64 -translate-x-1/2 rounded-3xl border border-[var(--brand-pink-sand)] bg-[var(--brand-warm-ivory)] p-3 shadow-2xl shadow-stone-950/10"
+          class="absolute left-1/2 top-full z-[70] mt-4 w-64 -translate-x-1/2 border border-white/10 bg-[var(--brand-ink)] p-3 shadow-2xl shadow-black/25"
           data-resources-panel
           hidden
         >
           <nav class="grid gap-1" aria-label="Resources navigation">
             {resourceNavItems.map((item) => (
               <a
-                class="rounded-2xl px-4 py-3 text-sm font-semibold text-stone-700 transition hover:bg-white hover:text-[var(--brand-ink)]"
+                class="px-4 py-3 text-sm font-semibold text-stone-300 transition hover:bg-white/5 hover:text-white"
                 href={item.href}
               >
                 {item.label}
@@ -82,29 +82,29 @@ const resourceNavItems = navItems.filter((item) =>
     <div class="hidden items-center gap-3 lg:flex">
       <a
         href={site.phoneHref}
-        class="text-sm font-semibold text-stone-700 transition hover:text-[var(--brand-ink)]"
+        class="text-sm font-semibold text-stone-300 transition hover:text-white"
       >
         {site.phone}
       </a>
 
       <a
         href="/contact/?intent=general_contact"
-        class="rounded-full bg-[var(--brand-ink)] px-5 py-2.5 text-sm font-bold text-[var(--brand-warm-ivory)] shadow-sm transition hover:bg-[var(--brand-deep-olive)]"
+        class="bg-[var(--brand-gold)] px-5 py-2.5 text-xs font-bold uppercase tracking-[0.12em] text-[var(--brand-ink)] shadow-sm transition hover:bg-[var(--brand-favicon-gold)]"
       >
         Contact
       </a>
     </div>
 
     <details class="relative lg:hidden">
-      <summary class="list-none rounded-full border border-[var(--brand-pink-sand)] bg-white/70 px-4 py-2 text-sm font-bold text-[var(--brand-ink)]">
+      <summary class="list-none border border-[var(--brand-gold)]/45 bg-white/5 px-4 py-2 text-xs font-bold uppercase tracking-[0.12em] text-white">
         Menu
       </summary>
 
-      <div class="absolute right-0 mt-3 max-h-[calc(100svh-6rem)] w-72 overflow-y-auto rounded-3xl border border-[var(--brand-pink-sand)] bg-[var(--brand-warm-ivory)] p-4 shadow-xl">
+      <div class="absolute right-0 mt-3 max-h-[calc(100svh-6rem)] w-72 overflow-y-auto border border-white/10 bg-[var(--brand-ink)] p-4 shadow-2xl shadow-black/30">
         <nav class="grid gap-1" aria-label="Mobile navigation">
           {primaryNavItems.map((item) => (
             <a
-              class="rounded-2xl px-4 py-3 text-sm font-semibold text-stone-700 transition hover:bg-white hover:text-[var(--brand-ink)]"
+              class="px-4 py-3 text-sm font-semibold text-stone-300 transition hover:bg-white/5 hover:text-white"
               href={item.href}
             >
               {item.label}
@@ -112,15 +112,15 @@ const resourceNavItems = navItems.filter((item) =>
           ))}
         </nav>
 
-        <div class="mt-4 border-t border-[var(--brand-pink-sand)] pt-4">
-          <p class="px-4 text-[0.65rem] font-bold uppercase tracking-[0.24em] text-[var(--brand-deep-olive)]">
+        <div class="mt-4 border-t border-white/10 pt-4">
+          <p class="px-4 text-[0.65rem] font-bold uppercase tracking-[0.24em] text-[var(--brand-gold)]">
             Resources
           </p>
 
           <nav class="mt-2 grid gap-1" aria-label="Mobile resources navigation">
             {resourceNavItems.map((item) => (
               <a
-                class="rounded-2xl px-4 py-3 text-sm font-semibold text-stone-700 transition hover:bg-white hover:text-[var(--brand-ink)]"
+                class="px-4 py-3 text-sm font-semibold text-stone-300 transition hover:bg-white/5 hover:text-white"
                 href={item.href}
               >
                 {item.label}
@@ -129,17 +129,17 @@ const resourceNavItems = navItems.filter((item) =>
           </nav>
         </div>
 
-        <div class="mt-4 grid gap-2 border-t border-[var(--brand-pink-sand)] pt-4">
+        <div class="mt-4 grid gap-2 border-t border-white/10 pt-4">
           <a
             href={site.phoneHref}
-            class="block rounded-2xl bg-white px-4 py-3 text-sm font-bold text-[var(--brand-ink)] ring-1 ring-[var(--brand-clay)]"
+            class="block bg-white/5 px-4 py-3 text-sm font-bold text-white ring-1 ring-white/10"
           >
             Call {site.phone}
           </a>
 
           <a
             href="/contact/?intent=general_contact"
-            class="block rounded-2xl bg-[var(--brand-ink)] px-4 py-3 text-sm font-bold text-[var(--brand-warm-ivory)]"
+            class="block bg-[var(--brand-gold)] px-4 py-3 text-sm font-bold text-[var(--brand-ink)]"
           >
             Contact Joel
           </a>
