@@ -9,23 +9,22 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@astrojs/cloudflare": "latest",
-    "@astrojs/mdx": "latest",
-    "@astrojs/react": "latest",
-    "@tailwindcss/vite": "latest",
-    "astro": "latest",
-    "motion": "latest",
-    "react": "latest",
-    "react-dom": "latest",
-    "tailwindcss": "latest",
+    "@astrojs/cloudflare": "13.7.0",
+    "@astrojs/mdx": "6.0.3",
+    "@astrojs/react": "5.0.7",
+    "@tailwindcss/vite": "4.3.1",
+    "astro": "6.4.8",
+    "motion": "12.40.0",
+    "react": "19.2.7",
+    "react-dom": "19.2.7",
+    "tailwindcss": "4.3.1",
     "@home/config": "workspace:*",
     "@home/ui": "workspace:*"
   },
   "devDependencies": {
-    "@types/react": "latest",
-    "@types/react-dom": "latest",
-    "vite": "7.2.7",
-    "vitest": "latest"
+    "@types/react": "19.2.17",
+    "@types/react-dom": "19.2.3",
+    "vite": "7.3.5",
+    "vitest": "4.1.9"
   }
 }
-

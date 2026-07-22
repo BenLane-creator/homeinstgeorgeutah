@@ -26,9 +26,16 @@
     "audit:fair-housing": "python3 scripts/audit-fair-housing.py",
     "build:site:cloudflare": "bun install --frozen-lockfile && bun run build:site"
   },
+  "overrides": {
+    "js-yaml": "4.3.0",
+    "sharp": "0.35.3",
+    "svgo": "4.0.2",
+    "undici": "7.28.0",
+    "ws": "8.21.1"
+  },
   "devDependencies": {
-    "@biomejs/biome": "latest",
-    "@playwright/test": "latest",
-    "typescript": "latest"
+    "@biomejs/biome": "2.5.0",
+    "@playwright/test": "1.61.0",
+    "typescript": "6.0.3"
   }
 }
