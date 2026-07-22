@@ -131,7 +131,7 @@ if 'name = "LEAD_RATE_LIMITER"' not in wrangler:
     errors.append("Production lead rate-limit binding is missing.")
 
 api_index = require(ROOT / "apps" / "api" / "src" / "index.ts")
-for control in ["enforceWriteOrigin", "enforceLeadRateLimit", "readJsonBody", "verifyTurnstile"]:
+for control in ["requireApprovedWriteOrigin", "enforceLeadRateLimit", "readJsonBody", "verifyTurnstile"]:
     if control not in api_index:
         errors.append(f"Lead route is missing request protection: {control}")
 

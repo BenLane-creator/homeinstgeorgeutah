@@ -8,6 +8,11 @@ export interface ListingServiceEnv {
 
 export const APPROVED_POLICY_VERSION = "washington-county-idx-v1";
 
+export const LISTING_SCOPE = {
+  county: "Washington",
+  ironCountyEnabled: false,
+} as const;
+
 export const providerMeta = {
   provider: "Washington County listing feed",
   source: "Provider-neutral RESO adapter",

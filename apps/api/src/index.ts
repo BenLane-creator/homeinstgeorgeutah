@@ -1,5 +1,6 @@
 import {
   getMlsActivationState,
+  LISTING_SCOPE,
   providerMeta,
   sanitizeSearchParams,
   SearchInputError,
@@ -133,8 +134,8 @@ function handleMlsStatus(request: Request, env: Env) {
       approvedPolicyConfigured: state.policyApproved,
       providerConfigured: state.providerConfigured,
       credentialsConfigured: state.credentialsConfigured,
-      scope: "Washington County only",
-      ironCountyEnabled: false,
+      scope: `${LISTING_SCOPE.county} County only`,
+      ironCountyEnabled: LISTING_SCOPE.ironCountyEnabled,
     },
     meta: metadata(),
   });
