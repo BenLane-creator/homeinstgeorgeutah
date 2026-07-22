@@ -51,7 +51,7 @@ test("legal routes render and an unknown route is a true 404", async ({
   const missing = await page.goto("/this-route-must-not-exist/");
   expect(missing?.status()).toBe(404);
   await expect(
-    page.getByRole("heading", { name: /page not found/i }),
+    page.getByRole("heading", { name: /this page is not here/i }),
   ).toBeVisible();
 });
 
