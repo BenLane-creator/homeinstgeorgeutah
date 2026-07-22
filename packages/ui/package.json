@@ -7,10 +7,10 @@
     "./card": "./card.tsx"
   },
   "dependencies": {
-    "@radix-ui/react-slot": "latest",
-    "class-variance-authority": "latest",
-    "clsx": "latest",
-    "tailwind-merge": "latest",
-    "react": "latest"
+    "@radix-ui/react-slot": "1.3.0",
+    "class-variance-authority": "0.7.1",
+    "clsx": "2.1.1",
+    "tailwind-merge": "3.6.0",
+    "react": "19.2.7"
   }
 }

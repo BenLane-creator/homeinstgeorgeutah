@@ -1,0 +1,47 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import { site } from "@home/config/site";
+---
+
+<BaseLayout
+  title={`Accessibility | ${site.companyName}`}
+  description={`${site.companyName}'s commitment to an accessible real estate website experience.`}
+>
+  <section class="bg-[var(--brand-warm-ivory)] px-5 py-16 sm:py-24">
+    <div class="mx-auto max-w-3xl">
+      <p class="text-xs font-bold uppercase tracking-[0.22em] text-[var(--brand-clay)]">Accessibility</p>
+      <h1 class="mt-4 text-4xl font-black tracking-[-0.04em] text-[var(--brand-ink)] sm:text-6xl">
+        Real estate guidance should be accessible.
+      </h1>
+      <div class="mt-10 space-y-8 text-base leading-8 text-[var(--brand-ink)]">
+        <p>
+          {site.companyName} is committed to providing a website that works for as many people as possible,
+          including people who use assistive technology. We continue to review content, navigation, forms,
+          contrast, keyboard access, and screen-reader support as the site evolves.
+        </p>
+
+        <section>
+          <h2 class="text-2xl font-black tracking-[-0.02em]">Need help or found a barrier?</h2>
+          <p class="mt-3">
+            If any part of the site is difficult to use, tell us what page or feature caused the issue and
+            what format would work better. We will make a reasonable effort to provide the information or
+            service another way and address the underlying problem.
+          </p>
+        </section>
+
+        <div class="rounded-[1.75rem] border border-[var(--brand-pink-sand)] bg-white p-6 sm:p-8">
+          <p class="text-xs font-bold uppercase tracking-[0.2em] text-[var(--brand-clay)]">Accessibility support</p>
+          <a class="mt-4 block text-xl font-black underline underline-offset-4" href={site.phoneHref}>
+            {site.phone}
+          </a>
+          <a class="mt-2 block font-bold underline underline-offset-4" href={`mailto:${site.email}`}>
+            {site.email}
+          </a>
+          <p class="mt-5 text-sm leading-6 text-[var(--brand-muted)]">
+            Please include the page address and a brief description of the problem when possible.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+</BaseLayout>

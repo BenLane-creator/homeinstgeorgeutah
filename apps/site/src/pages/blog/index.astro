@@ -1,38 +1,47 @@
 ---
-import { getCollection } from "astro:content";
+import { getCollection, type CollectionEntry } from "astro:content";
 import BaseLayout from "../../layouts/BaseLayout.astro";
 
-const posts = await getCollection("blog");
-const sortedPosts = posts.sort((a, b) => b.data.date.localeCompare(a.data.date));
+function entrySlug(entry: CollectionEntry<"blog">) {
+  return entry.data.slug || entry.id.replace(/\.(md|mdx)$/i, "");
+}
+
+const posts = await getCollection("blog", ({ data }) => !data.draft);
+const sortedPosts = posts.sort(
+  (a, b) => (b.data.pubDate?.getTime() ?? 0) - (a.data.pubDate?.getTime() ?? 0),
+);
 ---
 
 <BaseLayout
   title="St. George Real Estate Blog"
   pathname="/blog/"
-  description="Local St. George and Southern Utah real estate market updates, buyer guides, seller tips, relocation advice, and neighborhood insights from Joel Robertson."
+  description="Local St. George and Washington County real estate guidance, market guides, buyer resources, seller strategy, and relocation information from Joel Robertson."
 >
-  <section class="bg-[#fffaf3] px-5 py-24">
+  <section class="bg-[var(--brand-warm-ivory)] px-5 py-20 sm:py-24">
     <div class="mx-auto max-w-5xl">
-      <p class="text-sm font-semibold uppercase tracking-[0.25em] text-amber-900/70">
-        Blog
-      </p>
-      <h1 class="mt-4 font-serif text-5xl font-semibold tracking-tight text-stone-950 md:text-6xl">
+      <p class="text-xs font-bold uppercase tracking-[0.24em] text-[var(--brand-gold)]">Market guides</p>
+      <h1 class="mt-4 text-5xl font-semibold tracking-[-0.045em] text-[var(--brand-ink)] md:text-6xl">
         St. George real estate insights.
       </h1>
       <p class="mt-6 max-w-3xl text-lg leading-8 text-stone-700">
-        Local market updates, buyer guidance, seller strategy, relocation advice, and neighborhood notes from Joel Robertson of Robertson Real Estate.
+        Local market context, buyer guidance, seller strategy, relocation information, and neighborhood notes from Joel Robertson.
       </p>
     </div>
   </section>
 
-  <section class="bg-white px-5 py-20">
+  <section class="bg-white px-5 py-16 sm:py-20">
     <div class="mx-auto grid max-w-7xl gap-6 md:grid-cols-3">
       {sortedPosts.map((post) => (
-        <a href={`/blog/${post.data.slug}`} class="rounded-3xl border border-stone-200 p-8 hover:bg-stone-50">
-          <p class="text-sm font-semibold uppercase tracking-[0.2em] text-amber-900/70">{post.data.category}</p>
-          <h2 class="mt-3 font-serif text-3xl font-semibold text-stone-950">{post.data.title}</h2>
+        <a
+          href={`/blog/${entrySlug(post)}/`}
+          class="border border-[var(--brand-pink-sand)] p-7 transition hover:bg-[var(--brand-warm-ivory)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--brand-gold)]"
+        >
+          <p class="text-xs font-bold uppercase tracking-[0.2em] text-[var(--brand-gold)]">
+            {post.data.category || "Market guide"}
+          </p>
+          <h2 class="mt-3 text-3xl font-semibold text-[var(--brand-ink)]">{post.data.title}</h2>
           <p class="mt-4 text-stone-600">{post.data.description}</p>
-          <p class="mt-6 text-sm font-semibold text-stone-950">Read article →</p>
+          <p class="mt-6 text-sm font-semibold text-[var(--brand-ink)]">Read article →</p>
         </a>
       ))}
     </div>

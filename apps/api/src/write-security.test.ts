@@ -40,7 +40,7 @@ describe("lead write security headers", () => {
     expect(response.headers.get("vary")).toContain("Origin");
   });
 
-  test("falls back to first configured origin for unapproved write origin", async () => {
+  test("rejects an unapproved write origin without CORS reflection", async () => {
     const response = await worker.fetch(
       new Request("https://homeinstgeorgeutah.com/api/v1/leads/intake", {
         method: "OPTIONS",
@@ -51,10 +51,9 @@ describe("lead write security headers", () => {
       env,
     );
 
-    expect(response.status).toBe(204);
-    expect(response.headers.get("access-control-allow-origin")).toBe(
-      "https://homeinstgeorgeutah.com",
-    );
+    expect(response.status).toBe(403);
+    expect(response.headers.get("access-control-allow-origin")).toBeNull();
+    expect(response.headers.get("cache-control")).toBe("no-store");
   });
 
   test("returns no-store on invalid write payloads", async () => {

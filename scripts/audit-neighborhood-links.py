@@ -93,6 +93,9 @@ def route_to_dist_file(href):
     if any(route.startswith(prefix) for prefix in RUNTIME_ALLOWED_PREFIXES):
         return None
 
+    if Path(route).suffix:
+        return DIST / route.lstrip("/")
+
     route = route.strip("/")
 
     if not route:
@@ -193,6 +196,9 @@ for folder in [ROOT / "apps/site/src", ROOT / "packages/config"]:
             if any(route.startswith(prefix) for prefix in RUNTIME_ALLOWED_PREFIXES):
                 continue
 
+            if Path(route).suffix:
+                continue
+
             if not route.endswith("/"):
                 warnings.append(f"Internal source link may need trailing slash: {file.relative_to(ROOT)}: {href}")
 
@@ -227,3 +233,4 @@ if errors:
     sys.exit(1)
 
 print("PASS: No broken generated neighborhood/internal links found.")
+

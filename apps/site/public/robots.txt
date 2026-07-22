@@ -1,4 +1,3 @@
+# Prelaunch: block all crawler access until launch approval.
 User-agent: *
-Allow: /
-
-Sitemap: https://homeinstgeorgeutah.com/sitemap.xml
+Disallow: /

@@ -1,0 +1,73 @@
+name: Release QA
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+      - agent/mobile-first-luxury-hero
+
+permissions:
+  contents: read
+
+jobs:
+  production-readiness:
+    name: Build and production-readiness QA
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      PUBLIC_PRELAUNCH: "true"
+      PUBLIC_SITE_URL: "https://homeinstgeorgeutah.com"
+      PUBLIC_CONTACT_EMAIL: "joel@homeinstgeorgeutah.com"
+      PUBLIC_CONTACT_PHONE: "(435) 773-1220"
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.14
+
+      - name: Install locked dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Lint source
+        run: bunx biome lint .
+
+      - name: Type-check Cloudflare Worker
+        run: bun --filter @home/api typecheck
+
+      - name: Run API unit and integration tests
+        run: bun test apps/api/src
+
+      - name: Validate Worker bundle without deploying
+        run: bunx wrangler deploy --dry-run --config apps/api/wrangler.toml --outdir /tmp/homeinstgeorgeutah-worker
+
+      - name: Audit high-severity dependency findings
+        run: bun audit --audit-level=high
+
+      - name: Audit Fair Housing language
+        run: python3 scripts/audit-fair-housing.py
+
+      - name: Build public site
+        run: bun run build:site
+
+      - name: Audit generated links
+        run: python3 scripts/audit-neighborhood-links.py
+
+      - name: Audit architecture boundaries
+        run: python3 scripts/audit-architecture-drift.py
+
+      - name: Audit public release contract
+        run: python3 scripts/audit-release.py
+
+      - name: Install Playwright browser
+        run: bunx playwright install --with-deps chromium
+
+      - name: Run browser, mobile, route, and accessibility smoke tests
+        run: bun run test:e2e
+
+      - name: Build authenticated app
+        run: bun --filter @home/app build

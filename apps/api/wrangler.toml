@@ -14,17 +14,26 @@ enabled = true
 [vars]
 APP_ENV = "production"
 SITE_URL = "https://homeinstgeorgeutah.com"
-MLS_PROVIDER_NAME = "Washington + Iron MLS via approved Spark/Flexmls/FBS access"
+MLS_PROVIDER_NAME = "Washington County listing feed"
+MLS_ACTIVATION_ENABLED = "false"
+MLS_POLICY_VERSION = ""
+LISTING_PROVIDER = ""
 SPARK_API_BASE_URL = ""
-API_WRITE_ORIGINS = "https://homeinstgeorgeutah.com,https://www.homeinstgeorgeutah.com,https://benlane.us,http://localhost:4321,http://localhost:8787"
+API_WRITE_ORIGINS = "https://homeinstgeorgeutah.com,https://www.homeinstgeorgeutah.com"
 
 # Required secrets after credentials are issued:
 # bunx wrangler secret put SPARK_ACCESS_TOKEN --config apps/api/wrangler.toml
 # bunx wrangler secret put TURNSTILE_SECRET_KEY --config apps/api/wrangler.toml
-# bunx wrangler secret put SESSION_SECRET --config apps/api/wrangler.toml
-# bunx wrangler secret put HUBSPOT_ACCESS_TOKEN --config apps/api/wrangler.toml
 #
 # Do not commit live tokens, API keys, session secrets, or MLS credentials.
+
+[[ratelimits]]
+name = "LEAD_RATE_LIMITER"
+namespace_id = "7731220"
+
+  [ratelimits.simple]
+  limit = 5
+  period = 60
 
 [[d1_databases]]
 binding = "DB"

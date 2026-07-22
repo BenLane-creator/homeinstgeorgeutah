@@ -18,14 +18,22 @@ const blog = defineCollection({
     pattern: "**/*.{md,mdx}",
     base: "./src/content/blog",
   }),
-  schema: z.object({
-    title: z.string(),
-    description: z.string().optional(),
-    slug: z.string().optional(),
-    pubDate: z.coerce.date().optional(),
-    author: z.string().optional(),
-    category: z.string().optional(),
-  }),
+  schema: z
+    .object({
+      title: z.string(),
+      description: z.string().optional(),
+      slug: z.string().optional(),
+      pubDate: z.coerce.date().optional(),
+      date: z.coerce.date().optional(),
+      updatedDate: z.coerce.date().optional(),
+      author: z.string().optional(),
+      category: z.string().optional(),
+      draft: z.boolean().default(false),
+    })
+    .transform((data) => ({
+      ...data,
+      pubDate: data.pubDate ?? data.date,
+    })),
 });
 
 export const collections = {

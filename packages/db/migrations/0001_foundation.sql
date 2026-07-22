@@ -331,3 +331,4 @@ create table if not exists external_identities (
   external_id text not null,
   created_at text not null default CURRENT_TIMESTAMP
 );
+

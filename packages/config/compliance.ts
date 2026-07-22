@@ -9,7 +9,10 @@ export type ListingDisplayPolicyInput = {
   fieldName: string;
   userState: UserDisplayState;
   agreementScope?: ListingAgreementScope;
+  policyVersion?: string;
 };
+
+export const APPROVED_IDX_POLICY_VERSION = "washington-county-idx-v1";
 
 const publicIdxFields = new Set([
   "ListingId",
@@ -48,7 +51,9 @@ export function canDisplayField({
   fieldName,
   userState,
   agreementScope = "idx",
+  policyVersion,
 }: ListingDisplayPolicyInput) {
+  if (policyVersion !== APPROVED_IDX_POLICY_VERSION) return false;
   if (userState === "broker_admin") return true;
   if (agreementScope === "broker_back_office") return false;
   if (publicIdxFields.has(fieldName)) return true;
@@ -66,7 +71,9 @@ export function canDisplayMedia(input: {
   listingStatus?: string;
   userState: UserDisplayState;
   mediaRightsAllowed?: boolean;
+  policyVersion?: string;
 }) {
+  if (input.policyVersion !== APPROVED_IDX_POLICY_VERSION) return false;
   if (input.mediaRightsAllowed === false) return false;
   if (!input.listingStatus) return false;
 
@@ -82,10 +89,10 @@ export function canDisplayMedia(input: {
 }
 
 export function requiredDisclaimers(
-  provider = "Washington County MLS + Iron County MLS",
+  provider = "the authorized Washington County listing feed",
 ) {
   return [
-    `Listing data is provided through ${provider} and the approved Spark® / RESO Web API access path.`,
+    `Listing data is provided through ${provider}.`,
     "Display fields, media, attribution, update timestamps, and registered-user gating must follow the applicable MLS/provider agreement.",
     "The website does not scrape, copy, or re-host MLS listing content outside approved display permissions.",
   ];

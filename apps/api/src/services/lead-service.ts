@@ -27,16 +27,6 @@ export function asString(value: unknown) {
   return typeof value === "string" ? value.trim() : "";
 }
 
-export function hasConsent(value: unknown) {
-  return (
-    value === true ||
-    value === 1 ||
-    value === "1" ||
-    value === "true" ||
-    value === "on"
-  );
-}
-
 function asRecord(value: unknown): Record<string, unknown> {
   return value && typeof value === "object" && !Array.isArray(value)
     ? (value as Record<string, unknown>)
@@ -48,7 +38,6 @@ function firstString(...values: unknown[]) {
     const normalized = asString(value);
     if (normalized) return normalized;
   }
-
   return "";
 }
 
@@ -62,7 +51,6 @@ function normalizePhone(phone: string) {
 
 function splitName(fullName: string) {
   const parts = fullName.trim().split(/\s+/).filter(Boolean);
-
   return {
     firstName: parts[0] || "",
     lastName: parts.length > 1 ? parts.slice(1).join(" ") : "",
@@ -80,103 +68,26 @@ export function classifyWorkflowLane(
   if (pathname.includes("/showing") || requested === "showing_request") {
     return "showing_request";
   }
-
   if (pathname.includes("/inquiry") || requested === "property_inquiry") {
     return "property_inquiry";
   }
-
   if (pathname.includes("/valuation") || requested === "valuation") {
     return "valuation";
   }
 
-  if (requested === "seller_high_priority") {
-    return "seller_high_priority";
-  }
+  const accepted = new Set<WorkflowLane>([
+    "seller_high_priority",
+    "relocation",
+    "booked_consult",
+    "buyer_active_search",
+    "buyer_early_stage",
+    "general_contact",
+    "nurture",
+  ]);
 
-  if (requested === "relocation") {
-    return "relocation";
-  }
-
-  if (requested === "booked_consult") {
-    return "booked_consult";
-  }
-
-  if (requested === "buyer_active_search") {
-    return "buyer_active_search";
-  }
-
-  if (requested === "buyer_early_stage") {
-    return "buyer_early_stage";
-  }
-
-  if (requested === "general_contact") {
-    return "general_contact";
-  }
-
-  return "general_contact";
-}
-
-async function upsertContact(
-  env: LeadServiceEnv,
-  input: {
-    fullName: string;
-    email: string;
-    phone: string;
-  },
-) {
-  const emailNormalized = normalizeEmail(input.email);
-  const phoneNormalized = normalizePhone(input.phone);
-
-  const existing = await env.DB.prepare(
-    "select id from contacts where email_normalized = ? limit 1",
-  )
-    .bind(emailNormalized)
-    .first<{ id: string }>();
-
-  const { firstName, lastName } = splitName(input.fullName);
-
-  if (existing?.id) {
-    await env.DB.prepare(
-      `update contacts
-       set full_name = ?, first_name = ?, last_name = ?, email = ?, phone = ?,
-           phone_normalized = ?, updated_at = CURRENT_TIMESTAMP
-       where id = ?`,
-    )
-      .bind(
-        input.fullName,
-        firstName,
-        lastName,
-        input.email,
-        input.phone || null,
-        phoneNormalized || null,
-        existing.id,
-      )
-      .run();
-
-    return existing.id;
-  }
-
-  const contactId = crypto.randomUUID();
-
-  await env.DB.prepare(
-    `insert into contacts
-      (id, full_name, first_name, last_name, email, email_normalized, phone, phone_normalized, source)
-     values (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-  )
-    .bind(
-      contactId,
-      input.fullName,
-      firstName,
-      lastName,
-      input.email,
-      emailNormalized,
-      input.phone || null,
-      phoneNormalized || null,
-      "website",
-    )
-    .run();
-
-  return contactId;
+  return accepted.has(requested as WorkflowLane)
+    ? (requested as WorkflowLane)
+    : "general_contact";
 }
 
 export async function storeLeadIntake(
@@ -194,32 +105,69 @@ export async function storeLeadIntake(
 
   const name = asString(body.name);
   const email = asString(body.email);
+  const emailNormalized = normalizeEmail(email);
   const phone = asString(body.phone);
+  const phoneNormalized = normalizePhone(phone);
   const message = asString(body.message);
   const pageUrl =
     asString(body.pageUrl) || asString(body.sourcePath) || url.toString();
   const listingId = asString(body.listingId);
   const sourceListingKey = asString(body.sourceListingKey);
-
   const attribution = asRecord(body.attribution);
   const device = asRecord(body.device);
-
   const workflowLane = classifyWorkflowLane(body, input.pathname);
-  const contactId = await upsertContact(env, { fullName: name, email, phone });
+  const { firstName, lastName } = splitName(name);
+  const eventPayload = {
+    formVariant: asString(body.formVariant) || undefined,
+    details: asRecord(body.details),
+    attribution,
+    device,
+  };
+
+  const candidateContactId = crypto.randomUUID();
   const attributionSessionId = crypto.randomUUID();
   const propertyContextId = crypto.randomUUID();
   const leadEventId = crypto.randomUUID();
   const routingDecisionId = crypto.randomUUID();
 
-  await env.DB.batch([
+  const contactIdSql =
+    "(select id from contacts where email_normalized = ? limit 1)";
+
+  const results = await env.DB.batch([
+    env.DB.prepare(
+      `insert into contacts
+        (id, full_name, first_name, last_name, email, email_normalized, phone,
+         phone_normalized, source)
+       values (?, ?, ?, ?, ?, ?, ?, ?, 'website')
+       on conflict(email_normalized) do update set
+         full_name = excluded.full_name,
+         first_name = excluded.first_name,
+         last_name = excluded.last_name,
+         email = excluded.email,
+         phone = coalesce(excluded.phone, contacts.phone),
+         phone_normalized = coalesce(
+           excluded.phone_normalized,
+           contacts.phone_normalized
+         ),
+         updated_at = CURRENT_TIMESTAMP`,
+    ).bind(
+      candidateContactId,
+      name,
+      firstName,
+      lastName,
+      email,
+      emailNormalized,
+      phone || null,
+      phoneNormalized || null,
+    ),
     env.DB.prepare(
       `insert into attribution_sessions
-        (id, contact_id, landing_page_url, referrer, utm_source, utm_medium, utm_campaign,
-         device_category, screen_width, screen_height, user_agent)
-       values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        (id, contact_id, landing_page_url, referrer, utm_source, utm_medium,
+         utm_campaign, device_category, screen_width, screen_height, user_agent)
+       values (?, ${contactIdSql}, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     ).bind(
       attributionSessionId,
-      contactId,
+      emailNormalized,
       pageUrl || null,
       input.referrer || asString(body.referrer) || null,
       firstString(body.utmSource, body.utm_source, attribution.source) || null,
@@ -237,46 +185,53 @@ export async function storeLeadIntake(
     env.DB.prepare(
       `insert into property_context
         (id, listing_id, source_listing_key, page_url, geo_context, source)
-       values (?, ?, ?, ?, ?, ?)`,
+       values (?, ?, ?, ?, ?, 'lead_intake')`,
     ).bind(
       propertyContextId,
       listingId || null,
       sourceListingKey || null,
       pageUrl || null,
-      JSON.stringify(body.geoContext || {}),
-      "lead_intake",
+      "{}",
     ),
     env.DB.prepare(
       `insert into lead_events
         (id, contact_id, attribution_session_id, property_context_id, event_type,
          intent_type, workflow_lane, message, page_url, consent, payload_json)
-       values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       values (?, ${contactIdSql}, ?, ?, 'lead_intake', ?, ?, ?, ?, 1, ?)`,
     ).bind(
       leadEventId,
-      contactId,
+      emailNormalized,
       attributionSessionId,
       propertyContextId,
-      "lead_intake",
       asString(body.intent) || workflowLane,
       workflowLane,
       message || null,
       pageUrl || null,
-      1,
-      JSON.stringify(body),
+      JSON.stringify(eventPayload),
     ),
     env.DB.prepare(
       `insert into routing_decisions
         (id, contact_id, lead_event_id, workflow_lane, reason, status)
-       values (?, ?, ?, ?, ?, ?)`,
+       values (?, ${contactIdSql}, ?, ?, ?, 'new')`,
     ).bind(
       routingDecisionId,
-      contactId,
+      emailNormalized,
       leadEventId,
       workflowLane,
       `Lead intake classified as ${workflowLane}.`,
-      "new",
     ),
+    env.DB.prepare(
+      "select id from contacts where email_normalized = ? limit 1",
+    ).bind(emailNormalized),
   ]);
+
+  const contactResult = results.at(-1)?.results?.[0] as
+    | { id?: unknown }
+    | undefined;
+  const contactId = asString(contactResult?.id);
+  if (!contactId) {
+    throw new Error("Lead transaction did not return a contact id.");
+  }
 
   return {
     contactId,
