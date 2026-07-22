@@ -10,7 +10,9 @@ function entrySlug(entry: CollectionEntry<"blog">) {
 export async function getStaticPaths() {
   const posts = await getCollection("blog", ({ data }) => !data.draft);
   return posts.map((entry) => ({
-    params: { slug: entrySlug(entry) },
+    params: {
+      slug: entry.data.slug || entry.id.replace(/\.(md|mdx)$/i, ""),
+    },
     props: { entry },
   }));
 }

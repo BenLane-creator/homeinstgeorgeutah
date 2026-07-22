@@ -11,7 +11,9 @@ function entrySlug(entry: CollectionEntry<"neighborhoods">) {
 export async function getStaticPaths() {
   const neighborhoods = await getCollection("neighborhoods");
   return neighborhoods.map((entry) => ({
-    params: { slug: entrySlug(entry) },
+    params: {
+      slug: entry.data.slug || entry.id.replace(/\.(md|mdx)$/i, ""),
+    },
     props: { entry },
   }));
 }
