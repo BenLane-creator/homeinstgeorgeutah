@@ -8,19 +8,19 @@ import { featuredSearches } from "@home/config/routes";
 <BaseLayout
   title="Homes for Sale in St. George"
   pathname="/homes/search/"
-  description="Search homes for sale across St. George and Southern Utah, then get direct local guidance from Joel Robertson of Robertson Real Estate."
+  description="Search for homes across St. George and Washington County, then get direct local guidance from Joel Robertson of Robertson Real Estate."
 >
   <section class="bg-[var(--brand-warm-ivory)] px-5 py-16 sm:py-20 md:py-24">
     <div class="mx-auto max-w-7xl">
       <div class="max-w-4xl">
         <p class="text-xs font-bold uppercase tracking-[0.28em] text-[var(--brand-gold)]">
-          Southern Utah homes
+          Washington County homes
         </p>
         <h1 class="mt-5 text-5xl font-medium leading-[0.95] tracking-[-0.055em] text-[var(--brand-ink)] sm:text-6xl md:text-7xl">
           Find the right home with local context.
         </h1>
         <p class="mt-6 max-w-3xl text-lg leading-8 text-stone-700">
-          Search current St. George and Southern Utah properties, compare the details that matter, and ask Joel for property-specific guidance before you make a move.
+          Share the location and property details that matter to you. When authorized listing data is available, results will appear here; Joel can provide current availability directly in the meantime.
         </p>
       </div>
 
@@ -132,7 +132,7 @@ import { featuredSearches } from "@home/config/routes";
 
       <div class="grid gap-px border border-[var(--brand-pink-sand)] bg-[var(--brand-pink-sand)] sm:grid-cols-3">
         {[
-          ["Local context", "Understand the neighborhood, access, HOA, terrain, and resale factors around the home."],
+          ["Local context", "Review location, access, HOA terms, terrain, and resale factors around the home."],
           ["Property review", "Look beyond photos to condition, inspections, utilities, zoning, and ownership considerations."],
           ["Offer strategy", "Shape price, terms, timing, and contingencies around the property and current market."],
         ].map(([title, copy]) => (

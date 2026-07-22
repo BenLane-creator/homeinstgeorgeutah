@@ -153,12 +153,10 @@ export default function LeadFormIsland({
         "Your request was received. Joel will follow up using the contact information you provided.",
       );
       form.reset();
-    } catch (error) {
+    } catch {
       setStatus("error");
       setFeedback(
-        error instanceof Error
-          ? error.message
-          : "We could not send your request. Please try again or call Joel directly.",
+        "We could not send your request. Please try again or call Joel directly.",
       );
     }
   }
@@ -270,8 +268,7 @@ export default function LeadFormIsland({
           </>
         )}
 
-        {(variant === "property_inquiry" ||
-          variant === "showing_request") && (
+        {(variant === "property_inquiry" || variant === "showing_request") && (
           <>
             <label className={labelClassName}>
               Property address or MLS number
@@ -328,9 +325,7 @@ export default function LeadFormIsland({
             className="mt-1 h-5 w-5 shrink-0 accent-[var(--brand-ink)]"
             required
           />
-          <span>
-            I agree to be contacted about my real estate request. *
-          </span>
+          <span>I agree to be contacted about my real estate request. *</span>
         </label>
 
         {turnstileSiteKey && (

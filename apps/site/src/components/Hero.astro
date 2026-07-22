@@ -58,14 +58,25 @@ const proofPoints = [
       </div>
 
       <div class="relative min-h-[34rem] overflow-hidden sm:min-h-[42rem] lg:min-h-full">
-        <img
-          src="/brand/hero/sot-hero-image-final.png"
-          alt="Joel Robertson overlooking a luxury Southern Utah home and red rock landscape"
-          class="absolute inset-0 h-full w-full object-cover object-[78%_center] sm:object-[75%_center] lg:object-[73%_center]"
-          loading="eager"
-          fetchpriority="high"
-          decoding="async"
-        />
+        <picture>
+          <source
+            media="(max-width: 767px)"
+            srcset="/brand/hero/sot-hero-image-mobile.webp"
+            width="960"
+            height="640"
+          />
+          <img
+            src="/brand/hero/sot-hero-image.webp"
+            alt="Joel Robertson overlooking a Southern Utah home and red rock landscape"
+            width="1536"
+            height="1024"
+            sizes="(max-width: 767px) 100vw, (min-width: 1024px) 58vw, 100vw"
+            class="absolute inset-0 h-full w-full object-cover object-[78%_center] sm:object-[75%_center] lg:object-[73%_center]"
+            loading="eager"
+            fetchpriority="high"
+            decoding="async"
+          />
+        </picture>
 
         <div class="pointer-events-none absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-black/12 to-transparent lg:hidden"></div>
         <div class="pointer-events-none absolute inset-y-0 left-0 hidden w-20 bg-gradient-to-r from-[var(--brand-warm-ivory)] to-transparent lg:block"></div>

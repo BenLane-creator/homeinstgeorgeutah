@@ -25,7 +25,7 @@ const {
   title: pageTitle,
   description = site.description,
   pathname = Astro.url.pathname,
-  image = "/brand/hero/sot-hero-image-final.png",
+  image = "/brand/hero/sot-hero-image.webp",
   noindex = false,
 } = Astro.props;
 
@@ -35,8 +35,6 @@ const ogImageUrl = new URL(image, site.url).toString();
 const prelaunch = import.meta.env.PUBLIC_PRELAUNCH !== "false";
 const shouldNoindex = noindex || prelaunch;
 const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY;
-const isHome = pathname === "/";
-
 const schemas = [
   realtorSchema(),
   webSiteSchema(),
@@ -74,6 +72,8 @@ const schemas = [
     <meta property="og:description" content={description} />
     <meta property="og:url" content={canonicalUrl} />
     <meta property="og:image" content={ogImageUrl} />
+    <meta property="og:image:width" content="1536" />
+    <meta property="og:image:height" content="1024" />
     <meta
       property="og:image:alt"
       content="Robertson Real Estate in St. George and Southern Utah"
@@ -86,15 +86,25 @@ const schemas = [
 
     <meta name="theme-color" content="#16191b" />
     <meta name="color-scheme" content="light" />
-
-    {isHome && (
-      <link
-        rel="preload"
-        as="image"
-        href="/brand/hero/sot-hero-image-final.png"
-        fetchpriority="high"
-      />
-    )}
+    <link
+      rel="preload"
+      href="/fonts/geist-latin-variable.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+    <link
+      rel="preload"
+      href="/fonts/inter-latin-variable.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+    <link
+      rel="icon"
+      type="image/svg+xml"
+      href="/brand/marks/robertson-r-mark-vectorized.svg"
+    />
 
     <script type="application/ld+json" set:html={JSON.stringify(schemas)} />
 

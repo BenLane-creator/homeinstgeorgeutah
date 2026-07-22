@@ -14,7 +14,7 @@ jobs:
   production-readiness:
     name: Build and production-readiness QA
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 25
     env:
       PUBLIC_PRELAUNCH: "true"
       PUBLIC_SITE_URL: "https://homeinstgeorgeutah.com"
@@ -39,6 +39,18 @@ jobs:
       - name: Type-check Cloudflare Worker
         run: bun --filter @home/api typecheck
 
+      - name: Run API unit and integration tests
+        run: bun test apps/api/src
+
+      - name: Validate Worker bundle without deploying
+        run: bunx wrangler deploy --dry-run --config apps/api/wrangler.toml --outdir /tmp/homeinstgeorgeutah-worker
+
+      - name: Audit high-severity dependency findings
+        run: bun audit --audit-level=high
+
+      - name: Audit Fair Housing language
+        run: python3 scripts/audit-fair-housing.py
+
       - name: Build public site
         run: bun run build:site
 
@@ -50,6 +62,12 @@ jobs:
 
       - name: Audit public release contract
         run: python3 scripts/audit-release.py
+
+      - name: Install Playwright browser
+        run: bunx playwright install --with-deps chromium
+
+      - name: Run browser, mobile, route, and accessibility smoke tests
+        run: bun run test:e2e
 
       - name: Build authenticated app
         run: bun --filter @home/app build

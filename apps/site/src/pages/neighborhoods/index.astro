@@ -1,129 +1,53 @@
 ---
+import { getCollection, type CollectionEntry } from "astro:content";
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import CTA from "../../components/CTA.astro";
 
-const primaryMarkets = [
-  ["St. George", "/neighborhoods/st-george/", "Core Southern Utah market with the broadest mix of established neighborhoods, newer communities, golf areas, and relocation demand."],
-  ["Washington", "/neighborhoods/washington/", "East-side market with newer growth, Washington Fields access, and strong buyer interest near St. George and Hurricane."],
-  ["Hurricane", "/neighborhoods/hurricane/", "Recreation-driven market near Sand Hollow, Quail Creek, and the Zion corridor."],
-  ["Ivins", "/neighborhoods/ivins/", "West-side red rock setting near Snow Canyon, Kayenta, and distinctive desert communities."],
-  ["Santa Clara", "/neighborhoods/santa-clara/", "Established west-side community near Ivins, Snow Canyon, St. George services, and recreation access."],
-];
+function entrySlug(entry: CollectionEntry<"neighborhoods">) {
+  return entry.data.slug || entry.id.replace(/\.(md|mdx)$/i, "");
+}
 
-const highIntentNeighborhoods = [
-  ["Little Valley", "/neighborhoods/little-valley/"],
-  ["Entrada", "/neighborhoods/entrada/"],
-  ["Desert Color", "/neighborhoods/desert-color/"],
-  ["Washington Fields", "/neighborhoods/washington-fields/"],
-  ["Downtown St. George", "/neighborhoods/downtown-st-george/"],
-  ["Sunbrook", "/neighborhoods/sunbrook/"],
-  ["SunRiver", "/neighborhoods/sunriver/"],
-  ["Bloomington", "/neighborhoods/bloomington/"],
-  ["Kayenta", "/neighborhoods/kayenta/"],
-];
-
-const secondaryTowns = [
-  ["Apple Valley", "/neighborhoods/apple-valley/"],
-  ["Enterprise", "/neighborhoods/enterprise/"],
-  ["LaVerkin", "/neighborhoods/laverkin/"],
-  ["Leeds", "/neighborhoods/leeds/"],
-  ["New Harmony", "/neighborhoods/new-harmony/"],
-  ["Rockville", "/neighborhoods/rockville/"],
-  ["Springdale", "/neighborhoods/springdale/"],
-  ["Toquerville", "/neighborhoods/toquerville/"],
-  ["Virgin", "/neighborhoods/virgin/"],
-];
-
-const ruralAreas = [
-  ["Brookside", "/neighborhoods/brookside/"],
-  ["Central", "/neighborhoods/central/"],
-  ["Dammeron Valley", "/neighborhoods/dammeron-valley/"],
-  ["Diamond Valley", "/neighborhoods/diamond-valley/"],
-  ["Gunlock", "/neighborhoods/gunlock/"],
-  ["Pine Valley", "/neighborhoods/pine-valley/"],
-  ["Veyo", "/neighborhoods/veyo/"],
-  ["Winchester Hills", "/neighborhoods/winchester-hills/"],
-];
+const neighborhoods = (await getCollection("neighborhoods")).sort((a, b) =>
+  a.data.title.localeCompare(b.data.title),
+);
 ---
 
 <BaseLayout
-  title="St. George & Southern Utah Neighborhoods"
+  title="St. George & Washington County Neighborhoods"
   pathname="/neighborhoods/"
-  description="Explore St. George, Washington, Hurricane, Ivins, Santa Clara, and Southern Utah neighborhood and service-area real estate guides."
+  description="Compare St. George and Washington County area guides using objective property, location, access, and due-diligence information."
 >
-  <section class="bg-[#fffaf3] px-5 py-24">
+  <section class="bg-[var(--brand-warm-ivory)] px-5 py-20 sm:py-24">
     <div class="mx-auto max-w-5xl">
-      <p class="text-sm font-semibold uppercase tracking-[0.25em] text-amber-900/70">
-        Neighborhoods & Service Areas
+      <p class="text-xs font-bold uppercase tracking-[0.24em] text-[var(--brand-gold)]">
+        Neighborhoods and area guides
       </p>
-
-      <h1 class="mt-4 max-w-4xl font-serif text-5xl font-semibold tracking-tight text-stone-950 md:text-6xl">
-        Compare St. George and Southern Utah real estate areas.
+      <h1 class="mt-4 max-w-4xl text-5xl font-semibold tracking-[-0.045em] text-[var(--brand-ink)] md:text-6xl">
+        Compare St. George and Washington County areas.
       </h1>
-
       <p class="mt-6 max-w-3xl text-lg leading-8 text-stone-700">
-        Use these guides to compare major cities, high-intent St. George neighborhoods, resort-style communities, rural towns, and Washington County service areas before narrowing your home search.
+        Review property types, access, utilities, zoning, HOA considerations, terrain, and other due-diligence factors before narrowing a home search.
       </p>
     </div>
   </section>
 
-  <section class="bg-white px-5 py-20">
+  <section class="bg-white px-5 py-16 sm:py-20">
     <div class="mx-auto max-w-7xl">
-      <p class="text-sm font-semibold uppercase tracking-[0.25em] text-amber-900/70">
-        Primary markets
-      </p>
-
-      <h2 class="mt-3 font-serif text-4xl font-semibold tracking-tight text-stone-950">
-        Start with the main Southern Utah markets.
-      </h2>
-
-      <div class="mt-8 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {primaryMarkets.map(([label, href, description]) => (
-          <a href={href} class="rounded-3xl border border-stone-200 p-6 hover:bg-stone-50">
-            <h3 class="font-serif text-2xl font-semibold text-stone-950">{label}</h3>
-            <p class="mt-3 leading-7 text-stone-600">{description}</p>
+      <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        {neighborhoods.map((entry) => (
+          <a
+            href={`/neighborhoods/${entrySlug(entry)}/`}
+            class="border border-[var(--brand-pink-sand)] p-6 transition hover:bg-[var(--brand-warm-ivory)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--brand-gold)]"
+          >
+            <h2 class="text-2xl font-semibold text-[var(--brand-ink)]">{entry.data.title}</h2>
+            <p class="mt-3 leading-7 text-stone-600">
+              {entry.data.description || `Property and location guidance for ${entry.data.title}.`}
+            </p>
+            <span class="mt-5 inline-flex min-h-11 items-center text-sm font-bold uppercase tracking-[0.12em] text-[var(--brand-ink)]">
+              Read area guide <span aria-hidden="true" class="ml-3 text-[var(--brand-gold)]">→</span>
+            </span>
           </a>
         ))}
-      </div>
-    </div>
-  </section>
-
-  <section class="bg-[#fffaf3] px-5 py-20">
-    <div class="mx-auto grid max-w-7xl gap-10 lg:grid-cols-[1fr_1fr]">
-      <div class="rounded-3xl border border-stone-200 bg-white p-8">
-        <h2 class="font-serif text-3xl font-semibold text-stone-950">
-          High-intent St. George area pages
-        </h2>
-
-        <p class="mt-4 leading-7 text-stone-600">
-          These are the pages buyers commonly compare when searching for specific St. George-area neighborhoods, master-planned communities, golf areas, and established subdivisions.
-        </p>
-
-        <div class="mt-6 grid gap-3 sm:grid-cols-2">
-          {highIntentNeighborhoods.map(([label, href]) => (
-            <a href={href} class="rounded-2xl border border-stone-200 px-4 py-3 font-semibold text-stone-800 hover:bg-stone-50">
-              {label}
-            </a>
-          ))}
-        </div>
-      </div>
-
-      <div class="rounded-3xl border border-stone-200 bg-white p-8">
-        <h2 class="font-serif text-3xl font-semibold text-stone-950">
-          Secondary towns and rural communities
-        </h2>
-
-        <p class="mt-4 leading-7 text-stone-600">
-          These areas often require more property-specific due diligence around utilities, access, zoning, road conditions, water, septic, elevation, and lot usability.
-        </p>
-
-        <div class="mt-6 grid gap-3 sm:grid-cols-2">
-          {[...secondaryTowns, ...ruralAreas].map(([label, href]) => (
-            <a href={href} class="rounded-2xl border border-stone-200 px-4 py-3 font-semibold text-stone-800 hover:bg-stone-50">
-              {label}
-            </a>
-          ))}
-        </div>
       </div>
     </div>
   </section>

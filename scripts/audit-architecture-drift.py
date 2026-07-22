@@ -36,3 +36,4 @@ if failures:
     raise SystemExit(1)
 
 print("Architecture drift audit passed.")
+

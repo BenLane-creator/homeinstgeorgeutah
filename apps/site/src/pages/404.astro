@@ -1,0 +1,28 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import { site } from "@home/config/site";
+---
+
+<BaseLayout
+  title="Page Not Found"
+  description="The requested page could not be found."
+  pathname="/404/"
+  noindex={true}
+>
+  <section class="flex min-h-[65vh] items-center bg-[var(--brand-warm-ivory)] px-5 py-20">
+    <div class="mx-auto w-full max-w-4xl">
+      <p class="text-xs font-bold uppercase tracking-[0.28em] text-[var(--brand-gold)]">404 · Page not found</p>
+      <h1 class="mt-5 max-w-3xl text-5xl font-semibold tracking-[-0.05em] text-[var(--brand-ink)] sm:text-7xl">
+        This page is not here.
+      </h1>
+      <p class="mt-6 max-w-2xl text-lg leading-8 text-stone-700">
+        The address may have changed or the page may no longer exist. Return home, search properties, or contact Joel directly.
+      </p>
+      <div class="mt-9 flex flex-col gap-3 sm:flex-row">
+        <a href="/" class="inline-flex min-h-12 items-center justify-center bg-[var(--brand-ink)] px-6 font-semibold text-white">Return home</a>
+        <a href="/homes/search/" class="inline-flex min-h-12 items-center justify-center border border-[var(--brand-pink-sand)] bg-white px-6 font-semibold text-[var(--brand-ink)]">Search homes</a>
+        <a href={site.phoneHref} class="inline-flex min-h-12 items-center justify-center px-6 font-semibold text-[var(--brand-ink)] underline underline-offset-4">Call {site.phone}</a>
+      </div>
+    </div>
+  </section>
+</BaseLayout>

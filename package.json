@@ -19,9 +19,11 @@
     "fix": "bunx biome check --write .",
     "format": "bunx biome format --write .",
     "test": "bun --filter '*' test",
+    "test:unit": "bun test apps/api/src",
     "test:e2e": "bunx playwright test",
     "build:site": "bun --filter @home/site build",
     "audit:architecture": "python3 scripts/audit-architecture-drift.py",
+    "audit:fair-housing": "python3 scripts/audit-fair-housing.py",
     "build:site:cloudflare": "bun install --frozen-lockfile && bun run build:site"
   },
   "devDependencies": {

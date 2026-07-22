@@ -23,7 +23,7 @@ type ListingCard = {
 type SearchResponse = {
   ok: boolean;
   data?: {
-    mode?: "stub" | "live";
+    mode?: "disabled" | "live";
     message?: string;
     listings?: ListingCard[];
     warnings?: string[];
@@ -31,6 +31,7 @@ type SearchResponse = {
       page: number;
       limit: number;
       count: number;
+      total: number;
     };
   };
   error?: {
@@ -39,6 +40,9 @@ type SearchResponse = {
 };
 
 type RequestState = "idle" | "loading" | "ready" | "error";
+type Pagination = NonNullable<
+  NonNullable<SearchResponse["data"]>["pagination"]
+>;
 
 const filterLabels: Record<string, string> = {
   q: "Search",
@@ -86,6 +90,7 @@ export default function SearchResultsIsland() {
   const [requestState, setRequestState] = useState<RequestState>("idle");
   const [listings, setListings] = useState<ListingCard[]>([]);
   const [warnings, setWarnings] = useState<string[]>([]);
+  const [pagination, setPagination] = useState<Pagination | null>(null);
   const [message, setMessage] = useState("");
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState("newest");
@@ -124,14 +129,13 @@ export default function SearchResultsIsland() {
 
         setListings(payload.data?.listings ?? []);
         setWarnings(payload.data?.warnings ?? []);
+        setPagination(payload.data?.pagination ?? null);
         setMessage(payload.data?.message ?? "");
         setRequestState("ready");
-      } catch (error) {
+      } catch {
         if (controller.signal.aborted) return;
         setMessage(
-          error instanceof Error
-            ? error.message
-            : "Live listings are temporarily unavailable.",
+          "Search is temporarily unavailable. Please contact Joel for current availability.",
         );
         setRequestState("error");
       }
@@ -141,32 +145,6 @@ export default function SearchResultsIsland() {
 
     return () => controller.abort();
   }, [query]);
-
-  const sortedListings = useMemo(() => {
-    const next = [...listings];
-
-    if (sort === "price-asc") {
-      return next.sort(
-        (a, b) =>
-          (a.price ?? Number.POSITIVE_INFINITY) -
-          (b.price ?? Number.POSITIVE_INFINITY),
-      );
-    }
-
-    if (sort === "price-desc") {
-      return next.sort((a, b) => (b.price ?? -1) - (a.price ?? -1));
-    }
-
-    if (sort === "beds") {
-      return next.sort((a, b) => (b.beds ?? -1) - (a.beds ?? -1));
-    }
-
-    if (sort === "sqft") {
-      return next.sort((a, b) => (b.livingArea ?? -1) - (a.livingArea ?? -1));
-    }
-
-    return next;
-  }, [listings, sort]);
 
   const activeFilters = useMemo(() => {
     if (!query) return [];
@@ -193,12 +171,24 @@ export default function SearchResultsIsland() {
     window.location.assign(url.toString());
   }
 
+  function changePage(page: number) {
+    const url = new URL(window.location.href);
+    if (page <= 1) url.searchParams.delete("page");
+    else url.searchParams.set("page", String(page));
+    window.location.assign(url.toString());
+  }
+
+  const resultCount = pagination?.total ?? listings.length;
+  const totalPages = pagination
+    ? Math.max(1, Math.ceil(pagination.total / pagination.limit))
+    : 1;
+
   return (
     <section className="mt-10" aria-labelledby="listing-results-title">
       <div className="flex flex-col gap-5 border-b border-stone-200 pb-6 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="text-xs font-bold uppercase tracking-[0.24em] text-[var(--brand-gold)]">
-            St. George and Southern Utah
+            St. George and Washington County
           </p>
           <h2
             id="listing-results-title"
@@ -206,7 +196,7 @@ export default function SearchResultsIsland() {
           >
             {requestState === "loading"
               ? "Finding homes…"
-              : `${sortedListings.length} ${sortedListings.length === 1 ? "home" : "homes"}`}
+              : `${resultCount} ${resultCount === 1 ? "home" : "homes"}`}
           </h2>
         </div>
 
@@ -293,7 +283,7 @@ export default function SearchResultsIsland() {
           </div>
         )}
 
-        {requestState === "ready" && sortedListings.length === 0 && (
+        {requestState === "ready" && listings.length === 0 && (
           <div className="my-8 grid gap-8 border border-stone-200 bg-[var(--brand-warm-ivory)] px-6 py-10 sm:px-10 lg:grid-cols-[1fr_auto] lg:items-center">
             <div>
               <p className="text-xs font-bold uppercase tracking-[0.22em] text-[var(--brand-gold)]">
@@ -316,9 +306,9 @@ export default function SearchResultsIsland() {
           </div>
         )}
 
-        {sortedListings.length > 0 && (
+        {listings.length > 0 && (
           <div className="grid gap-6 py-8 sm:grid-cols-2 xl:grid-cols-3">
-            {sortedListings.map((listing) => {
+            {listings.map((listing) => {
               const status = statusLabel(listing.status);
               const updated = updatedLabel(listing.updatedAt);
               const location = [listing.city, listing.state, listing.postalCode]
@@ -359,7 +349,9 @@ export default function SearchResultsIsland() {
                     </p>
 
                     <div className="mt-3 flex flex-wrap gap-x-4 gap-y-2 text-sm font-semibold text-stone-700">
-                      {listing.beds !== null && <span>{listing.beds} beds</span>}
+                      {listing.beds !== null && (
+                        <span>{listing.beds} beds</span>
+                      )}
                       {listing.baths !== null && (
                         <span>{listing.baths} baths</span>
                       )}
@@ -388,7 +380,10 @@ export default function SearchResultsIsland() {
                         className="mt-4 inline-flex min-h-11 items-center text-sm font-bold uppercase tracking-[0.12em] text-[var(--brand-ink)] hover:text-[var(--brand-deep-olive)]"
                       >
                         Request property details
-                        <span aria-hidden="true" className="ml-3 text-[var(--brand-gold)]">
+                        <span
+                          aria-hidden="true"
+                          className="ml-3 text-[var(--brand-gold)]"
+                        >
                           →
                         </span>
                       </a>
@@ -398,6 +393,33 @@ export default function SearchResultsIsland() {
               );
             })}
           </div>
+        )}
+
+        {pagination && totalPages > 1 && (
+          <nav
+            className="flex items-center justify-between border-t border-stone-200 py-6"
+            aria-label="Search result pages"
+          >
+            <button
+              type="button"
+              disabled={pagination.page <= 1}
+              onClick={() => changePage(pagination.page - 1)}
+              className="min-h-11 border border-stone-300 px-5 text-sm font-bold uppercase tracking-[0.12em] text-[var(--brand-ink)] disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              Previous
+            </button>
+            <p className="text-sm font-semibold text-stone-600">
+              Page {pagination.page} of {totalPages}
+            </p>
+            <button
+              type="button"
+              disabled={pagination.page >= totalPages}
+              onClick={() => changePage(pagination.page + 1)}
+              className="min-h-11 border border-stone-300 px-5 text-sm font-bold uppercase tracking-[0.12em] text-[var(--brand-ink)] disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              Next
+            </button>
+          </nav>
         )}
 
         {warnings.length > 0 && (

@@ -4,7 +4,7 @@ export const site = {
   companyName: "Robertson Real Estate",
   url: "https://homeinstgeorgeutah.com",
   market: "Southern Utah",
-  primaryMlsMarkets: ["Washington County MLS", "Iron County MLS"],
+  primaryMlsMarkets: ["Washington County"],
   description:
     "St. George and Southern Utah real estate guidance backed by 20+ years of local experience.",
   phone: "(435) 773-1220",
@@ -13,6 +13,6 @@ export const site = {
   address: "St. George, UT",
   idxBaseUrl: "/homes",
   customSearchUrl: "/homes/search/",
-  mlsProvider: "Washington County MLS + Iron County MLS",
-  mlsApi: "Spark® / RESO Web API via approved Flexmls/FBS access",
+  mlsProvider: "Washington County listing feed (disabled pending approval)",
+  mlsApi: "Provider-neutral RESO adapter",
 };

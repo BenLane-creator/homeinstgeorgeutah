@@ -1,5 +1,21 @@
 @import "tailwindcss";
 
+@font-face {
+  font-family: "Geist Sans";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 100 900;
+  src: url("/fonts/geist-latin-variable.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 100 900;
+  src: url("/fonts/inter-latin-variable.woff2") format("woff2");
+}
+
 :root {
   color-scheme: light;
 
@@ -43,14 +59,6 @@ body {
 ::selection {
   background: var(--brand-clay);
   color: var(--brand-ink);
-}
-
-.idx-frame {
-  min-height: 70vh;
-}
-
-.flexmls-shell :where(input, select, button) {
-  border-radius: 9999px;
 }
 
 @media (max-width: 767px) {
