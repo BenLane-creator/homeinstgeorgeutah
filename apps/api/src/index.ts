@@ -5,8 +5,21 @@ import {
   searchListings,
   type ListingServiceEnv,
 } from "./services/listing-service";
-import { storeLeadIntake } from "./services/lead-service";
-import { getAllMlsScopeStates } from "./services/mls-scope-service";
+import {
+  LeadIdempotencyConflictError,
+  storeLeadIntake,
+} from "./services/lead-service";
+import { getAllMlsScopeStates, isMlsCounty } from "./services/mls-scope-service";
+import {
+  drainNotificationOutbox,
+  processNotificationJob,
+  type NotificationServiceEnv,
+} from "./services/notification-service";
+import {
+  syncAllActiveIdxScopes,
+  syncMlsPropertyCache,
+  type MlsSyncEnv,
+} from "./services/mls-source-adapter";
 import {
   addWriteResponseHeaders,
   enforceLeadRateLimit,
@@ -17,8 +30,18 @@ import {
   validateAndMinimizeLeadBody,
   verifyTurnstile,
 } from "./security/request-security";
+import {
+  InternalAuthError,
+  requireInternalJobToken,
+  type InternalAuthEnv,
+} from "./security/internal-auth";
 
-export interface Env extends ListingServiceEnv, LeadSecurityEnv {
+export interface Env
+  extends ListingServiceEnv,
+    LeadSecurityEnv,
+    NotificationServiceEnv,
+    MlsSyncEnv,
+    InternalAuthEnv {
   DB: D1Database;
 }
 
@@ -90,12 +113,17 @@ function handleHealth() {
     data: {
       service: "homeinstgeorgeutah-api",
       status: "ok",
+      readModel: "canonical-d1-cache",
       routes: [
         "/api/health",
         "/api/mls-status",
         "/api/search",
         "/api/v1/auth/flexmls/callback",
         "/api/v1/leads/intake",
+      ],
+      internalRoutes: [
+        "/api/internal/mls/sync",
+        "/api/internal/notifications/drain",
       ],
     },
     meta: metadata(),
@@ -115,8 +143,8 @@ async function handleSearch(request: Request, env: Env) {
     }
 
     return apiError(
-      502,
-      "MLS_UPSTREAM_ERROR",
+      503,
+      "LISTING_CACHE_UNAVAILABLE",
       "Live listings are temporarily unavailable. Contact Joel for current availability.",
     );
   }
@@ -130,6 +158,7 @@ function handleMlsStatus(request: Request, env: Env) {
     ok: true,
     data: {
       active: scopes.some((scope) => scope.active),
+      readModel: "canonical-d1-cache",
       liveIdxScopes: scopes
         .filter((scope) => scope.role === "idx" && scope.active)
         .map((scope) => scope.key),
@@ -197,7 +226,27 @@ function handleVowCallback(request: Request, env: Env) {
   );
 }
 
-async function handleLead(request: Request, env: Env) {
+function readIdempotencyKey(request: Request) {
+  const value = request.headers.get("idempotency-key")?.trim() || "";
+  if (
+    !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+      value,
+    )
+  ) {
+    throw new RequestSecurityError(
+      400,
+      "IDEMPOTENCY_KEY_REQUIRED",
+      "A valid submission identifier is required.",
+    );
+  }
+  return value;
+}
+
+async function handleLead(
+  request: Request,
+  env: Env,
+  context?: ExecutionContext,
+) {
   try {
     requireApprovedWriteOrigin(request, env);
 
@@ -212,7 +261,10 @@ async function handleLead(request: Request, env: Env) {
     await enforceLeadRateLimit(request, env);
     const rawBody = await readJsonBody(request);
     await verifyTurnstile(request, env, rawBody);
-    const body = validateAndMinimizeLeadBody(rawBody);
+    const body = {
+      ...validateAndMinimizeLeadBody(rawBody),
+      submissionId: readIdempotencyKey(request),
+    };
     const url = new URL(request.url);
 
     const storedLead = await storeLeadIntake(env, {
@@ -223,21 +275,32 @@ async function handleLead(request: Request, env: Env) {
       userAgent: request.headers.get("user-agent"),
     });
 
+    if (!storedLead.duplicate && context) {
+      context.waitUntil(
+        processNotificationJob(env, storedLead.notificationJobId).catch(
+          () => undefined,
+        ),
+      );
+    }
+
     return json(
       {
         ok: true,
         data: {
-          mode: "stored",
+          mode: storedLead.duplicate ? "duplicate" : "stored",
           message: "Your request was received.",
           leadEventId: storedLead.leadEventId,
           workflowLane: storedLead.workflowLane,
         },
         meta: metadata(),
       },
-      { status: 201 },
+      { status: storedLead.duplicate ? 200 : 201 },
     );
   } catch (error) {
     if (error instanceof RequestSecurityError) {
+      return apiError(error.status, error.code, error.message);
+    }
+    if (error instanceof LeadIdempotencyConflictError) {
       return apiError(error.status, error.code, error.message);
     }
 
@@ -249,7 +312,55 @@ async function handleLead(request: Request, env: Env) {
   }
 }
 
-export async function handleRequest(request: Request, env: Env) {
+async function handleInternalNotificationDrain(request: Request, env: Env) {
+  if (request.method !== "POST") return methodNotAllowed(["POST"]);
+  try {
+    requireInternalJobToken(request, env);
+    const data = await drainNotificationOutbox(env, 10);
+    return json({ ok: true, data, meta: metadata() });
+  } catch (error) {
+    if (error instanceof InternalAuthError) {
+      return apiError(error.status, error.code, error.message);
+    }
+    return apiError(
+      500,
+      "NOTIFICATION_DRAIN_FAILED",
+      "Notification processing failed.",
+    );
+  }
+}
+
+async function handleInternalMlsSync(request: Request, env: Env) {
+  if (request.method !== "POST") return methodNotAllowed(["POST"]);
+  try {
+    requireInternalJobToken(request, env);
+    const countyParam = new URL(request.url).searchParams.get("county");
+    const county =
+      countyParam && isMlsCounty(countyParam) ? countyParam : null;
+    if (countyParam && !county) {
+      return apiError(
+        400,
+        "INVALID_MLS_SCOPE",
+        "County must be washington or iron.",
+      );
+    }
+    const data = county
+      ? [await syncMlsPropertyCache(env, county)]
+      : await syncAllActiveIdxScopes(env);
+    return json({ ok: true, data, meta: metadata() });
+  } catch (error) {
+    if (error instanceof InternalAuthError) {
+      return apiError(error.status, error.code, error.message);
+    }
+    return apiError(500, "MLS_SYNC_FAILED", "MLS synchronization failed.");
+  }
+}
+
+export async function handleRequest(
+  request: Request,
+  env: Env,
+  context?: ExecutionContext,
+) {
   const url = new URL(request.url);
   const pathname = url.pathname.replace(/\/$/, "") || "/";
 
@@ -271,6 +382,14 @@ export async function handleRequest(request: Request, env: Env) {
     return handleVowCallback(request, env);
   }
 
+  if (pathname === "/api/internal/notifications/drain") {
+    return handleInternalNotificationDrain(request, env);
+  }
+
+  if (pathname === "/api/internal/mls/sync") {
+    return handleInternalMlsSync(request, env);
+  }
+
   if (pathname.startsWith("/api/listings/")) {
     return apiError(
       404,
@@ -280,7 +399,7 @@ export async function handleRequest(request: Request, env: Env) {
   }
 
   if (pathname === "/api/leads" || pathname === "/api/v1/leads/intake") {
-    const response = await handleLead(request, env);
+    const response = await handleLead(request, env, context);
     const withHeaders = addWriteResponseHeaders(request, env, response);
     if (pathname === "/api/leads") {
       const headers = new Headers(withHeaders.headers);
@@ -304,4 +423,16 @@ export async function handleRequest(request: Request, env: Env) {
 
 export default {
   fetch: handleRequest,
+  scheduled(
+    _controller: ScheduledController,
+    env: Env,
+    context: ExecutionContext,
+  ) {
+    context.waitUntil(
+      Promise.all([
+        drainNotificationOutbox(env, 10),
+        syncAllActiveIdxScopes(env),
+      ]).then(() => undefined),
+    );
+  },
 };

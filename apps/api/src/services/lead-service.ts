@@ -12,6 +12,7 @@ export type WorkflowLane =
 
 export interface LeadServiceEnv {
   DB: D1Database;
+  OWNER_NOTIFICATION_EMAIL?: string;
 }
 
 export type StoredLeadResult = {
@@ -20,8 +21,16 @@ export type StoredLeadResult = {
   attributionSessionId: string;
   propertyContextId: string;
   routingDecisionId: string;
+  notificationJobId: string;
   workflowLane: WorkflowLane;
+  idempotencyKey: string;
+  duplicate: boolean;
 };
+
+export class LeadIdempotencyConflictError extends Error {
+  readonly status = 409;
+  readonly code = "IDEMPOTENCY_CONFLICT";
+}
 
 export function asString(value: unknown) {
   return typeof value === "string" ? value.trim() : "";
@@ -57,38 +66,79 @@ function splitName(fullName: string) {
   };
 }
 
+const VARIANT_LANES: Record<string, WorkflowLane> = {
+  valuation: "valuation",
+  relocation: "relocation",
+  property_inquiry: "property_inquiry",
+  showing_request: "showing_request",
+};
+
+const GENERAL_LANES = new Set<WorkflowLane>([
+  "seller_high_priority",
+  "buyer_active_search",
+  "buyer_early_stage",
+  "general_contact",
+  "booked_consult",
+  "nurture",
+]);
+
 export function classifyWorkflowLane(
   body: Record<string, unknown>,
   pathname: string,
 ): WorkflowLane {
-  const intent = asString(body.intent).toLowerCase();
-  const explicitLane = asString(body.workflowLane).toLowerCase();
-  const requested = explicitLane || intent;
+  const variant = asString(body.formVariant).toLowerCase();
+  const variantLane = VARIANT_LANES[variant];
+  if (variantLane) return variantLane;
 
-  if (pathname.includes("/showing") || requested === "showing_request") {
-    return "showing_request";
-  }
-  if (pathname.includes("/inquiry") || requested === "property_inquiry") {
-    return "property_inquiry";
-  }
-  if (pathname.includes("/valuation") || requested === "valuation") {
-    return "valuation";
-  }
+  if (pathname.includes("/showing")) return "showing_request";
+  if (pathname.includes("/inquiry")) return "property_inquiry";
+  if (pathname.includes("/valuation")) return "valuation";
 
-  const accepted = new Set<WorkflowLane>([
-    "seller_high_priority",
-    "relocation",
-    "booked_consult",
-    "buyer_active_search",
-    "buyer_early_stage",
-    "general_contact",
-    "nurture",
-  ]);
-
-  return accepted.has(requested as WorkflowLane)
-    ? (requested as WorkflowLane)
-    : "general_contact";
+  const intent = asString(body.intent).toLowerCase() as WorkflowLane;
+  return GENERAL_LANES.has(intent) ? intent : "general_contact";
 }
+
+async function sha256Hex(value: string) {
+  const digest = await crypto.subtle.digest(
+    "SHA-256",
+    new TextEncoder().encode(value),
+  );
+  return Array.from(new Uint8Array(digest), (byte) =>
+    byte.toString(16).padStart(2, "0"),
+  ).join("");
+}
+
+function canonicalJson(value: unknown): string {
+  if (Array.isArray(value)) {
+    return `[${value.map(canonicalJson).join(",")}]`;
+  }
+  if (value && typeof value === "object") {
+    const record = value as Record<string, unknown>;
+    return `{${Object.keys(record)
+      .sort()
+      .map((key) => `${JSON.stringify(key)}:${canonicalJson(record[key])}`)
+      .join(",")}}`;
+  }
+  return JSON.stringify(value ?? null);
+}
+
+function ownerNotificationEmail(env: LeadServiceEnv) {
+  const recipient = normalizeEmail(
+    env.OWNER_NOTIFICATION_EMAIL || "joel@homeinstgeorgeutah.com",
+  );
+  if (recipient === "buyers@homeinstgeorgeutah.com") {
+    throw new Error("Buyer mailbox automation is prohibited.");
+  }
+  return recipient;
+}
+
+type ExistingIntake = {
+  request_hash: string;
+  contact_id: string;
+  lead_event_id: string;
+  routing_decision_id: string;
+  workflow_lane: WorkflowLane;
+};
 
 export async function storeLeadIntake(
   env: LeadServiceEnv,
@@ -115,21 +165,69 @@ export async function storeLeadIntake(
   const sourceListingKey = asString(body.sourceListingKey);
   const attribution = asRecord(body.attribution);
   const device = asRecord(body.device);
+  const details = asRecord(body.details);
   const workflowLane = classifyWorkflowLane(body, input.pathname);
+  const idempotencyKey = asString(body.submissionId);
+  if (!idempotencyKey) {
+    throw new Error("Lead intake requires a submission id.");
+  }
+
   const { firstName, lastName } = splitName(name);
   const eventPayload = {
     formVariant: asString(body.formVariant) || undefined,
-    details: asRecord(body.details),
+    details,
     attribution,
     device,
   };
+  const requestHash = await sha256Hex(
+    canonicalJson({
+      name,
+      email: emailNormalized,
+      phone: phoneNormalized,
+      message,
+      pageUrl,
+      listingId,
+      sourceListingKey,
+      workflowLane,
+      eventPayload,
+    }),
+  );
+
+  const existing = await env.DB.prepare(
+    `select request_hash, contact_id, lead_event_id, routing_decision_id, workflow_lane
+       from lead_intake_requests where idempotency_key = ? limit 1`,
+  )
+    .bind(idempotencyKey)
+    .first<ExistingIntake>();
+
+  const stableHash = await sha256Hex(idempotencyKey);
+  const attributionSessionId = `attr_${stableHash.slice(0, 32)}`;
+  const propertyContextId = `prop_${stableHash.slice(0, 32)}`;
+  const leadEventId = `lead_${stableHash.slice(0, 32)}`;
+  const routingDecisionId = `route_${stableHash.slice(0, 32)}`;
+  const notificationJobId = `notify_${stableHash.slice(0, 32)}`;
+
+  if (existing) {
+    if (existing.request_hash !== requestHash) {
+      throw new LeadIdempotencyConflictError(
+        "This submission identifier was already used for different content.",
+      );
+    }
+    return {
+      contactId: existing.contact_id,
+      leadEventId: existing.lead_event_id,
+      attributionSessionId,
+      propertyContextId,
+      routingDecisionId: existing.routing_decision_id,
+      notificationJobId,
+      workflowLane: existing.workflow_lane,
+      idempotencyKey,
+      duplicate: true,
+    };
+  }
 
   const candidateContactId = crypto.randomUUID();
-  const attributionSessionId = crypto.randomUUID();
-  const propertyContextId = crypto.randomUUID();
-  const leadEventId = crypto.randomUUID();
-  const routingDecisionId = crypto.randomUUID();
-
+  const recipient = ownerNotificationEmail(env);
   const contactIdSql =
     "(select id from contacts where email_normalized = ? limit 1)";
 
@@ -140,15 +238,12 @@ export async function storeLeadIntake(
          phone_normalized, source)
        values (?, ?, ?, ?, ?, ?, ?, ?, 'website')
        on conflict(email_normalized) do update set
-         full_name = excluded.full_name,
-         first_name = excluded.first_name,
-         last_name = excluded.last_name,
-         email = excluded.email,
+         full_name = case when excluded.full_name <> '' then excluded.full_name else contacts.full_name end,
+         first_name = case when excluded.first_name <> '' then excluded.first_name else contacts.first_name end,
+         last_name = case when excluded.last_name <> '' then excluded.last_name else contacts.last_name end,
+         email = case when excluded.email <> '' then excluded.email else contacts.email end,
          phone = coalesce(excluded.phone, contacts.phone),
-         phone_normalized = coalesce(
-           excluded.phone_normalized,
-           contacts.phone_normalized
-         ),
+         phone_normalized = coalesce(excluded.phone_normalized, contacts.phone_normalized),
          updated_at = CURRENT_TIMESTAMP`,
     ).bind(
       candidateContactId,
@@ -211,14 +306,38 @@ export async function storeLeadIntake(
     ),
     env.DB.prepare(
       `insert into routing_decisions
-        (id, contact_id, lead_event_id, workflow_lane, reason, status)
-       values (?, ${contactIdSql}, ?, ?, ?, 'new')`,
+        (id, contact_id, lead_event_id, workflow_lane, reason, assigned_to, status)
+       values (?, ${contactIdSql}, ?, ?, ?, 'owner:joel', 'new')`,
     ).bind(
       routingDecisionId,
       emailNormalized,
       leadEventId,
       workflowLane,
       `Lead intake classified as ${workflowLane}.`,
+    ),
+    env.DB.prepare(
+      `insert into notification_outbox
+        (id, lead_event_id, contact_id, notification_type, recipient, status, payload_json)
+       values (?, ?, ${contactIdSql}, 'owner_lead', ?, 'queued', ?)`,
+    ).bind(
+      notificationJobId,
+      leadEventId,
+      emailNormalized,
+      recipient,
+      JSON.stringify({ workflowLane, pageUrl, listingId: listingId || null }),
+    ),
+    env.DB.prepare(
+      `insert into lead_intake_requests
+        (idempotency_key, request_hash, contact_id, lead_event_id,
+         routing_decision_id, workflow_lane, status)
+       values (?, ?, ${contactIdSql}, ?, ?, ?, 'stored')`,
+    ).bind(
+      idempotencyKey,
+      requestHash,
+      emailNormalized,
+      leadEventId,
+      routingDecisionId,
+      workflowLane,
     ),
     env.DB.prepare(
       "select id from contacts where email_normalized = ? limit 1",
@@ -239,6 +358,9 @@ export async function storeLeadIntake(
     attributionSessionId,
     propertyContextId,
     routingDecisionId,
+    notificationJobId,
     workflowLane,
+    idempotencyKey,
+    duplicate: false,
   };
 }

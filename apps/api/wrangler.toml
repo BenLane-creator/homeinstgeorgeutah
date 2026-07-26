@@ -11,10 +11,17 @@ routes = [
 [observability]
 enabled = true
 
+[triggers]
+# Safe while MLS gates are pending: source sync records a skipped run and never
+# contacts an MLS provider until that county's full activation contract passes.
+crons = ["*/5 * * * *"]
+
 [vars]
 APP_ENV = "production"
 SITE_URL = "https://homeinstgeorgeutah.com"
 API_WRITE_ORIGINS = "https://homeinstgeorgeutah.com,https://www.homeinstgeorgeutah.com"
+OWNER_NOTIFICATION_EMAIL = "joel@homeinstgeorgeutah.com"
+EMAIL_DELIVERY_WEBHOOK_URL = ""
 
 # Four independent MLS approval and activation scopes. Pending status is
 # informational only; no live data path activates until every county/role gate passes.
@@ -55,6 +62,8 @@ VOW_REDIRECT_URI = "https://homeinstgeorgeutah.com/api/v1/auth/flexmls/callback"
 # bunx wrangler secret put IRON_VOW_CLIENT_SECRET --config apps/api/wrangler.toml
 # bunx wrangler secret put VOW_STATE_SECRET --config apps/api/wrangler.toml
 # bunx wrangler secret put TURNSTILE_SECRET_KEY --config apps/api/wrangler.toml
+# bunx wrangler secret put INTERNAL_JOB_TOKEN --config apps/api/wrangler.toml
+# bunx wrangler secret put EMAIL_DELIVERY_TOKEN --config apps/api/wrangler.toml
 #
 # Do not commit live tokens, API keys, client secrets, state secrets, or MLS credentials.
 

@@ -1,14 +1,14 @@
 # HomeInStGeorgeUtah Modern Stack
 
-This repository implements the custom HomeInStGeorgeUtah.com website and owned lead engine.
+This repository implements the custom HomeInStGeorgeUtah.com website, owned lead engine, and owned canonical listing cache.
 
 ## Production direction
 
 ```txt
 homeinstgeorgeutah.com             -> Astro public site on Cloudflare Pages
 homeinstgeorgeutah.com/api/*       -> Cloudflare Worker API
-Cloudflare D1                      -> operational source of truth
-MLS-approved API access            -> replaceable RESO-shaped Source Layer adapters
+Cloudflare D1                      -> operational and listing-cache source of truth
+MLS-approved API access            -> replaceable RESO-shaped source adapters
 Washington County IDX + VOW        -> independent authorization/display scope
 Iron County IDX + VOW              -> independent authorization/display scope
 ```
@@ -19,18 +19,32 @@ All four MLS subscriptions are currently pending. Pending status never enables l
 
 The system is divided into four layers:
 
-1. **Source Layer** — MLS-approved listing access, RESO-shaped provider interfaces, media/open-house access, and county/role-specific compliance and display-rights boundaries.
-2. **Product Layer** — custom website, search UX, property pages, accounts, saved homes/searches, lead flows, city/neighborhood pages, and SEO landing pages.
-3. **Logic Layer** — lead normalization, contact identity merge/dedupe, attribution, routing decisions, workflow assignment, AI enrichment, booking handoff generation, and CRM sync orchestration.
-4. **Utility Layer** — CRM sink, booking utility, email/SMS delivery, analytics exports, and file/object storage.
+1. **Source Layer** — MLS-approved listing access, RESO-shaped provider interfaces, county/role-specific compliance, synchronization, and display-rights boundaries.
+2. **Product Layer** — custom website, search UX, consumer-facing pages, lead flows, city/neighborhood pages, and SEO landing pages.
+3. **Logic Layer** — lead normalization, contact identity merge/dedupe, attribution, canonical routing, idempotency, notification outbox, workflow assignment, and downstream orchestration.
+4. **Utility Layer** — replaceable email, CRM, booking, SMS, analytics, and storage delivery utilities.
 
-Only the Source Layer may depend on external real estate data vendors. CRM, booking, email, SMS, and analytics are downstream utilities only.
+Only the Source Layer may depend on external real-estate data vendors. CRM, booking, email, SMS, and analytics are downstream utilities only.
 
-Washington County and Iron County must remain independent at the authorization, API credential, policy, sync cursor, health, activation, and kill-switch boundaries. They may normalize into the same owned canonical listing model after those boundaries are enforced.
+Washington County and Iron County remain independent at the authorization, API credential, policy, sync cursor, health, activation, and kill-switch boundaries. Approved records normalize into the same owned canonical listing model only after those boundaries are enforced.
+
+## Canonical listing path
+
+```txt
+approved RESO-shaped source
+  -> county-specific source adapter
+  -> approved field allowlist
+  -> county-specific cursor and sync run
+  -> canonical D1 listing cache
+  -> internal read service
+  -> public search response
+```
+
+Visitor searches never call an MLS provider directly. Raw provider records are not exposed to browsers and are not retained in the canonical cache. Media remains disabled until the applicable field/media rights and rules are approved and encoded.
 
 ## MLS activation model
 
-Each of these scopes must be approved and activated independently:
+Each scope is approved and activated independently:
 
 ```txt
 washington-idx
@@ -55,14 +69,20 @@ The registered production VOW callback is:
 https://homeinstgeorgeutah.com/api/v1/auth/flexmls/callback
 ```
 
-The callback currently fails closed while approvals, production credentials, token exchange, and local-account linking remain incomplete.
+The callback fails closed while approvals, production credentials, token exchange, and local-account linking remain incomplete.
+
+## Lead and notification contract
+
+A valid lead submission creates or reuses exactly one canonical contact and creates exactly one lead event, routing decision, idempotency record, and owner-notification outbox job in one D1 batch. Replays with the same idempotency key return the original result instead of duplicating records.
+
+Owner email delivery occurs after the D1 transaction. Delivery failures remain in D1 for scheduled or manual recovery and never erase the lead. Automated delivery to `buyers@homeinstgeorgeutah.com` is prohibited.
 
 ## Apps
 
 ```txt
 apps/site  Astro public website and search shell
-apps/api   Cloudflare Worker API and lead engine
-apps/app   Future React Router dashboard/client/admin zone
+apps/api   Cloudflare Worker API, lead engine, cache sync, and operations
+apps/app   React Router dashboard/client/admin foundation
 ```
 
 ## Packages
@@ -94,19 +114,37 @@ bun --filter @home/api typecheck
 bun --filter @home/app build
 python3 scripts/audit-neighborhood-links.py
 python3 scripts/audit-architecture-drift.py
+python3 scripts/audit-release.py
 ```
 
 ## D1 migrations
 
-Apply migrations in order after creating the Cloudflare D1 database and confirming the database binding in `apps/api/wrangler.toml`:
+Apply migrations in order only after confirming the target database binding and recording the required backup/restore point:
 
 ```bash
 bunx wrangler d1 execute homeinstgeorgeutah --file=packages/db/migrations/0001_foundation.sql --config apps/api/wrangler.toml
 bunx wrangler d1 execute homeinstgeorgeutah --file=packages/db/migrations/0002_contact_integrity.sql --config apps/api/wrangler.toml
 bunx wrangler d1 execute homeinstgeorgeutah --file=packages/db/migrations/0003_mls_scopes.sql --config apps/api/wrangler.toml
+bunx wrangler d1 execute homeinstgeorgeutah --file=packages/db/migrations/0004_operational_hardening.sql --config apps/api/wrangler.toml
 ```
 
-Do not run production migrations until the backup/restore point and rollback procedure are recorded.
+Do not run production migrations until the D1 export/restore drill, rollback procedure, and production backup point are recorded.
+
+## Operations
+
+- `docs/operations/lead-data-governance.md`
+- `docs/operations/notification-recovery.md`
+- `docs/operations/incident-response.md`
+- `docs/operations/mls-activation-runbook.md`
+
+Protected operational routes require the server-side `INTERNAL_JOB_TOKEN`:
+
+```txt
+POST /api/internal/notifications/drain
+POST /api/internal/mls/sync
+POST /api/internal/mls/sync?county=washington
+POST /api/internal/mls/sync?county=iron
+```
 
 ## Guardrails
 
@@ -114,8 +152,8 @@ Do not run production migrations until the backup/restore point and rollback pro
 - Do not copy MLS photos, remarks, listing fields, or listing-detail pages outside approved API/display rules.
 - Do not activate Washington County or Iron County based on the other county's approval.
 - Do not activate IDX based on VOW approval, or VOW based on IDX approval.
+- Do not call an MLS provider from a visitor request.
 - Do not make a hosted vendor website the product core.
-- Do not make CRM the source of truth.
-- Do not make booking software the workflow engine.
+- Do not make CRM, email, or booking software the source of truth.
 - Do not let provider quirks leak into product UI.
-- Do not put live API keys, access tokens, client secrets, or VOW state secrets in source control.
+- Do not put live API keys, access tokens, client secrets, internal job tokens, or VOW state secrets in source control.
