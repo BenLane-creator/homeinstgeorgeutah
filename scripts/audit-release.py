@@ -37,7 +37,9 @@ required_source_files = [
     SITE / "public" / "fonts" / "inter-latin-variable.woff2",
     ROOT / "apps" / "api" / "src" / "security" / "request-security.ts",
     ROOT / "apps" / "api" / "src" / "services" / "listing-service.ts",
+    ROOT / "apps" / "api" / "src" / "services" / "mls-scope-service.ts",
     ROOT / "packages" / "db" / "migrations" / "0002_contact_integrity.sql",
+    ROOT / "packages" / "db" / "migrations" / "0003_mls_scopes.sql",
     ROOT / "THIRD_PARTY_FONT_LICENSES.md",
 ]
 
@@ -101,7 +103,10 @@ for relative in ["pages/neighborhoods/[slug].astro", "pages/blog/[slug].astro"]:
     if "render(entry)" not in page or "<Content />" not in page:
         errors.append(f"{relative} is not rendering through Astro content collections.")
 
+search_page = require(SITE_SRC / "pages" / "homes" / "search.astro")
 search_island = require(SITE_SRC / "components" / "SearchResultsIsland.tsx")
+if 'name="county"' not in search_page:
+    errors.append("Search page is missing the independent Washington/Iron MLS scope selector.")
 if "/api/search" not in search_island:
     errors.append("Search results do not call the Worker /api/search endpoint.")
 if "/api/v1/search/execute" in search_island or '"stub"' in search_island:
@@ -114,19 +119,31 @@ if "/api/v1/leads/intake" not in lead_island:
     errors.append("Lead form is not connected to /api/v1/leads/intake.")
 
 listing_service = require(ROOT / "apps" / "api" / "src" / "services" / "listing-service.ts")
+mls_scope_service = require(ROOT / "apps" / "api" / "src" / "services" / "mls-scope-service.ts")
 for gate in [
-    "MLS_ACTIVATION_ENABLED",
-    "MLS_POLICY_VERSION",
-    "LISTING_PROVIDER",
-    'county: "Washington"',
-    'ironCountyEnabled: false',
+    "WASHINGTON_IDX_APPROVAL_STATUS",
+    "WASHINGTON_VOW_APPROVAL_STATUS",
+    "IRON_IDX_APPROVAL_STATUS",
+    "IRON_VOW_APPROVAL_STATUS",
+    "APPROVED_POLICY_VERSIONS",
+    "getActiveIdxSource",
 ]:
-    if gate not in listing_service:
-        errors.append(f"Listing adapter is missing activation or geography gate: {gate}")
+    if gate not in mls_scope_service and gate not in listing_service:
+        errors.append(f"MLS integration is missing county/role activation gate: {gate}")
+if 'county: MlsCounty' not in listing_service or '"washington"' not in listing_service or '"iron"' not in listing_service:
+    errors.append("Listing adapter is missing explicit Washington/Iron county routing.")
 
 wrangler = require(ROOT / "apps" / "api" / "wrangler.toml")
-if 'MLS_ACTIVATION_ENABLED = "false"' not in wrangler:
-    errors.append("Production MLS activation must default to false.")
+for disabled_gate in [
+    'WASHINGTON_IDX_ENABLED = "false"',
+    'WASHINGTON_VOW_ENABLED = "false"',
+    'IRON_IDX_ENABLED = "false"',
+    'IRON_VOW_ENABLED = "false"',
+]:
+    if disabled_gate not in wrangler:
+        errors.append(f"Production MLS scope must default disabled: {disabled_gate}")
+if 'VOW_REDIRECT_URI = "https://homeinstgeorgeutah.com/api/v1/auth/flexmls/callback"' not in wrangler:
+    errors.append("Registered production VOW callback is missing from Worker configuration.")
 if 'name = "LEAD_RATE_LIMITER"' not in wrangler:
     errors.append("Production lead rate-limit binding is missing.")
 
@@ -134,6 +151,8 @@ api_index = require(ROOT / "apps" / "api" / "src" / "index.ts")
 for control in ["requireApprovedWriteOrigin", "enforceLeadRateLimit", "readJsonBody", "verifyTurnstile"]:
     if control not in api_index:
         errors.append(f"Lead route is missing request protection: {control}")
+if "/api/v1/auth/flexmls/callback" not in api_index or "VOW_AUTHORIZATION_PENDING" not in api_index:
+    errors.append("VOW callback boundary is missing or does not fail closed while pending.")
 
 lead_service = require(ROOT / "apps" / "api" / "src" / "services" / "lead-service.ts")
 if ".batch(" not in lead_service or "coalesce(excluded.phone, contacts.phone)" not in lead_service:
