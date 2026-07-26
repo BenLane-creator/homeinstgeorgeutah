@@ -6,21 +6,21 @@ import { featuredSearches } from "@home/config/routes";
 ---
 
 <BaseLayout
-  title="Homes for Sale in St. George"
+  title="Homes for Sale in Southern Utah"
   pathname="/homes/search/"
-  description="Search for homes across St. George and Washington County, then get direct local guidance from Joel Robertson of Robertson Real Estate."
+  description="Search for homes across Washington County and Iron County, then get direct local guidance from Joel Robertson of Robertson Real Estate."
 >
   <section class="bg-[var(--brand-warm-ivory)] px-5 py-16 sm:py-20 md:py-24">
     <div class="mx-auto max-w-7xl">
       <div class="max-w-4xl">
         <p class="text-xs font-bold uppercase tracking-[0.28em] text-[var(--brand-gold)]">
-          Washington County homes
+          Washington County and Iron County homes
         </p>
         <h1 class="mt-5 text-5xl font-medium leading-[0.95] tracking-[-0.055em] text-[var(--brand-ink)] sm:text-6xl md:text-7xl">
           Find the right home with local context.
         </h1>
         <p class="mt-6 max-w-3xl text-lg leading-8 text-stone-700">
-          Share the location and property details that matter to you. When authorized listing data is available, results will appear here; Joel can provide current availability directly in the meantime.
+          Choose the MLS county scope, then share the location and property details that matter to you. When each independently authorized feed is available, results will appear here; Joel can provide current availability directly in the meantime.
         </p>
       </div>
 
@@ -30,7 +30,18 @@ import { featuredSearches } from "@home/config/routes";
         class="mt-10 border border-[var(--brand-pink-sand)] bg-white p-5 shadow-xl shadow-stone-900/5 sm:p-6"
         aria-label="Search homes"
       >
-        <div class="grid gap-3 lg:grid-cols-[1.4fr_0.75fr_0.75fr_0.62fr_0.62fr_auto]">
+        <div class="grid gap-3 md:grid-cols-2 lg:grid-cols-[0.8fr_1.4fr_0.75fr_0.75fr_0.62fr_0.62fr_auto]">
+          <label class="grid gap-2 text-xs font-bold uppercase tracking-[0.12em] text-stone-600">
+            MLS county
+            <select
+              name="county"
+              class="min-h-13 border border-stone-300 bg-white px-4 text-base font-medium normal-case tracking-normal text-[var(--brand-ink)]"
+            >
+              <option value="washington">Washington County</option>
+              <option value="iron">Iron County</option>
+            </select>
+          </label>
+
           <label class="grid gap-2 text-xs font-bold uppercase tracking-[0.12em] text-stone-600">
             Location or keyword
             <input
