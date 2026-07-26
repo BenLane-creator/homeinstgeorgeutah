@@ -32,7 +32,10 @@ test("search exposes independent Washington and Iron county scopes", async ({
 }) => {
   await page.goto("/homes/search/");
 
-  const county = page.getByLabel("MLS county");
+  const county = page.getByRole("combobox", {
+    name: "MLS county",
+    exact: true,
+  });
   await expect(county).toHaveValue("washington");
   await expect(county.locator("option")).toHaveText([
     "Washington County",
