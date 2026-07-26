@@ -1,7 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 
+type MlsCounty = "washington" | "iron";
+
 type ListingCard = {
   listingId: string;
+  sourceListingId?: string;
+  mlsScope?: MlsCounty;
   status: string | null;
   price: number | null;
   propertyType: string | null;
@@ -45,6 +49,7 @@ type Pagination = NonNullable<
 >;
 
 const filterLabels: Record<string, string> = {
+  county: "MLS county",
   q: "Search",
   city: "City",
   neighborhood: "Area",
@@ -53,6 +58,11 @@ const filterLabels: Record<string, string> = {
   beds: "Beds",
   baths: "Baths",
   propertyType: "Type",
+};
+
+const countyLabels: Record<MlsCounty, string> = {
+  washington: "Washington County",
+  iron: "Iron County",
 };
 
 function dollars(value: number | null) {
@@ -86,6 +96,10 @@ function updatedLabel(value: string | null) {
   }).format(date);
 }
 
+function isMlsCounty(value: string | null): value is MlsCounty {
+  return value === "washington" || value === "iron";
+}
+
 export default function SearchResultsIsland() {
   const [requestState, setRequestState] = useState<RequestState>("idle");
   const [listings, setListings] = useState<ListingCard[]>([]);
@@ -97,6 +111,7 @@ export default function SearchResultsIsland() {
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
+    if (!params.has("county")) params.set("county", "washington");
     if (!params.has("limit")) params.set("limit", "12");
     setSort(params.get("sort") || "newest");
     setQuery(params.toString());
@@ -146,6 +161,11 @@ export default function SearchResultsIsland() {
     return () => controller.abort();
   }, [query]);
 
+  const selectedCounty = useMemo<MlsCounty>(() => {
+    const value = query ? new URLSearchParams(query).get("county") : null;
+    return isMlsCounty(value) ? value : "washington";
+  }, [query]);
+
   const activeFilters = useMemo(() => {
     if (!query) return [];
     const params = new URLSearchParams(query);
@@ -154,7 +174,9 @@ export default function SearchResultsIsland() {
       .filter(([key, value]) => filterLabels[key] && value)
       .map(([key, value]) => ({
         key,
-        label: `${filterLabels[key]}: ${value}`,
+        label: `${filterLabels[key]}: ${
+          key === "county" && isMlsCounty(value) ? countyLabels[value] : value
+        }`,
       }));
   }, [query]);
 
@@ -188,7 +210,7 @@ export default function SearchResultsIsland() {
       <div className="flex flex-col gap-5 border-b border-stone-200 pb-6 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="text-xs font-bold uppercase tracking-[0.24em] text-[var(--brand-gold)]">
-            St. George and Washington County
+            {countyLabels[selectedCounty]} MLS scope
           </p>
           <h2
             id="listing-results-title"
@@ -298,7 +320,7 @@ export default function SearchResultsIsland() {
               </p>
             </div>
             <a
-              href="/contact/?intent=buyer_active_search"
+              href={`/contact/?intent=buyer_active_search&county=${selectedCounty}`}
               className="inline-flex min-h-14 items-center justify-center bg-[var(--brand-ink)] px-7 text-sm font-bold uppercase tracking-[0.14em] text-white"
             >
               Start a custom search
@@ -314,7 +336,7 @@ export default function SearchResultsIsland() {
               const location = [listing.city, listing.state, listing.postalCode]
                 .filter(Boolean)
                 .join(", ");
-              const detailsHref = `/contact/?intent=property_inquiry&listingId=${encodeURIComponent(listing.listingId)}&propertyAddress=${encodeURIComponent(listing.addressDisplay)}`;
+              const detailsHref = `/contact/?intent=property_inquiry&listingId=${encodeURIComponent(listing.listingId)}&propertyAddress=${encodeURIComponent(listing.addressDisplay)}&county=${listing.mlsScope || selectedCounty}`;
 
               return (
                 <article
@@ -349,9 +371,7 @@ export default function SearchResultsIsland() {
                     </p>
 
                     <div className="mt-3 flex flex-wrap gap-x-4 gap-y-2 text-sm font-semibold text-stone-700">
-                      {listing.beds !== null && (
-                        <span>{listing.beds} beds</span>
-                      )}
+                      {listing.beds !== null && <span>{listing.beds} beds</span>}
                       {listing.baths !== null && (
                         <span>{listing.baths} baths</span>
                       )}
