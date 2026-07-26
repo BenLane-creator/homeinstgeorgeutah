@@ -334,9 +334,15 @@ async function handleInternalMlsSync(request: Request, env: Env) {
   if (request.method !== "POST") return methodNotAllowed(["POST"]);
   try {
     requireInternalJobToken(request, env);
-    const county = new URL(request.url).searchParams.get("county");
-    if (county && !isMlsCounty(county)) {
-      return apiError(400, "INVALID_MLS_SCOPE", "County must be washington or iron.");
+    const countyParam = new URL(request.url).searchParams.get("county");
+    const county =
+      countyParam && isMlsCounty(countyParam) ? countyParam : null;
+    if (countyParam && !county) {
+      return apiError(
+        400,
+        "INVALID_MLS_SCOPE",
+        "County must be washington or iron.",
+      );
     }
     const data = county
       ? [await syncMlsPropertyCache(env, county)]
