@@ -60,9 +60,11 @@ function firstNumber(record: UnknownRecord, keys: string[]) {
 
 function listingCandidates(payload: unknown) {
   const root = asRecord(payload);
-  const nested = root ? asRecord(root.d) : null;
+  const nested = root ? (asRecord(root.d) ?? asRecord(root.D)) : null;
   if (root && Array.isArray(root.value)) return root.value;
+  if (root && Array.isArray(root.Results)) return root.Results;
   if (root && Array.isArray(root.results)) return root.results;
+  if (nested && Array.isArray(nested.Results)) return nested.Results;
   if (nested && Array.isArray(nested.results)) return nested.results;
   if (nested) return [nested];
   return [];
@@ -333,7 +335,9 @@ export async function syncMlsPropertyCache(
     };
   } catch (error) {
     const message =
-      error instanceof Error ? error.message : "Unknown MLS synchronization error.";
+      error instanceof Error
+        ? error.message
+        : "Unknown MLS synchronization error.";
     await env.DB.batch([
       env.DB.prepare(
         `insert into mls_sync_cursors
@@ -344,7 +348,12 @@ export async function syncMlsPropertyCache(
            last_attempt_at = CURRENT_TIMESTAMP,
            last_error = excluded.last_error,
            updated_at = CURRENT_TIMESTAMP`,
-      ).bind(`${scopeKey}:Property`, scopeKey, cursorBefore, message.slice(0, 1_000)),
+      ).bind(
+        `${scopeKey}:Property`,
+        scopeKey,
+        cursorBefore,
+        message.slice(0, 1_000),
+      ),
       env.DB.prepare(
         `update mls_sync_runs
             set status = 'failed', error_code = 'MLS_SYNC_FAILED',

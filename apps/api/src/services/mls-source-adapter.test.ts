@@ -95,6 +95,54 @@ describe("MLS source adapter", () => {
     expect(db.getBatchCalls()).toBe(0);
   });
 
+  test("accepts Spark Results and D.Results collection envelopes", async () => {
+    const envelopes = [
+      {
+        Results: [
+          {
+            ListingKey: "spark-root-1",
+            StandardStatus: "Active",
+            ModificationTimestamp: "2026-07-26T00:00:00Z",
+          },
+        ],
+      },
+      {
+        D: {
+          Results: [
+            {
+              ListingKey: "spark-nested-1",
+              StandardStatus: "Active",
+              ModificationTimestamp: "2026-07-26T00:00:00Z",
+            },
+          ],
+        },
+      },
+    ];
+
+    for (const payload of envelopes) {
+      globalThis.fetch = (async () => Response.json(payload)) as typeof fetch;
+      const db = createDb();
+
+      const result = await syncMlsPropertyCache(
+        {
+          DB: db.DB,
+          IRON_IDX_APPROVAL_STATUS: "approved",
+          IRON_IDX_ENABLED: "true",
+          IRON_IDX_POLICY_VERSION: APPROVED_POLICY_VERSIONS.iron.idx,
+          IRON_IDX_PROVIDER: "approved-reso-source",
+          IRON_IDX_API_BASE_URL: "https://example.com/reso",
+          IRON_IDX_ACCESS_TOKEN: "secret",
+        },
+        "iron",
+      );
+
+      expect(result.status).toBe("succeeded");
+      expect(result.recordsReceived).toBe(1);
+      expect(result.recordsWritten).toBe(1);
+      expect(db.getBatchCalls()).toBe(1);
+    }
+  });
+
   test("writes approved records, membership, cursor, and run completion atomically", async () => {
     globalThis.fetch = (async () =>
       Response.json({
@@ -130,7 +178,9 @@ describe("MLS source adapter", () => {
     expect(result.cursorAfter).toBe("2026-07-26T13:00:00Z");
     expect(db.getBatchCalls()).toBe(1);
     expect(
-      db.writes.some((write) => write.sql.includes("insert into listing_cache")),
+      db.writes.some((write) =>
+        write.sql.includes("insert into listing_cache"),
+      ),
     ).toBe(true);
     expect(
       db.writes.some((write) =>
@@ -138,7 +188,9 @@ describe("MLS source adapter", () => {
       ),
     ).toBe(true);
     expect(
-      db.writes.some((write) => write.sql.includes("insert into mls_sync_cursors")),
+      db.writes.some((write) =>
+        write.sql.includes("insert into mls_sync_cursors"),
+      ),
     ).toBe(true);
   });
 });

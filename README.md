@@ -119,16 +119,17 @@ python3 scripts/audit-release.py
 
 ## D1 migrations
 
-Apply migrations in order only after confirming the target database binding and recording the required backup/restore point:
+Wrangler tracks the versioned SQL files in `packages/db/migrations`. Never apply an individual migration file with `d1 execute`.
+
+List and apply every pending migration against a disposable local D1 database, then run the migration/upsert proof used by CI:
 
 ```bash
-bunx wrangler d1 execute homeinstgeorgeutah --file=packages/db/migrations/0001_foundation.sql --config apps/api/wrangler.toml
-bunx wrangler d1 execute homeinstgeorgeutah --file=packages/db/migrations/0002_contact_integrity.sql --config apps/api/wrangler.toml
-bunx wrangler d1 execute homeinstgeorgeutah --file=packages/db/migrations/0003_mls_scopes.sql --config apps/api/wrangler.toml
-bunx wrangler d1 execute homeinstgeorgeutah --file=packages/db/migrations/0004_operational_hardening.sql --config apps/api/wrangler.toml
+bunx wrangler d1 migrations list homeinstgeorgeutah --local --config apps/api/wrangler.toml
+bunx wrangler d1 migrations apply homeinstgeorgeutah --local --config apps/api/wrangler.toml
+bash scripts/test-d1-migrations.sh
 ```
 
-Do not run production migrations until the D1 export/restore drill, rollback procedure, and production backup point are recorded.
+Production migration and Worker deployment are a single stop/go procedure. Follow `docs/operations/d1-production-migration.md`; do not apply remote migrations or deploy the Worker until its backup, duplicate-email preflight, verification, and approval gates are satisfied.
 
 ## Operations
 
@@ -136,6 +137,7 @@ Do not run production migrations until the D1 export/restore drill, rollback pro
 - `docs/operations/notification-recovery.md`
 - `docs/operations/incident-response.md`
 - `docs/operations/mls-activation-runbook.md`
+- `docs/operations/d1-production-migration.md`
 
 Protected operational routes require the server-side `INTERNAL_JOB_TOKEN`:
 
