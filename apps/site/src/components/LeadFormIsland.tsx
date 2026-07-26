@@ -1,6 +1,6 @@
 import { site } from "@home/config/site";
 import { motion } from "motion/react";
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 type Status = "idle" | "submitting" | "success" | "error";
 
@@ -18,27 +18,6 @@ type ApiResponse = {
   };
 };
 
-const allowedIntents = new Set([
-  "seller_high_priority",
-  "valuation",
-  "buyer_active_search",
-  "buyer_early_stage",
-  "relocation",
-  "property_inquiry",
-  "showing_request",
-  "general_contact",
-  "booked_consult",
-  "nurture",
-]);
-
-const allowedVariants = new Set([
-  "general",
-  "valuation",
-  "relocation",
-  "property_inquiry",
-  "showing_request",
-]);
-
 const inputClassName =
   "min-h-12 w-full border border-stone-300 bg-white px-4 py-3 text-base text-[var(--brand-ink)] outline-none transition placeholder:text-stone-400 focus:border-[var(--brand-gold)] focus:ring-2 focus:ring-[var(--brand-gold)]/20";
 
@@ -54,6 +33,7 @@ export default function LeadFormIsland({
 }) {
   const [status, setStatus] = useState<Status>("idle");
   const [feedback, setFeedback] = useState("");
+  const submissionIdRef = useRef<string | null>(null);
   const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY as
     | string
     | undefined;
@@ -78,29 +58,25 @@ export default function LeadFormIsland({
         : "mobile"
       : "desktop";
 
-    const requestedIntent = searchParams.get("intent") || "";
-    const requestedVariant = searchParams.get("form") || "";
-    const effectiveIntent = allowedIntents.has(requestedIntent)
-      ? requestedIntent
-      : intent;
-    const effectiveVariant = allowedVariants.has(requestedVariant)
-      ? (requestedVariant as LeadFormVariant)
-      : variant;
-
     const listingId = get("listingId") || searchParams.get("listingId") || "";
     const sourceListingKey =
       get("sourceListingKey") || searchParams.get("sourceListingKey") || "";
     const propertyAddress =
       get("propertyAddress") || searchParams.get("propertyAddress") || "";
+    const submissionId = submissionIdRef.current || crypto.randomUUID();
+    submissionIdRef.current = submissionId;
 
     try {
       const response = await fetch("/api/v1/leads/intake", {
         method: "POST",
-        headers: { "content-type": "application/json" },
+        headers: {
+          "content-type": "application/json",
+          "idempotency-key": submissionId,
+        },
         body: JSON.stringify({
-          intent: effectiveIntent,
-          workflowLane: effectiveIntent,
-          formVariant: effectiveVariant,
+          intent,
+          workflowLane: intent,
+          formVariant: variant,
           name: get("name"),
           email: get("email"),
           phone: get("phone"),
@@ -148,6 +124,7 @@ export default function LeadFormIsland({
         );
       }
 
+      submissionIdRef.current = null;
       setStatus("success");
       setFeedback(
         "Your request was received. Joel will follow up using the contact information you provided.",
