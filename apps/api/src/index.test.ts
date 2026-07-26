@@ -5,6 +5,7 @@ function env(overrides: Partial<Env> = {}) {
   return {
     APP_ENV: "production",
     API_WRITE_ORIGINS: "https://homeinstgeorgeutah.com",
+    OWNER_NOTIFICATION_EMAIL: "joel@homeinstgeorgeutah.com",
     DB: {} as D1Database,
     WASHINGTON_IDX_APPROVAL_STATUS: "pending",
     WASHINGTON_VOW_APPROVAL_STATUS: "pending",
@@ -22,6 +23,9 @@ describe("API routing", () => {
     );
     expect(health.status).toBe(200);
     expect(health.headers.get("content-type")).toContain("application/json");
+    expect((await health.json()) as Record<string, unknown>).toMatchObject({
+      data: { readModel: "canonical-d1-cache" },
+    });
 
     const missing = await handleRequest(
       new Request("https://homeinstgeorgeutah.com/api/not-a-route"),
@@ -41,12 +45,14 @@ describe("API routing", () => {
     const payload = (await response.json()) as {
       data: {
         active: boolean;
+        readModel: string;
         scopes: Array<{ key: string; approvalStatus: string; active: boolean }>;
       };
     };
 
     expect(response.status).toBe(200);
     expect(payload.data.active).toBe(false);
+    expect(payload.data.readModel).toBe("canonical-d1-cache");
     expect(payload.data.scopes).toHaveLength(4);
     expect(payload.data.scopes.map((scope) => scope.key)).toEqual([
       "washington-idx",
@@ -102,6 +108,21 @@ describe("API routing", () => {
       env(),
     );
     expect(response.status).toBe(404);
+  });
+
+  test("protects internal sync and notification recovery routes", async () => {
+    for (const route of [
+      "/api/internal/mls/sync",
+      "/api/internal/notifications/drain",
+    ]) {
+      const response = await handleRequest(
+        new Request(`https://homeinstgeorgeutah.com${route}`, {
+          method: "POST",
+        }),
+        env({ INTERNAL_JOB_TOKEN: "expected" }),
+      );
+      expect(response.status).toBe(401);
+    }
   });
 });
 
@@ -161,5 +182,37 @@ describe("lead intake boundary", () => {
 
     expect(response.status).toBe(503);
     expect(response.headers.get("cache-control")).toBe("no-store");
+  });
+
+  test("requires a valid idempotency key before writing a lead", async () => {
+    const response = await handleRequest(
+      new Request("https://homeinstgeorgeutah.com/api/v1/leads/intake", {
+        method: "POST",
+        headers: {
+          origin: "https://homeinstgeorgeutah.com",
+          "content-type": "application/json",
+          "cf-connecting-ip": "192.0.2.1",
+        },
+        body: JSON.stringify({
+          name: "Test Lead",
+          email: "test@example.com",
+          consent: true,
+          intent: "general_contact",
+          workflowLane: "general_contact",
+        }),
+      }),
+      env({
+        APP_ENV: "development",
+        LEAD_RATE_LIMITER: {
+          async limit() {
+            return { success: true };
+          },
+        },
+      }),
+    );
+
+    const payload = (await response.json()) as { error: { code: string } };
+    expect(response.status).toBe(400);
+    expect(payload.error.code).toBe("IDEMPOTENCY_KEY_REQUIRED");
   });
 });
