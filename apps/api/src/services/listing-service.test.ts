@@ -88,8 +88,7 @@ describe("MLS activation", () => {
         DB: emptyDb(),
         WASHINGTON_IDX_APPROVAL_STATUS: "approved",
         WASHINGTON_IDX_ENABLED: "true",
-        WASHINGTON_IDX_POLICY_VERSION:
-          APPROVED_POLICY_VERSIONS.washington.idx,
+        WASHINGTON_IDX_POLICY_VERSION: APPROVED_POLICY_VERSIONS.washington.idx,
         WASHINGTON_IDX_PROVIDER: "approved-reso-source",
         WASHINGTON_IDX_API_BASE_URL: "https://example.com/reso",
         WASHINGTON_IDX_ACCESS_TOKEN: "secret",
@@ -119,7 +118,7 @@ describe("MLS activation", () => {
 });
 
 describe("search policy", () => {
-  test("rejects non-active status, unknown counties, and unknown parameters", () => {
+  test("rejects non-active status and unknown counties", () => {
     expect(() =>
       sanitizeSearchParams(
         new URL("https://example.com/api/search?status=Closed"),
@@ -130,11 +129,17 @@ describe("search policy", () => {
         new URL("https://example.com/api/search?county=cache"),
       ),
     ).toThrow();
-    expect(() =>
-      sanitizeSearchParams(
-        new URL("https://example.com/api/search?debug=true"),
+  });
+
+  test("ignores campaign and other non-search parameters", () => {
+    const params = sanitizeSearchParams(
+      new URL(
+        "https://example.com/api/search?q=Ivins&utm_source=google&utm_campaign=spring&gclid=test-id",
       ),
-    ).toThrow();
+    );
+
+    expect(params.q).toBe("Ivins");
+    expect(params.county).toBe("washington");
   });
 
   test("defaults to Washington and accepts Iron explicitly", () => {

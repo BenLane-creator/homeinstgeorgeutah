@@ -102,28 +102,6 @@ function boundedNumber(
 }
 
 export function sanitizeSearchParams(url: URL): SearchParams {
-  const allowed = new Set([
-    "county",
-    "q",
-    "city",
-    "neighborhood",
-    "minPrice",
-    "maxPrice",
-    "beds",
-    "baths",
-    "propertyType",
-    "status",
-    "sort",
-    "page",
-    "limit",
-  ]);
-
-  for (const key of url.searchParams.keys()) {
-    if (!allowed.has(key)) {
-      throw new SearchInputError(`Unsupported search parameter: ${key}.`);
-    }
-  }
-
   const requestedCounty =
     url.searchParams.get("county")?.trim().toLowerCase() || "washington";
   if (!isMlsCounty(requestedCounty)) {
@@ -302,7 +280,9 @@ function buildCacheFilter(params: SearchParams) {
     values.push(params.city);
   }
   if (params.neighborhood) {
-    clauses.push("lower(json_extract(lc.display_json, '$.subdivision')) like lower(?)");
+    clauses.push(
+      "lower(json_extract(lc.display_json, '$.subdivision')) like lower(?)",
+    );
     values.push(`%${params.neighborhood}%`);
   }
   if (params.minPrice) {

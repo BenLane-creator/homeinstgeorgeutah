@@ -42,6 +42,9 @@ jobs:
       - name: Run API unit and integration tests
         run: bun test apps/api/src
 
+      - name: Apply every D1 migration and verify the contact email upsert
+        run: bash scripts/test-d1-migrations.sh
+
       - name: Validate Worker bundle without deploying
         run: bunx wrangler deploy --dry-run --config apps/api/wrangler.toml --outdir /tmp/homeinstgeorgeutah-worker
 
