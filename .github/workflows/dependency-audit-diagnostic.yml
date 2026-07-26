@@ -4,7 +4,7 @@ on:
   pull_request:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   audit:
@@ -13,17 +13,24 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
+          ref: ${{ github.head_ref }}
           show-progress: false
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: 1.3.14
       - name: Resolve patched dependencies
         run: bun install
-      - uses: actions/upload-artifact@v4
-        with:
-          name: patched-bun-lock
-          path: bun.lock
-          retention-days: 1
+      - name: Commit regenerated lockfile
+        run: |
+          if git diff --quiet -- bun.lock; then
+            echo "Lockfile is current."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add bun.lock
+          git commit -m "Refresh lockfile for patched dependencies"
+          git push origin HEAD:${{ github.head_ref }}
       - name: Capture audit report
         run: |
           bun audit --json > dependency-audit.json || true
@@ -36,4 +43,12 @@ jobs:
       - name: Enforce high-severity gate
         run: bun audit --audit-level=high
       - name: Build authenticated app on patched packages
-        run: bun --filter @home/app build
+        id: app-build
+        run: bun --filter @home/app build > app-build.log 2>&1
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: authenticated-app-build-log
+          path: app-build.log
+          if-no-files-found: ignore
+          retention-days: 1
