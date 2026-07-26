@@ -7,27 +7,28 @@ import {
   type MlsScopeEnv,
 } from "./mls-scope-service";
 
-export interface ListingServiceEnv extends MlsScopeEnv {}
+export interface ListingServiceEnv extends MlsScopeEnv {
+  DB: D1Database;
+}
 
-// Compatibility alias for code that still references the original Washington-only gate.
 export const APPROVED_POLICY_VERSION = APPROVED_POLICY_VERSIONS.washington.idx;
 
 export const LISTING_SCOPE = {
   counties: ["Washington", "Iron"],
   independentlyAuthorized: true,
+  readModel: "canonical-d1-cache",
 } as const;
 
 export const providerMeta = {
   provider: "Washington and Iron County approved listing feeds",
-  source: "Provider-neutral RESO-shaped adapters",
+  source: "Owned canonical D1 listing cache",
   compliance: [
     "Washington County and Iron County are independently authorized and activated.",
     "Only contract-approved listing fields and media may be displayed.",
     "Raw provider records and unapproved MLS scopes are never exposed to browsers.",
+    "Visitor search reads only from the owned canonical cache; it never calls an MLS provider directly.",
   ],
 };
-
-type UnknownRecord = Record<string, unknown>;
 
 export type SearchParams = {
   county: MlsCounty;
@@ -56,43 +57,6 @@ export type MlsActivationState = {
 };
 
 export class SearchInputError extends Error {}
-
-function asRecord(value: unknown): UnknownRecord | null {
-  return value && typeof value === "object" && !Array.isArray(value)
-    ? (value as UnknownRecord)
-    : null;
-}
-
-function firstString(record: UnknownRecord, keys: string[]) {
-  for (const key of keys) {
-    const value = record[key];
-    if (typeof value === "string" && value.trim()) return value.trim();
-    if (typeof value === "number") return String(value);
-  }
-  return null;
-}
-
-function firstNumber(record: UnknownRecord, keys: string[]) {
-  for (const key of keys) {
-    const value = record[key];
-    if (value === null || value === undefined || value === "") continue;
-    const number = typeof value === "number" ? value : Number(value);
-    if (Number.isFinite(number)) return number;
-  }
-  return null;
-}
-
-function listingCandidates(payload: unknown) {
-  const root = asRecord(payload);
-  const nestedD = root ? asRecord(root.d) : null;
-
-  if (root && Array.isArray(root.value)) return root.value;
-  if (root && Array.isArray(root.results)) return root.results;
-  if (nestedD && Array.isArray(nestedD.results)) return nestedD.results;
-  if (nestedD) return [nestedD];
-
-  return [];
-}
 
 export function getMlsActivationState(
   env: ListingServiceEnv,
@@ -264,9 +228,7 @@ export function buildProviderSearchParams(params: SearchParams) {
   if (params.minPrice) filters.push(`ListPrice ge ${params.minPrice}`);
   if (params.maxPrice) filters.push(`ListPrice le ${params.maxPrice}`);
   if (params.beds) filters.push(`BedroomsTotal ge ${params.beds}`);
-  if (params.baths) {
-    filters.push(`BathroomsTotalInteger ge ${params.baths}`);
-  }
+  if (params.baths) filters.push(`BathroomsTotalInteger ge ${params.baths}`);
 
   const orderBy: Record<SearchParams["sort"], string> = {
     newest: "ModificationTimestamp desc",
@@ -303,41 +265,100 @@ export function buildProviderSearchParams(params: SearchParams) {
   };
 }
 
-export function normalizeListings(payload: unknown, county: MlsCounty) {
-  return listingCandidates(payload)
-    .map((item) => {
-      const listing = asRecord(item);
-      if (!listing) return null;
+type CacheRow = {
+  id: string;
+  source_listing_key: string;
+  standard_status: string | null;
+  list_price: number | null;
+  property_type: string | null;
+  property_sub_type: string | null;
+  address_display: string | null;
+  city: string | null;
+  state_or_province: string | null;
+  postal_code: string | null;
+  bedrooms_total: number | null;
+  bathrooms_total: number | null;
+  living_area: number | null;
+  lot_size_acres: number | null;
+  list_office_name: string | null;
+  source_modified_at: string | null;
+  last_synced_at: string | null;
+  primary_photo_url: string | null;
+};
 
-      const sourceListingId = firstString(listing, ["ListingKey", "ListingId"]);
-      if (!sourceListingId) return null;
+function buildCacheFilter(params: SearchParams) {
+  const clauses = ["lc.county_key = ?", "lc.standard_status = 'Active'"];
+  const values: unknown[] = [params.county];
 
-      return {
-        listingId: `${county}:${sourceListingId}`,
-        sourceListingId,
-        mlsScope: county,
-        status: firstString(listing, ["StandardStatus"]),
-        price: firstNumber(listing, ["ListPrice"]),
-        propertyType: firstString(listing, ["PropertyType"]),
-        propertySubType: firstString(listing, ["PropertySubType"]),
-        addressDisplay:
-          firstString(listing, ["UnparsedAddress"]) || "Address unavailable",
-        city: firstString(listing, ["City"]),
-        state: firstString(listing, ["StateOrProvince"]),
-        postalCode: firstString(listing, ["PostalCode"]),
-        beds: firstNumber(listing, ["BedroomsTotal"]),
-        baths: firstNumber(listing, ["BathroomsTotalInteger"]),
-        livingArea: firstNumber(listing, ["LivingArea"]),
-        lotSizeAcres: firstNumber(listing, ["LotSizeAcres"]),
-        primaryPhotoUrl: null,
-        attribution:
-          firstString(listing, ["ListOfficeName"]) ||
-          "Listing office unavailable",
-        updatedAt: firstString(listing, ["ModificationTimestamp"]),
-        requiredDisclaimers: providerMeta.compliance,
-      };
-    })
-    .filter((listing) => listing !== null);
+  if (params.q) {
+    clauses.push(
+      `(lc.address_display like ? escape '\\' or lc.city like ? escape '\\' or lc.source_listing_key = ?)`,
+    );
+    const escaped = params.q.replace(/[\\%_]/g, "\\$&");
+    values.push(`%${escaped}%`, `%${escaped}%`, params.q);
+  }
+  if (params.city) {
+    clauses.push("lower(lc.city) = lower(?)");
+    values.push(params.city);
+  }
+  if (params.neighborhood) {
+    clauses.push("lower(json_extract(lc.display_json, '$.subdivision')) like lower(?)");
+    values.push(`%${params.neighborhood}%`);
+  }
+  if (params.minPrice) {
+    clauses.push("lc.list_price >= ?");
+    values.push(Number(params.minPrice));
+  }
+  if (params.maxPrice) {
+    clauses.push("lc.list_price <= ?");
+    values.push(Number(params.maxPrice));
+  }
+  if (params.beds) {
+    clauses.push("lc.bedrooms_total >= ?");
+    values.push(Number(params.beds));
+  }
+  if (params.baths) {
+    clauses.push("lc.bathrooms_total >= ?");
+    values.push(Number(params.baths));
+  }
+  if (params.propertyType) {
+    clauses.push("lower(lc.property_type) = lower(?)");
+    values.push(params.propertyType);
+  }
+
+  return { where: clauses.join(" and "), values };
+}
+
+export function buildCacheSearchQuery(params: SearchParams) {
+  const { where, values } = buildCacheFilter(params);
+  const orderBy: Record<SearchParams["sort"], string> = {
+    newest: "coalesce(lc.source_modified_at, lc.last_synced_at) desc",
+    "price-asc": "lc.list_price asc, lc.id asc",
+    "price-desc": "lc.list_price desc, lc.id asc",
+    beds: "lc.bedrooms_total desc, lc.id asc",
+    sqft: "lc.living_area desc, lc.id asc",
+  };
+
+  return {
+    sql: `select lc.id, lc.source_listing_key, lc.standard_status, lc.list_price,
+                 lc.property_type, lc.property_sub_type, lc.address_display,
+                 lc.city, lc.state_or_province, lc.postal_code,
+                 lc.bedrooms_total, lc.bathrooms_total, lc.living_area,
+                 lc.lot_size_acres, lc.list_office_name, lc.source_modified_at,
+                 lc.last_synced_at,
+                 (select lm.media_url from listing_media lm
+                   where lm.listing_id = lc.id
+                   order by coalesce(lm.sort_order, 999999), lm.id limit 1)
+                   as primary_photo_url
+            from listing_cache lc
+           where ${where}
+           order by ${orderBy[params.sort]}
+           limit ? offset ?`,
+    countSql: `select count(*) as total from listing_cache lc where ${where}`,
+    values,
+    limit: Number(params.limit),
+    offset: (Number(params.page) - 1) * Number(params.limit),
+  };
 }
 
 export async function searchListings(
@@ -363,42 +384,49 @@ export async function searchListings(
     };
   }
 
-  const baseUrl = new URL(source.apiBaseUrl);
-  if (baseUrl.protocol !== "https:") {
-    throw new Error("The listing provider URL must use HTTPS.");
-  }
+  const query = buildCacheSearchQuery(params);
+  const [rows, count] = await Promise.all([
+    env.DB.prepare(query.sql)
+      .bind(...query.values, query.limit, query.offset)
+      .all<CacheRow>(),
+    env.DB.prepare(query.countSql)
+      .bind(...query.values)
+      .first<{ total: number }>(),
+  ]);
 
-  const url = new URL(`${baseUrl.toString().replace(/\/$/, "")}/Property`);
-  for (const [key, value] of Object.entries(
-    buildProviderSearchParams(params),
-  )) {
-    url.searchParams.set(key, value);
-  }
-
-  const response = await fetch(url, {
-    headers: {
-      authorization: `Bearer ${source.accessToken}`,
-      accept: "application/json",
-    },
-    signal: AbortSignal.timeout(8_000),
-  });
-
-  if (!response.ok) {
-    throw new Error(`Listing provider request failed with ${response.status}.`);
-  }
-
-  const payload: unknown = await response.json();
-  const listings = normalizeListings(payload, params.county);
-  const root = asRecord(payload);
-  const total =
-    (root && firstNumber(root, ["@odata.count"])) ?? listings.length;
+  const listings = (rows.results || []).map((row) => ({
+    listingId: row.id,
+    sourceListingId: row.source_listing_key,
+    mlsScope: params.county,
+    status: row.standard_status,
+    price: row.list_price,
+    propertyType: row.property_type,
+    propertySubType: row.property_sub_type,
+    addressDisplay: row.address_display || "Address unavailable",
+    city: row.city,
+    state: row.state_or_province,
+    postalCode: row.postal_code,
+    beds: row.bedrooms_total,
+    baths: row.bathrooms_total,
+    livingArea: row.living_area,
+    lotSizeAcres: row.lot_size_acres,
+    primaryPhotoUrl: row.primary_photo_url,
+    attribution: row.list_office_name || "Listing office unavailable",
+    updatedAt: row.source_modified_at || row.last_synced_at,
+    requiredDisclaimers: providerMeta.compliance,
+  }));
 
   return {
-    mode: "live" as const,
+    mode: "cache" as const,
     source: {
       county: source.county,
       provider: source.provider,
+      readModel: "canonical-d1-cache",
     },
+    message:
+      listings.length === 0
+        ? "No matching cached listings are currently available. Contact Joel for current availability and a tailored search."
+        : undefined,
     query: params,
     listings,
     warnings: [],
@@ -406,7 +434,7 @@ export async function searchListings(
       page: Number(params.page),
       limit: Number(params.limit),
       count: listings.length,
-      total,
+      total: Number(count?.total || 0),
     },
   };
 }
