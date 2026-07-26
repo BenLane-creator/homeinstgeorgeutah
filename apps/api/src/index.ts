@@ -1,6 +1,4 @@
 import {
-  getMlsActivationState,
-  LISTING_SCOPE,
   providerMeta,
   sanitizeSearchParams,
   SearchInputError,
@@ -8,6 +6,7 @@ import {
   type ListingServiceEnv,
 } from "./services/listing-service";
 import { storeLeadIntake } from "./services/lead-service";
+import { getAllMlsScopeStates } from "./services/mls-scope-service";
 import {
   addWriteResponseHeaders,
   enforceLeadRateLimit,
@@ -95,6 +94,7 @@ function handleHealth() {
         "/api/health",
         "/api/mls-status",
         "/api/search",
+        "/api/v1/auth/flexmls/callback",
         "/api/v1/leads/intake",
       ],
     },
@@ -125,20 +125,76 @@ async function handleSearch(request: Request, env: Env) {
 function handleMlsStatus(request: Request, env: Env) {
   if (request.method !== "GET") return methodNotAllowed(["GET"]);
 
-  const state = getMlsActivationState(env);
+  const scopes = getAllMlsScopeStates(env);
   return json({
     ok: true,
     data: {
-      active: state.active,
-      explicitlyEnabled: state.explicitlyEnabled,
-      approvedPolicyConfigured: state.policyApproved,
-      providerConfigured: state.providerConfigured,
-      credentialsConfigured: state.credentialsConfigured,
-      scope: `${LISTING_SCOPE.county} County only`,
-      ironCountyEnabled: LISTING_SCOPE.ironCountyEnabled,
+      active: scopes.some((scope) => scope.active),
+      liveIdxScopes: scopes
+        .filter((scope) => scope.role === "idx" && scope.active)
+        .map((scope) => scope.key),
+      liveVowScopes: scopes
+        .filter((scope) => scope.role === "vow" && scope.active)
+        .map((scope) => scope.key),
+      scopes,
     },
     meta: metadata(),
   });
+}
+
+function handleVowCallback(request: Request, env: Env) {
+  if (request.method !== "GET") return methodNotAllowed(["GET"]);
+
+  const url = new URL(request.url);
+  const providerError = url.searchParams.get("error");
+  const providerDescription = url.searchParams.get("error_description");
+
+  if (providerError) {
+    return json(
+      {
+        ok: false,
+        error: {
+          code: "VOW_AUTHORIZATION_REJECTED",
+          message:
+            providerDescription ||
+            "The VOW authorization request was not completed.",
+        },
+        meta: metadata(),
+      },
+      {
+        status: 400,
+        headers: {
+          "cache-control": "no-store",
+          pragma: "no-cache",
+        },
+      },
+    );
+  }
+
+  const vowScopes = getAllMlsScopeStates(env).filter(
+    (scope) => scope.role === "vow" && scope.active,
+  );
+
+  return json(
+    {
+      ok: false,
+      error: {
+        code: "VOW_AUTHORIZATION_PENDING",
+        message:
+          vowScopes.length === 0
+            ? "VOW access is not active while MLS approvals and production credentials remain pending."
+            : "The production VOW token exchange and local account-linking workflow is not enabled yet.",
+      },
+      meta: metadata(),
+    },
+    {
+      status: 503,
+      headers: {
+        "cache-control": "no-store",
+        pragma: "no-cache",
+      },
+    },
+  );
 }
 
 async function handleLead(request: Request, env: Env) {
@@ -209,6 +265,10 @@ export async function handleRequest(request: Request, env: Env) {
 
   if (pathname === "/api/mls-status") {
     return handleMlsStatus(request, env);
+  }
+
+  if (pathname === "/api/v1/auth/flexmls/callback") {
+    return handleVowCallback(request, env);
   }
 
   if (pathname.startsWith("/api/listings/")) {

@@ -14,18 +14,49 @@ enabled = true
 [vars]
 APP_ENV = "production"
 SITE_URL = "https://homeinstgeorgeutah.com"
-MLS_PROVIDER_NAME = "Washington County listing feed"
-MLS_ACTIVATION_ENABLED = "false"
-MLS_POLICY_VERSION = ""
-LISTING_PROVIDER = ""
-SPARK_API_BASE_URL = ""
 API_WRITE_ORIGINS = "https://homeinstgeorgeutah.com,https://www.homeinstgeorgeutah.com"
 
-# Required secrets after credentials are issued:
-# bunx wrangler secret put SPARK_ACCESS_TOKEN --config apps/api/wrangler.toml
+# Four independent MLS approval and activation scopes. Pending status is
+# informational only; no live data path activates until every county/role gate passes.
+WASHINGTON_IDX_APPROVAL_STATUS = "pending"
+WASHINGTON_IDX_ENABLED = "false"
+WASHINGTON_IDX_POLICY_VERSION = ""
+WASHINGTON_IDX_PROVIDER = ""
+WASHINGTON_IDX_API_BASE_URL = ""
+
+WASHINGTON_VOW_APPROVAL_STATUS = "pending"
+WASHINGTON_VOW_ENABLED = "false"
+WASHINGTON_VOW_POLICY_VERSION = ""
+WASHINGTON_VOW_CLIENT_ID = ""
+WASHINGTON_VOW_AUTHORIZATION_URL = ""
+WASHINGTON_VOW_TOKEN_URL = ""
+WASHINGTON_VOW_MLS_ID = ""
+
+IRON_IDX_APPROVAL_STATUS = "pending"
+IRON_IDX_ENABLED = "false"
+IRON_IDX_POLICY_VERSION = ""
+IRON_IDX_PROVIDER = ""
+IRON_IDX_API_BASE_URL = ""
+
+IRON_VOW_APPROVAL_STATUS = "pending"
+IRON_VOW_ENABLED = "false"
+IRON_VOW_POLICY_VERSION = ""
+IRON_VOW_CLIENT_ID = ""
+IRON_VOW_AUTHORIZATION_URL = ""
+IRON_VOW_TOKEN_URL = ""
+IRON_VOW_MLS_ID = ""
+
+VOW_REDIRECT_URI = "https://homeinstgeorgeutah.com/api/v1/auth/flexmls/callback"
+
+# Required secrets only after the corresponding approval and credentials are issued:
+# bunx wrangler secret put WASHINGTON_IDX_ACCESS_TOKEN --config apps/api/wrangler.toml
+# bunx wrangler secret put WASHINGTON_VOW_CLIENT_SECRET --config apps/api/wrangler.toml
+# bunx wrangler secret put IRON_IDX_ACCESS_TOKEN --config apps/api/wrangler.toml
+# bunx wrangler secret put IRON_VOW_CLIENT_SECRET --config apps/api/wrangler.toml
+# bunx wrangler secret put VOW_STATE_SECRET --config apps/api/wrangler.toml
 # bunx wrangler secret put TURNSTILE_SECRET_KEY --config apps/api/wrangler.toml
 #
-# Do not commit live tokens, API keys, session secrets, or MLS credentials.
+# Do not commit live tokens, API keys, client secrets, state secrets, or MLS credentials.
 
 [[ratelimits]]
 name = "LEAD_RATE_LIMITER"

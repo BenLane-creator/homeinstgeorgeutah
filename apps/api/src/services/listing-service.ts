@@ -1,31 +1,36 @@
-export interface ListingServiceEnv {
-  MLS_ACTIVATION_ENABLED?: string;
-  MLS_POLICY_VERSION?: string;
-  LISTING_PROVIDER?: string;
-  SPARK_API_BASE_URL?: string;
-  SPARK_ACCESS_TOKEN?: string;
-}
+import {
+  APPROVED_POLICY_VERSIONS,
+  getActiveIdxSource,
+  getMlsScopeState,
+  isMlsCounty,
+  type MlsCounty,
+  type MlsScopeEnv,
+} from "./mls-scope-service";
 
-export const APPROVED_POLICY_VERSION = "washington-county-idx-v1";
+export interface ListingServiceEnv extends MlsScopeEnv {}
+
+// Compatibility alias for code that still references the original Washington-only gate.
+export const APPROVED_POLICY_VERSION = APPROVED_POLICY_VERSIONS.washington.idx;
 
 export const LISTING_SCOPE = {
-  county: "Washington",
-  ironCountyEnabled: false,
+  counties: ["Washington", "Iron"],
+  independentlyAuthorized: true,
 } as const;
 
 export const providerMeta = {
-  provider: "Washington County listing feed",
-  source: "Provider-neutral RESO adapter",
+  provider: "Washington and Iron County approved listing feeds",
+  source: "Provider-neutral RESO-shaped adapters",
   compliance: [
-    "Live listing display remains disabled until written authorization and field rules are recorded.",
-    "Only contract-approved listing fields may be displayed.",
-    "Raw provider records, unapproved media, and Iron County listings are never displayed.",
+    "Washington County and Iron County are independently authorized and activated.",
+    "Only contract-approved listing fields and media may be displayed.",
+    "Raw provider records and unapproved MLS scopes are never exposed to browsers.",
   ],
 };
 
 type UnknownRecord = Record<string, unknown>;
 
 export type SearchParams = {
+  county: MlsCounty;
   q?: string;
   city?: string;
   neighborhood?: string;
@@ -46,6 +51,8 @@ export type MlsActivationState = {
   policyApproved: boolean;
   providerConfigured: boolean;
   credentialsConfigured: boolean;
+  approvalStatus: string;
+  county: MlsCounty;
 };
 
 export class SearchInputError extends Error {}
@@ -89,24 +96,17 @@ function listingCandidates(payload: unknown) {
 
 export function getMlsActivationState(
   env: ListingServiceEnv,
+  county: MlsCounty = "washington",
 ): MlsActivationState {
-  const explicitlyEnabled = env.MLS_ACTIVATION_ENABLED === "true";
-  const policyApproved = env.MLS_POLICY_VERSION === APPROVED_POLICY_VERSION;
-  const providerConfigured = env.LISTING_PROVIDER === "spark-reso";
-  const credentialsConfigured = Boolean(
-    env.SPARK_API_BASE_URL && env.SPARK_ACCESS_TOKEN,
-  );
-
+  const state = getMlsScopeState(env, county, "idx");
   return {
-    active:
-      explicitlyEnabled &&
-      policyApproved &&
-      providerConfigured &&
-      credentialsConfigured,
-    explicitlyEnabled,
-    policyApproved,
-    providerConfigured,
-    credentialsConfigured,
+    active: state.active,
+    explicitlyEnabled: state.explicitlyEnabled,
+    policyApproved: state.policyApproved,
+    providerConfigured: state.providerConfigured,
+    credentialsConfigured: state.credentialsConfigured,
+    approvalStatus: state.approvalStatus,
+    county,
   };
 }
 
@@ -139,6 +139,7 @@ function boundedNumber(
 
 export function sanitizeSearchParams(url: URL): SearchParams {
   const allowed = new Set([
+    "county",
     "q",
     "city",
     "neighborhood",
@@ -157,6 +158,12 @@ export function sanitizeSearchParams(url: URL): SearchParams {
     if (!allowed.has(key)) {
       throw new SearchInputError(`Unsupported search parameter: ${key}.`);
     }
+  }
+
+  const requestedCounty =
+    url.searchParams.get("county")?.trim().toLowerCase() || "washington";
+  if (!isMlsCounty(requestedCounty)) {
+    throw new SearchInputError("County must be washington or iron.");
   }
 
   const requestedStatus = url.searchParams.get("status")?.trim() || "Active";
@@ -179,26 +186,19 @@ export function sanitizeSearchParams(url: URL): SearchParams {
   const minPrice = boundedNumber(
     url.searchParams.get("minPrice"),
     "Minimum price",
-    {
-      min: 0,
-      max: 100_000_000,
-      integer: true,
-    },
+    { min: 0, max: 100_000_000, integer: true },
   );
   const maxPrice = boundedNumber(
     url.searchParams.get("maxPrice"),
     "Maximum price",
-    {
-      min: 0,
-      max: 100_000_000,
-      integer: true,
-    },
+    { min: 0, max: 100_000_000, integer: true },
   );
   if (minPrice && maxPrice && Number(minPrice) > Number(maxPrice)) {
     throw new SearchInputError("Minimum price cannot exceed maximum price.");
   }
 
   return {
+    county: requestedCounty,
     q: boundedString(url.searchParams.get("q"), "Search", 120),
     city: boundedString(url.searchParams.get("city"), "City", 80),
     neighborhood: boundedString(
@@ -303,17 +303,19 @@ export function buildProviderSearchParams(params: SearchParams) {
   };
 }
 
-export function normalizeListings(payload: unknown) {
+export function normalizeListings(payload: unknown, county: MlsCounty) {
   return listingCandidates(payload)
     .map((item) => {
       const listing = asRecord(item);
       if (!listing) return null;
 
-      const listingId = firstString(listing, ["ListingKey", "ListingId"]);
-      if (!listingId) return null;
+      const sourceListingId = firstString(listing, ["ListingKey", "ListingId"]);
+      if (!sourceListingId) return null;
 
       return {
-        listingId,
+        listingId: `${county}:${sourceListingId}`,
+        sourceListingId,
+        mlsScope: county,
         status: firstString(listing, ["StandardStatus"]),
         price: firstNumber(listing, ["ListPrice"]),
         propertyType: firstString(listing, ["PropertyType"]),
@@ -342,12 +344,13 @@ export async function searchListings(
   env: ListingServiceEnv,
   params: SearchParams,
 ) {
-  const state = getMlsActivationState(env);
-  if (!state.active) {
+  const source = getActiveIdxSource(env, params.county);
+  if (!source) {
+    const countyLabel =
+      params.county === "washington" ? "Washington County" : "Iron County";
     return {
       mode: "disabled" as const,
-      message:
-        "Live home search is not available yet. Contact Joel for current availability and a tailored search.",
+      message: `Live ${countyLabel} home search is not available yet. Contact Joel for current availability and a tailored search.`,
       query: params,
       listings: [],
       warnings: [],
@@ -360,7 +363,7 @@ export async function searchListings(
     };
   }
 
-  const baseUrl = new URL(env.SPARK_API_BASE_URL as string);
+  const baseUrl = new URL(source.apiBaseUrl);
   if (baseUrl.protocol !== "https:") {
     throw new Error("The listing provider URL must use HTTPS.");
   }
@@ -374,7 +377,7 @@ export async function searchListings(
 
   const response = await fetch(url, {
     headers: {
-      authorization: `Bearer ${env.SPARK_ACCESS_TOKEN}`,
+      authorization: `Bearer ${source.accessToken}`,
       accept: "application/json",
     },
     signal: AbortSignal.timeout(8_000),
@@ -385,13 +388,17 @@ export async function searchListings(
   }
 
   const payload: unknown = await response.json();
-  const listings = normalizeListings(payload);
+  const listings = normalizeListings(payload, params.county);
   const root = asRecord(payload);
   const total =
     (root && firstNumber(root, ["@odata.count"])) ?? listings.length;
 
   return {
     mode: "live" as const,
+    source: {
+      county: source.county,
+      provider: source.provider,
+    },
     query: params,
     listings,
     warnings: [],
