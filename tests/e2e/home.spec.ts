@@ -27,6 +27,24 @@ test("homepage matches the approved brand and featured areas", async ({
   }
 });
 
+test("search exposes independent Washington and Iron county scopes", async ({
+  page,
+}) => {
+  await page.goto("/homes/search/");
+
+  const county = page.getByLabel("MLS county");
+  await expect(county).toHaveValue("washington");
+  await expect(county.locator("option")).toHaveText([
+    "Washington County",
+    "Iron County",
+  ]);
+
+  await county.selectOption("iron");
+  await page.getByRole("button", { name: "Search homes" }).click();
+  await expect(page).toHaveURL(/county=iron/);
+  await expect(page.getByText("Iron County MLS scope")).toBeVisible();
+});
+
 test("prelaunch metadata and canonical URL are present", async ({ page }) => {
   await page.goto("/");
   await expect(page.locator('meta[name="robots"]')).toHaveAttribute(
