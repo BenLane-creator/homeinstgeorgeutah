@@ -6,6 +6,10 @@ function env(overrides: Partial<Env> = {}) {
     APP_ENV: "production",
     API_WRITE_ORIGINS: "https://homeinstgeorgeutah.com",
     DB: {} as D1Database,
+    WASHINGTON_IDX_APPROVAL_STATUS: "pending",
+    WASHINGTON_VOW_APPROVAL_STATUS: "pending",
+    IRON_IDX_APPROVAL_STATUS: "pending",
+    IRON_VOW_APPROVAL_STATUS: "pending",
     ...overrides,
   } as Env;
 }
@@ -29,12 +33,42 @@ describe("API routing", () => {
     });
   });
 
-  test("keeps search disabled when only provider credentials exist", async () => {
+  test("reports all four pending MLS approval scopes independently", async () => {
     const response = await handleRequest(
-      new Request("https://homeinstgeorgeutah.com/api/search"),
+      new Request("https://homeinstgeorgeutah.com/api/mls-status"),
+      env(),
+    );
+    const payload = (await response.json()) as {
+      data: {
+        active: boolean;
+        scopes: Array<{ key: string; approvalStatus: string; active: boolean }>;
+      };
+    };
+
+    expect(response.status).toBe(200);
+    expect(payload.data.active).toBe(false);
+    expect(payload.data.scopes).toHaveLength(4);
+    expect(payload.data.scopes.map((scope) => scope.key)).toEqual([
+      "washington-idx",
+      "washington-vow",
+      "iron-idx",
+      "iron-vow",
+    ]);
+    expect(
+      payload.data.scopes.every(
+        (scope) => scope.approvalStatus === "pending" && !scope.active,
+      ),
+    ).toBe(true);
+  });
+
+  test("keeps county search disabled when only provider credentials exist", async () => {
+    const response = await handleRequest(
+      new Request(
+        "https://homeinstgeorgeutah.com/api/search?county=iron",
+      ),
       env({
-        SPARK_API_BASE_URL: "https://example.com/reso",
-        SPARK_ACCESS_TOKEN: "secret",
+        IRON_IDX_API_BASE_URL: "https://example.com/reso",
+        IRON_IDX_ACCESS_TOKEN: "secret",
       }),
     );
     const payload = (await response.json()) as {
@@ -44,6 +78,22 @@ describe("API routing", () => {
     expect(response.status).toBe(200);
     expect(payload.data.mode).toBe("disabled");
     expect(payload.data.listings).toEqual([]);
+  });
+
+  test("keeps the registered VOW callback fail-closed while approvals are pending", async () => {
+    const response = await handleRequest(
+      new Request(
+        "https://homeinstgeorgeutah.com/api/v1/auth/flexmls/callback?code=demo",
+      ),
+      env(),
+    );
+    const payload = (await response.json()) as {
+      error: { code: string };
+    };
+
+    expect(response.status).toBe(503);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(payload.error.code).toBe("VOW_AUTHORIZATION_PENDING");
   });
 
   test("does not expose public listing-detail routes", async () => {
