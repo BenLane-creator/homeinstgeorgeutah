@@ -102,7 +102,8 @@ Apply migrations in order after creating the Cloudflare D1 database and confirmi
 
 ```bash
 bunx wrangler d1 execute homeinstgeorgeutah --file=packages/db/migrations/0001_foundation.sql --config apps/api/wrangler.toml
-bunx wrangler d1 execute homeinstgeorgeutah --file=packages/db/migrations/0002_mls_scopes.sql --config apps/api/wrangler.toml
+bunx wrangler d1 execute homeinstgeorgeutah --file=packages/db/migrations/0002_contact_integrity.sql --config apps/api/wrangler.toml
+bunx wrangler d1 execute homeinstgeorgeutah --file=packages/db/migrations/0003_mls_scopes.sql --config apps/api/wrangler.toml
 ```
 
 Do not run production migrations until the backup/restore point and rollback procedure are recorded.
