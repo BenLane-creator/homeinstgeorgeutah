@@ -130,8 +130,16 @@ for gate in [
 ]:
     if gate not in mls_scope_service and gate not in listing_service:
         errors.append(f"MLS integration is missing county/role activation gate: {gate}")
-if 'county: MlsCounty' not in listing_service or '"washington"' not in listing_service or '"iron"' not in listing_service:
-    errors.append("Listing adapter is missing explicit Washington/Iron county routing.")
+for routing_control in [
+    'counties: ["Washington", "Iron"]',
+    "county: MlsCounty",
+    "getActiveIdxSource(env, params.county)",
+    "isMlsCounty(requestedCounty)",
+]:
+    if routing_control not in listing_service:
+        errors.append(
+            f"Listing adapter is missing explicit Washington/Iron county routing: {routing_control}"
+        )
 
 wrangler = require(ROOT / "apps" / "api" / "wrangler.toml")
 for disabled_gate in [
