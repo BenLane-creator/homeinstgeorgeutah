@@ -72,6 +72,84 @@ jobs:
           }
           echo "Cloudflare authentication and pinned Wrangler verified."
 
+      - name: Verify D1 account ownership
+        shell: bash
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+
+          bunx wrangler d1 list --json > /tmp/d1-list.json
+
+          bun -e '
+            import { readFileSync } from "node:fs";
+
+            const config = readFileSync(process.env.WORKER_CONFIG, "utf8");
+            const accountId = config.match(
+              /^account_id\s*=\s*"([^"]+)"\s*$/m,
+            )?.[1];
+            if (!accountId) {
+              throw new Error("Worker configuration has no account_id.");
+            }
+            if (accountId !== process.env.CLOUDFLARE_ACCOUNT_ID) {
+              throw new Error(
+                "Worker configuration account_id does not match the production environment.",
+              );
+            }
+
+            const databaseBlock = config
+              .split("[[d1_databases]]")
+              .slice(1)
+              .find((block) => {
+                const name = block.match(
+                  /^database_name\s*=\s*"([^"]+)"\s*$/m,
+                )?.[1];
+                return name === process.env.D1_DATABASE;
+              });
+            const configuredDatabaseId = databaseBlock?.match(
+              /^database_id\s*=\s*"([^"]+)"\s*$/m,
+            )?.[1];
+            if (!configuredDatabaseId) {
+              throw new Error(
+                `Worker configuration has no database_id for ${process.env.D1_DATABASE}.`,
+              );
+            }
+
+            const payload = JSON.parse(
+              readFileSync("/tmp/d1-list.json", "utf8"),
+            );
+            const databases = Array.isArray(payload)
+              ? payload
+              : Array.isArray(payload?.result)
+                ? payload.result
+                : [];
+            const matches = databases.filter(
+              (database) => database?.name === process.env.D1_DATABASE,
+            );
+            if (matches.length !== 1) {
+              throw new Error(
+                `Expected exactly one ${process.env.D1_DATABASE} D1 database in the authenticated account; found ${matches.length}.`,
+              );
+            }
+
+            const accountDatabaseId = matches[0]?.uuid || matches[0]?.id;
+            if (!accountDatabaseId) {
+              throw new Error(
+                "Cloudflare returned the production D1 database without a UUID.",
+              );
+            }
+            if (configuredDatabaseId !== accountDatabaseId) {
+              throw new Error(
+                `Configured D1 UUID ${configuredDatabaseId} does not match ${accountDatabaseId} in the authenticated account.`,
+              );
+            }
+
+            console.log(
+              `D1 account ownership verified for ${process.env.D1_DATABASE} (${accountDatabaseId}).`,
+            );
+          '
+
       - name: Verify D1 identity, migration state, and contact integrity
         shell: bash
         env:
@@ -115,9 +193,7 @@ jobs:
             const info = JSON.parse(readFileSync("/tmp/d1-info.json", "utf8"));
             const infoRows = Array.isArray(info) ? info : [info];
             const database = infoRows.find(
-              (entry) =>
-                entry?.name === process.env.D1_DATABASE ||
-                entry?.uuid === "8ca08d07-6614-4533-b7eb-3c92db623282",
+              (entry) => entry?.name === process.env.D1_DATABASE,
             );
             if (!database) {
               throw new Error("The configured production D1 database was not found.");
