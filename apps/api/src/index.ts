@@ -21,6 +21,25 @@ import {
   type MlsSyncEnv,
 } from "./services/mls-source-adapter";
 import {
+  ConsumerAccountError,
+  createSavedHome,
+  createSavedSearch,
+  deleteSavedHome,
+  deleteSavedSearch,
+  listSavedHomes,
+  listSavedSearches,
+  requireConsumerSession,
+} from "./services/consumer-account-service";
+import {
+  clearVowSessionCookie,
+  completeVowAuthorization,
+  readVowSession,
+  revokeVowSession,
+  startVowAuthorization,
+  VowAuthError,
+  type VowAuthEnv,
+} from "./services/vow-auth-service";
+import {
   addWriteResponseHeaders,
   enforceLeadRateLimit,
   readJsonBody,
@@ -41,7 +60,8 @@ export interface Env
     LeadSecurityEnv,
     NotificationServiceEnv,
     MlsSyncEnv,
-    InternalAuthEnv {
+    InternalAuthEnv,
+    VowAuthEnv {
   DB: D1Database;
 }
 
@@ -89,6 +109,20 @@ function apiError(status: number, code: string, message: string) {
   );
 }
 
+function noStoreApiError(status: number, code: string, message: string) {
+  return json(
+    {
+      ok: false,
+      error: { code, message },
+      meta: metadata(),
+    },
+    {
+      status,
+      headers: { "cache-control": "no-store", pragma: "no-cache" },
+    },
+  );
+}
+
 function methodNotAllowed(allowed: string[]) {
   return json(
     {
@@ -118,7 +152,12 @@ function handleHealth() {
         "/api/health",
         "/api/mls-status",
         "/api/search",
+        "/api/v1/auth/flexmls/start",
         "/api/v1/auth/flexmls/callback",
+        "/api/v1/session",
+        "/api/v1/session/logout",
+        "/api/v1/saved-homes",
+        "/api/v1/saved-searches",
         "/api/v1/leads/intake",
       ],
       internalRoutes: [
@@ -171,59 +210,194 @@ function handleMlsStatus(request: Request, env: Env) {
   });
 }
 
-function handleVowCallback(request: Request, env: Env) {
+function vowError(error: unknown) {
+  if (error instanceof VowAuthError) {
+    return noStoreApiError(error.status, error.code, error.message);
+  }
+  return noStoreApiError(
+    500,
+    "VOW_AUTHORIZATION_FAILED",
+    "Consumer account authorization could not be completed.",
+  );
+}
+
+async function handleVowStart(request: Request, env: Env) {
   if (request.method !== "GET") return methodNotAllowed(["GET"]);
-
   const url = new URL(request.url);
-  const providerError = url.searchParams.get("error");
-  const providerDescription = url.searchParams.get("error_description");
-
-  if (providerError) {
-    return json(
-      {
-        ok: false,
-        error: {
-          code: "VOW_AUTHORIZATION_REJECTED",
-          message:
-            providerDescription ||
-            "The VOW authorization request was not completed.",
-        },
-        meta: metadata(),
+  const county = url.searchParams.get("county");
+  if (!isMlsCounty(county)) {
+    return noStoreApiError(
+      400,
+      "INVALID_MLS_SCOPE",
+      "County must be washington or iron.",
+    );
+  }
+  try {
+    const location = await startVowAuthorization(
+      env,
+      county,
+      url.searchParams.get("returnTo"),
+    );
+    return new Response(null, {
+      status: 302,
+      headers: {
+        location,
+        "cache-control": "no-store",
+        pragma: "no-cache",
+        "referrer-policy": "no-referrer",
       },
+    });
+  } catch (error) {
+    return vowError(error);
+  }
+}
+
+async function handleVowCallback(request: Request, env: Env) {
+  if (request.method !== "GET") return methodNotAllowed(["GET"]);
+  try {
+    const result = await completeVowAuthorization(env, new URL(request.url));
+    return new Response(null, {
+      status: 302,
+      headers: {
+        location: result.redirectTo,
+        "set-cookie": result.sessionCookie,
+        "cache-control": "no-store",
+        pragma: "no-cache",
+        "referrer-policy": "no-referrer",
+      },
+    });
+  } catch (error) {
+    return vowError(error);
+  }
+}
+
+async function handleSession(request: Request, env: Env) {
+  if (request.method !== "GET") return methodNotAllowed(["GET"]);
+  const session = await readVowSession(env, request);
+  return json(
+    {
+      ok: true,
+      data: session
+        ? {
+            authenticated: true,
+            account: {
+              email: session.email,
+              displayName: session.displayName,
+              scopes: session.scopes,
+              expiresAt: session.sessionExpiresAt,
+            },
+          }
+        : { authenticated: false, account: null },
+      meta: metadata(),
+    },
+    { headers: { "cache-control": "no-store" } },
+  );
+}
+
+async function handleLogout(request: Request, env: Env) {
+  try {
+    requireApprovedWriteOrigin(request, env);
+    if (request.method === "OPTIONS") return new Response(null, { status: 204 });
+    if (request.method !== "POST") return methodNotAllowed(["POST"]);
+    await revokeVowSession(env, request);
+    return json(
+      { ok: true, data: { authenticated: false }, meta: metadata() },
       {
-        status: 400,
         headers: {
+          "set-cookie": clearVowSessionCookie(),
           "cache-control": "no-store",
-          pragma: "no-cache",
         },
       },
     );
+  } catch (error) {
+    if (error instanceof RequestSecurityError) {
+      return apiError(error.status, error.code, error.message);
+    }
+    return apiError(500, "LOGOUT_FAILED", "The session could not be closed.");
   }
+}
 
-  const vowScopes = getAllMlsScopeStates(env).filter(
-    (scope) => scope.role === "vow" && scope.active,
+function consumerError(error: unknown) {
+  if (error instanceof ConsumerAccountError) {
+    return apiError(error.status, error.code, error.message);
+  }
+  if (error instanceof RequestSecurityError) {
+    return apiError(error.status, error.code, error.message);
+  }
+  return apiError(
+    500,
+    "CONSUMER_ACCOUNT_FAILED",
+    "The consumer account request could not be completed.",
   );
+}
 
-  return json(
-    {
-      ok: false,
-      error: {
-        code: "VOW_AUTHORIZATION_PENDING",
-        message:
-          vowScopes.length === 0
-            ? "VOW access is not active while MLS approvals and production credentials remain pending."
-            : "The production VOW token exchange and local account-linking workflow is not enabled yet.",
-      },
-      meta: metadata(),
-    },
-    {
-      status: 503,
-      headers: {
-        "cache-control": "no-store",
-        pragma: "no-cache",
-      },
-    },
-  );
+async function handleSavedHomes(request: Request, env: Env, pathname: string) {
+  try {
+    const itemId = pathname.startsWith("/api/v1/saved-homes/")
+      ? decodeURIComponent(pathname.slice("/api/v1/saved-homes/".length))
+      : "";
+    if (request.method === "OPTIONS") {
+      requireApprovedWriteOrigin(request, env);
+      return new Response(null, { status: 204 });
+    }
+    const session = await requireConsumerSession(env, request);
+    if (request.method === "GET" && !itemId) {
+      return json({
+        ok: true,
+        data: { homes: await listSavedHomes(env, session) },
+        meta: metadata(),
+      });
+    }
+    if (request.method === "POST" && !itemId) {
+      requireApprovedWriteOrigin(request, env);
+      const saved = await createSavedHome(env, session, await readJsonBody(request));
+      return json({ ok: true, data: { home: saved }, meta: metadata() }, { status: 201 });
+    }
+    if (request.method === "DELETE" && itemId) {
+      requireApprovedWriteOrigin(request, env);
+      await deleteSavedHome(env, session, itemId);
+      return new Response(null, { status: 204, headers: { "cache-control": "no-store" } });
+    }
+    return methodNotAllowed(itemId ? ["DELETE"] : ["GET", "POST"]);
+  } catch (error) {
+    return consumerError(error);
+  }
+}
+
+async function handleSavedSearches(request: Request, env: Env, pathname: string) {
+  try {
+    const itemId = pathname.startsWith("/api/v1/saved-searches/")
+      ? decodeURIComponent(pathname.slice("/api/v1/saved-searches/".length))
+      : "";
+    if (request.method === "OPTIONS") {
+      requireApprovedWriteOrigin(request, env);
+      return new Response(null, { status: 204 });
+    }
+    const session = await requireConsumerSession(env, request);
+    if (request.method === "GET" && !itemId) {
+      return json({
+        ok: true,
+        data: { searches: await listSavedSearches(env, session) },
+        meta: metadata(),
+      });
+    }
+    if (request.method === "POST" && !itemId) {
+      requireApprovedWriteOrigin(request, env);
+      const saved = await createSavedSearch(env, session, await readJsonBody(request));
+      return json(
+        { ok: true, data: { search: saved }, meta: metadata() },
+        { status: 201 },
+      );
+    }
+    if (request.method === "DELETE" && itemId) {
+      requireApprovedWriteOrigin(request, env);
+      await deleteSavedSearch(env, session, itemId);
+      return new Response(null, { status: 204, headers: { "cache-control": "no-store" } });
+    }
+    return methodNotAllowed(itemId ? ["DELETE"] : ["GET", "POST"]);
+  } catch (error) {
+    return consumerError(error);
+  }
 }
 
 function readIdempotencyKey(request: Request) {
@@ -370,22 +544,41 @@ export async function handleRequest(
       : methodNotAllowed(["GET"]);
   }
 
-  if (pathname === "/api/search") {
-    return handleSearch(request, env);
+  if (pathname === "/api/search") return handleSearch(request, env);
+  if (pathname === "/api/mls-status") return handleMlsStatus(request, env);
+  if (pathname === "/api/v1/auth/flexmls/start") {
+    return handleVowStart(request, env);
   }
-
-  if (pathname === "/api/mls-status") {
-    return handleMlsStatus(request, env);
-  }
-
   if (pathname === "/api/v1/auth/flexmls/callback") {
     return handleVowCallback(request, env);
+  }
+  if (pathname === "/api/v1/session") return handleSession(request, env);
+  if (pathname === "/api/v1/session/logout") {
+    const response = await handleLogout(request, env);
+    return addWriteResponseHeaders(request, env, response);
+  }
+  if (
+    pathname === "/api/v1/saved-homes" ||
+    pathname.startsWith("/api/v1/saved-homes/")
+  ) {
+    const response = await handleSavedHomes(request, env, pathname);
+    return request.method === "GET"
+      ? response
+      : addWriteResponseHeaders(request, env, response);
+  }
+  if (
+    pathname === "/api/v1/saved-searches" ||
+    pathname.startsWith("/api/v1/saved-searches/")
+  ) {
+    const response = await handleSavedSearches(request, env, pathname);
+    return request.method === "GET"
+      ? response
+      : addWriteResponseHeaders(request, env, response);
   }
 
   if (pathname === "/api/internal/notifications/drain") {
     return handleInternalNotificationDrain(request, env);
   }
-
   if (pathname === "/api/internal/mls/sync") {
     return handleInternalMlsSync(request, env);
   }
@@ -414,10 +607,7 @@ export async function handleRequest(
     return withHeaders;
   }
 
-  if (request.method === "OPTIONS") {
-    return notFound(url.pathname);
-  }
-
+  if (request.method === "OPTIONS") return notFound(url.pathname);
   return notFound(url.pathname);
 }
 
