@@ -91,6 +91,7 @@ preflight_requirements = [
     "wrangler d1 list --json",
     "wrangler d1 info",
     "wrangler d1 execute",
+    "d1_migrations",
     "wrangler deployments status",
     "wrangler secret list",
     "/api/health",
@@ -133,7 +134,8 @@ for phrase in ["pragma integrity_check", "contacts", "lead_events", "d1_migratio
 
 for phrase in [
     "CLOUDFLARE_ACCOUNT_ID",
-    "d1_migrations",
+    "packages/db/migrations",
+    "applied_migrations",
     "contacts_email_normalized_unique_idx",
     "INTERNAL_JOB_TOKEN",
     "TURNSTILE_SECRET_KEY",
