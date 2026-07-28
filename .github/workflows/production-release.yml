@@ -1,0 +1,265 @@
+name: Production foundation release
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_sha:
+        description: Full 40-character commit SHA already merged to main
+        required: true
+        type: string
+      pages_project:
+        description: Exact Cloudflare Pages project name
+        required: true
+        type: string
+      confirmation:
+        description: Type DEPLOY FOUNDATION
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: production-foundation-release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Backup, migrate, deploy, and verify exact release
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    environment: production
+    env:
+      CI: "true"
+      WRANGLER_SEND_METRICS: "false"
+      WORKER_CONFIG: apps/api/wrangler.toml
+      WORKER_NAME: homeinstgeorgeutah-api
+      D1_DATABASE: homeinstgeorgeutah
+      RELEASE_SHA: ${{ inputs.release_sha }}
+      PAGES_PROJECT: ${{ inputs.pages_project }}
+
+    steps:
+      - name: Check out exact release SHA
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.release_sha }}
+          fetch-depth: 0
+
+      - name: Validate immutable release request
+        shell: bash
+        env:
+          RELEASE_CONFIRMATION: ${{ inputs.confirmation }}
+        run: |
+          set -euo pipefail
+          test "$RELEASE_CONFIRMATION" = "DEPLOY FOUNDATION" || {
+            echo "::error::Confirmation must be exactly DEPLOY FOUNDATION."
+            exit 1
+          }
+          [[ "$RELEASE_SHA" =~ ^[0-9a-f]{40}$ ]] || {
+            echo "::error::release_sha must be a full lowercase 40-character SHA."
+            exit 1
+          }
+          test "$(git rev-parse HEAD)" = "$RELEASE_SHA" || {
+            echo "::error::Checked-out commit does not match release_sha."
+            exit 1
+          }
+          git fetch --no-tags origin main
+          git merge-base --is-ancestor "$RELEASE_SHA" origin/main || {
+            echo "::error::release_sha is not contained in main."
+            exit 1
+          }
+          mkdir -p release-evidence
+          printf 'release_sha=%s\npages_project=%s\nrequested_at=%s\n' \
+            "$RELEASE_SHA" "$PAGES_PROJECT" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            > release-evidence/release-request.txt
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.14
+
+      - name: Install locked dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Re-run complete release gates
+        shell: bash
+        run: |
+          set -euo pipefail
+          bunx biome lint .
+          bun --filter @home/api typecheck
+          bun test apps/api/src
+          bash scripts/test-d1-migrations.sh
+          bunx wrangler deploy --dry-run --config "$WORKER_CONFIG" --outdir /tmp/homeinstgeorgeutah-worker
+          bun audit --audit-level=high
+          python3 scripts/audit-fair-housing.py
+          bun run build:site
+          python3 scripts/audit-neighborhood-links.py
+          python3 scripts/audit-architecture-drift.py
+          python3 scripts/audit-release.py
+          bunx playwright install --with-deps chromium
+          bun run test:e2e
+          bun --filter @home/app build
+
+      - name: Verify Cloudflare credentials, project, and pinned Wrangler
+        shell: bash
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          BACKUP_ENCRYPTION_PASSPHRASE: ${{ secrets.BACKUP_ENCRYPTION_PASSPHRASE }}
+        run: |
+          set -euo pipefail
+          test -n "${CLOUDFLARE_API_TOKEN:-}" || { echo "::error::Missing CLOUDFLARE_API_TOKEN."; exit 1; }
+          test -n "${CLOUDFLARE_ACCOUNT_ID:-}" || { echo "::error::Missing CLOUDFLARE_ACCOUNT_ID."; exit 1; }
+          test -n "${BACKUP_ENCRYPTION_PASSPHRASE:-}" || { echo "::error::Missing BACKUP_ENCRYPTION_PASSPHRASE."; exit 1; }
+          bunx wrangler --version | grep -F "4.113.0"
+          bunx wrangler whoami > release-evidence/cloudflare-whoami.txt
+          grep -Fq -- "$CLOUDFLARE_ACCOUNT_ID" release-evidence/cloudflare-whoami.txt
+          bunx wrangler pages project list --json > release-evidence/pages-projects.json
+          PAGES_PROJECT="$PAGES_PROJECT" bun -e '
+            import { readFileSync } from "node:fs";
+            const payload = JSON.parse(readFileSync("release-evidence/pages-projects.json", "utf8"));
+            const projects = Array.isArray(payload) ? payload : Array.isArray(payload?.result) ? payload.result : [];
+            if (!projects.some((project) => project?.name === process.env.PAGES_PROJECT)) {
+              throw new Error(`Cloudflare Pages project ${process.env.PAGES_PROJECT} was not found.`);
+            }
+          '
+
+      - name: Capture pre-release D1 and deployment evidence
+        shell: bash
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+          bunx wrangler d1 info "$D1_DATABASE" --config "$WORKER_CONFIG" --json \
+            > release-evidence/d1-info-before.json
+          bunx wrangler d1 time-travel info "$D1_DATABASE" --config "$WORKER_CONFIG" --json \
+            > release-evidence/d1-bookmark-before.json
+          bunx wrangler d1 migrations list "$D1_DATABASE" --remote --config "$WORKER_CONFIG" \
+            > release-evidence/d1-migrations-before.txt
+          bunx wrangler d1 execute "$D1_DATABASE" --remote --config "$WORKER_CONFIG" --json \
+            --command "select count(*) as duplicate_email_group_count from (select email_normalized from contacts where email_normalized is not null and trim(email_normalized) <> '' group by email_normalized having count(*) > 1);" \
+            > release-evidence/d1-integrity-before.json
+          bun -e '
+            import { readFileSync } from "node:fs";
+            const payload = JSON.parse(readFileSync("release-evidence/d1-integrity-before.json", "utf8"));
+            const row = (Array.isArray(payload) ? payload : [payload]).flatMap((entry) => entry?.results || [])[0];
+            if (!row || Number(row.duplicate_email_group_count) !== 0) {
+              throw new Error("Duplicate normalized-email groups exist; release stopped before migration.");
+            }
+          '
+          bunx wrangler deployments status --name "$WORKER_NAME" --config "$WORKER_CONFIG" --json \
+            > release-evidence/worker-deployment-before.json
+          bunx wrangler versions list --name "$WORKER_NAME" --config "$WORKER_CONFIG" --json \
+            > release-evidence/worker-versions-before.json
+          bunx wrangler pages deployment list --project-name "$PAGES_PROJECT" --environment production --json \
+            > release-evidence/pages-deployments-before.json
+
+      - name: Export, locally restore, and encrypt production D1
+        shell: bash
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          BACKUP_ENCRYPTION_PASSPHRASE: ${{ secrets.BACKUP_ENCRYPTION_PASSPHRASE }}
+        run: |
+          set -euo pipefail
+          backup_sql="release-evidence/d1-pre-release-${RELEASE_SHA}.sql"
+          backup_encrypted="${backup_sql}.enc"
+          bunx wrangler d1 export "$D1_DATABASE" --remote --config "$WORKER_CONFIG" \
+            --output "$backup_sql" --skip-confirmation
+          bun scripts/verify-d1-export.mjs "$backup_sql" \
+            > release-evidence/d1-restore-drill.json
+          openssl enc -aes-256-cbc -pbkdf2 -salt \
+            -in "$backup_sql" -out "$backup_encrypted" \
+            -pass env:BACKUP_ENCRYPTION_PASSPHRASE
+          sha256sum "$backup_encrypted" > "${backup_encrypted}.sha256"
+          rm -f "$backup_sql"
+          test -s "$backup_encrypted"
+
+      - name: Apply and verify all production D1 migrations
+        shell: bash
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+          bunx wrangler d1 migrations apply "$D1_DATABASE" --remote --config "$WORKER_CONFIG" \
+            | tee release-evidence/d1-migrations-apply.txt
+          bunx wrangler d1 execute "$D1_DATABASE" --remote --config "$WORKER_CONFIG" --json \
+            --command "select (select group_concat(name, '|') from (select name from d1_migrations order by name)) as applied_migrations, (select count(*) from pragma_index_list('contacts') where name = 'contacts_email_normalized_unique_idx' and \"unique\" = 1) as unique_index_count, (select count(*) from (select email_normalized from contacts where email_normalized is not null and trim(email_normalized) <> '' group by email_normalized having count(*) > 1)) as duplicate_email_group_count;" \
+            > release-evidence/d1-integrity-after.json
+          bun -e '
+            import { readdirSync, readFileSync } from "node:fs";
+            const expected = readdirSync("packages/db/migrations").filter((name) => name.endsWith(".sql")).sort();
+            const payload = JSON.parse(readFileSync("release-evidence/d1-integrity-after.json", "utf8"));
+            const row = (Array.isArray(payload) ? payload : [payload]).flatMap((entry) => entry?.results || [])[0];
+            const applied = String(row?.applied_migrations || "").split("|").filter(Boolean).sort();
+            if (JSON.stringify(applied) !== JSON.stringify(expected)) throw new Error("Production migration ledger does not match the repository.");
+            if (Number(row?.unique_index_count) !== 1) throw new Error("Unique normalized-email index is missing.");
+            if (Number(row?.duplicate_email_group_count) !== 0) throw new Error("Duplicate normalized-email groups exist after migration.");
+          '
+          bunx wrangler d1 time-travel info "$D1_DATABASE" --config "$WORKER_CONFIG" --json \
+            > release-evidence/d1-bookmark-after.json
+
+      - name: Deploy Worker and Pages from the same release SHA
+        shell: bash
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+          WRANGLER_OUTPUT_FILE_PATH=release-evidence/worker-deploy.ndjson \
+            bunx wrangler deploy --config "$WORKER_CONFIG" --strict \
+              --tag "$RELEASE_SHA" --message "release-sha:$RELEASE_SHA"
+          WRANGLER_OUTPUT_FILE_PATH=release-evidence/pages-deploy.ndjson \
+            bunx wrangler pages deploy apps/site/dist \
+              --project-name "$PAGES_PROJECT" \
+              --branch main \
+              --commit-hash "$RELEASE_SHA" \
+              --commit-message "release-sha:$RELEASE_SHA" \
+              --commit-dirty=false
+
+      - name: Verify deployed Worker and Pages metadata
+        shell: bash
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+          bunx wrangler versions list --name "$WORKER_NAME" --config "$WORKER_CONFIG" --json \
+            > release-evidence/worker-versions-after.json
+          bunx wrangler deployments status --name "$WORKER_NAME" --config "$WORKER_CONFIG" --json \
+            > release-evidence/worker-deployment-after.json
+          bunx wrangler pages deployment list --project-name "$PAGES_PROJECT" --environment production --json \
+            > release-evidence/pages-deployments-after.json
+          bun scripts/verify-production-deployment.mjs \
+            "$RELEASE_SHA" \
+            release-evidence/pages-deployments-after.json \
+            release-evidence/worker-versions-after.json \
+            release-evidence/worker-deployment-after.json \
+            > release-evidence/deployment-verification.json
+
+      - name: Run production route and fail-closed smoke tests
+        run: bun scripts/verify-production-smoke.mjs | tee release-evidence/production-smoke.json
+
+      - name: Write release summary
+        if: always()
+        shell: bash
+        run: |
+          {
+            echo "### Production foundation release"
+            echo ""
+            echo "- Release SHA: \`$RELEASE_SHA\`"
+            echo "- Pages project: \`$PAGES_PROJECT\`"
+            echo "- MLS activation: unchanged; all four scopes must remain disabled"
+            echo "- Evidence artifact: \`production-release-$RELEASE_SHA\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload encrypted backup and release evidence
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: production-release-${{ inputs.release_sha }}
+          path: release-evidence
+          if-no-files-found: error
+          retention-days: 30
