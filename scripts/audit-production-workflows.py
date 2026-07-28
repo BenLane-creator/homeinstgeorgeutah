@@ -7,8 +7,17 @@ rollback_path = ROOT / ".github/workflows/production-rollback.yml"
 preflight_path = ROOT / ".github/workflows/production-preflight.yml"
 smoke_path = ROOT / "scripts/verify-production-smoke.mjs"
 export_path = ROOT / "scripts/verify-d1-export.mjs"
+preflight_helper_path = ROOT / "scripts/verify-production-preflight.mjs"
 
-for path in [release_path, rollback_path, preflight_path, smoke_path, export_path]:
+audit_paths = [
+    release_path,
+    rollback_path,
+    preflight_path,
+    smoke_path,
+    export_path,
+    preflight_helper_path,
+]
+for path in audit_paths:
     if not path.is_file():
         raise SystemExit(f"Missing required production control file: {path.relative_to(ROOT)}")
 
@@ -17,6 +26,7 @@ rollback = rollback_path.read_text()
 preflight = preflight_path.read_text()
 smoke = smoke_path.read_text()
 export_check = export_path.read_text()
+preflight_helper = preflight_helper_path.read_text()
 
 for name, workflow in [
     ("release", release),
@@ -43,6 +53,7 @@ release_requirements = [
     "openssl enc -aes-256-cbc -pbkdf2",
     "wrangler d1 migrations apply",
     "wrangler deploy",
+    "--strict",
     "--tag \"$RELEASE_SHA\"",
     "wrangler pages deploy",
     "--commit-hash \"$RELEASE_SHA\"",
@@ -74,6 +85,32 @@ if "time-travel restore" in rollback:
 if "actions/upload-artifact@v6" not in rollback:
     raise SystemExit("Rollback must preserve an evidence artifact using the Node 24 action.")
 
+preflight_requirements = [
+    "verify-production-preflight.mjs",
+    "wrangler d1 list --json",
+    "wrangler d1 info",
+    "wrangler d1 execute",
+    "wrangler deployments status",
+    "wrangler secret list",
+    "/api/health",
+    "/api/mls-status",
+]
+for requirement in preflight_requirements:
+    if requirement not in preflight:
+        raise SystemExit(f"Production preflight is missing: {requirement}")
+for prohibited in [
+    "wrangler deploy",
+    "wrangler pages deploy",
+    "wrangler d1 migrations apply",
+    "wrangler d1 export",
+    "wrangler rollback",
+    "time-travel restore",
+    "secret put",
+    "secret delete",
+]:
+    if prohibited in preflight:
+        raise SystemExit(f"Read-only production preflight contains a mutation command: {prohibited}")
+
 for phrase in [
     "Better Real Estate Decisions.",
     "washington-idx",
@@ -90,5 +127,17 @@ for phrase in [
 for phrase in ["pragma integrity_check", "contacts", "lead_events", "d1_migrations"]:
     if phrase not in export_check:
         raise SystemExit(f"D1 restore drill is missing: {phrase}")
+
+for phrase in [
+    "CLOUDFLARE_ACCOUNT_ID",
+    "d1_migrations",
+    "contacts_email_normalized_unique_idx",
+    "INTERNAL_JOB_TOKEN",
+    "TURNSTILE_SECRET_KEY",
+    "washington-idx",
+    "iron-vow",
+]:
+    if phrase not in preflight_helper:
+        raise SystemExit(f"Production preflight verifier is missing: {phrase}")
 
 print("Production release, rollback, preflight, smoke, and D1 restore boundaries verified.")
