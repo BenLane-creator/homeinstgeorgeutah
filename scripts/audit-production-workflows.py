@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import re
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -98,18 +99,20 @@ preflight_requirements = [
 for requirement in preflight_requirements:
     if requirement not in preflight:
         raise SystemExit(f"Production preflight is missing: {requirement}")
-for prohibited in [
-    "wrangler deploy",
-    "wrangler pages deploy",
-    "wrangler d1 migrations apply",
-    "wrangler d1 export",
-    "wrangler rollback",
-    "time-travel restore",
-    "secret put",
-    "secret delete",
-]:
-    if prohibited in preflight:
-        raise SystemExit(f"Read-only production preflight contains a mutation command: {prohibited}")
+
+prohibited_command_patterns = {
+    "wrangler deploy": r"\bwrangler\s+deploy(?:\s|\\)",
+    "wrangler pages deploy": r"\bwrangler\s+pages\s+deploy(?:\s|\\)",
+    "wrangler d1 migrations apply": r"\bwrangler\s+d1\s+migrations\s+apply(?:\s|\\)",
+    "wrangler d1 export": r"\bwrangler\s+d1\s+export(?:\s|\\)",
+    "wrangler rollback": r"\bwrangler\s+rollback(?:\s|\\)",
+    "time-travel restore": r"\btime-travel\s+restore(?:\s|\\)",
+    "secret put": r"\bsecret\s+put(?:\s|\\)",
+    "secret delete": r"\bsecret\s+delete(?:\s|\\)",
+}
+for label, pattern in prohibited_command_patterns.items():
+    if re.search(pattern, preflight):
+        raise SystemExit(f"Read-only production preflight contains a mutation command: {label}")
 
 for phrase in [
     "Better Real Estate Decisions.",
