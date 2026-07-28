@@ -1,0 +1,47 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import ConsumerAccountIsland from "../../components/ConsumerAccountIsland";
+---
+
+<BaseLayout
+  title="Consumer Account"
+  pathname="/account/"
+  description="Access authorized Washington County and Iron County consumer search accounts, saved homes, and saved searches through HomeInStGeorgeUtah.com."
+>
+  <section class="bg-[var(--brand-warm-ivory)] px-5 py-16 sm:py-20 md:py-24">
+    <div class="mx-auto max-w-7xl">
+      <div class="max-w-4xl">
+        <p class="text-xs font-bold uppercase tracking-[0.28em] text-[var(--brand-gold)]">
+          Owned consumer workspace
+        </p>
+        <h1 class="mt-5 text-5xl font-medium leading-[0.95] tracking-[-0.055em] text-[var(--brand-ink)] sm:text-6xl md:text-7xl">
+          Keep your home search organized.
+        </h1>
+        <p class="mt-7 max-w-3xl text-lg leading-9 text-stone-700">
+          Sign in through an independently authorized Washington County or Iron County VOW scope to review saved homes and search criteria. Consumer access remains unavailable until the corresponding MLS authorization and technical controls are active.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <section class="bg-white px-5 py-12 sm:py-16 md:py-20">
+    <div class="mx-auto max-w-7xl">
+      <ConsumerAccountIsland client:load />
+    </div>
+  </section>
+
+  <section class="border-y border-[var(--brand-pink-sand)] bg-[var(--brand-warm-ivory)] px-5 py-14">
+    <div class="mx-auto grid max-w-7xl gap-6 md:grid-cols-3">
+      {[
+        ["County-specific access", "Washington and Iron County permissions, sessions, and saved data remain independently gated."],
+        ["Private credentials", "MLS access and refresh tokens stay encrypted in the Worker and are never returned to the browser."],
+        ["Owned search history", "Saved homes and searches remain in the HomeInStGeorgeUtah.com D1 account model rather than a vendor-owned website."],
+      ].map(([title, copy]) => (
+        <article class="border border-stone-200 bg-white p-6">
+          <h2 class="text-lg font-semibold text-[var(--brand-ink)]">{title}</h2>
+          <p class="mt-3 text-sm leading-7 text-stone-600">{copy}</p>
+        </article>
+      ))}
+    </div>
+  </section>
+</BaseLayout>
