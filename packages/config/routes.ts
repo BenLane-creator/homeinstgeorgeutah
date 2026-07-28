@@ -8,6 +8,7 @@ export const navItems = [
   { label: "About", href: "/about/" },
   { label: "Horse Properties", href: "/horse-properties/" },
   { label: "Market Guides", href: "/blog/" },
+  { label: "Account", href: "/account/" },
   { label: "Contact", href: "/contact/" },
 ];
 
