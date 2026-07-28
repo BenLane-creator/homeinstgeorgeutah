@@ -65,16 +65,16 @@ for requirement in release_requirements:
     if requirement not in release:
         raise SystemExit(f"Production release is missing required control: {requirement}")
 
-ordered_markers = [
-    "wrangler d1 export",
-    "wrangler d1 migrations apply",
-    "bunx wrangler deploy",
-    "bunx wrangler pages deploy",
-    "verify-production-smoke.mjs",
+ordered_step_boundaries = [
+    "- name: Export, locally restore, and encrypt production D1",
+    "- name: Apply and verify all production D1 migrations",
+    "- name: Deploy Worker and Pages from the same release SHA",
+    "- name: Verify deployed Worker and Pages metadata",
+    "- name: Run production route and fail-closed smoke tests",
 ]
-positions = [release.index(marker) for marker in ordered_markers]
+positions = [release.index(marker) for marker in ordered_step_boundaries]
 if positions != sorted(positions):
-    raise SystemExit("Production release order must be backup, migrate, deploy, then smoke test.")
+    raise SystemExit("Production release order must be backup, migrate, deploy, verify, then smoke test.")
 
 if "ROLLBACK APPLICATION WITHOUT D1 RESTORE" not in rollback:
     raise SystemExit("Rollback must require the explicit no-D1-restore confirmation.")
