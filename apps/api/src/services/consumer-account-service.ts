@@ -178,11 +178,8 @@ function validatedSavedSearch(input: Record<string, unknown>) {
   if (!name) {
     throw new ConsumerAccountError(400, "SEARCH_NAME_REQUIRED", "Search name is required.");
   }
-  const alertFrequency = boundedString(
-    input.alertFrequency,
-    "Alert frequency",
-    20,
-  ) || "daily";
+  const alertFrequency =
+    boundedString(input.alertFrequency, "Alert frequency", 20) || "daily";
   if (!new Set(["none", "daily", "weekly"]).has(alertFrequency)) {
     throw new ConsumerAccountError(
       400,
@@ -198,7 +195,7 @@ function validatedSavedSearch(input: Record<string, unknown>) {
       url.searchParams.set(key, String(value));
     }
   }
-  let sanitized;
+  let sanitized: ReturnType<typeof sanitizeSearchParams>;
   try {
     sanitized = sanitizeSearchParams(url);
   } catch (error) {
