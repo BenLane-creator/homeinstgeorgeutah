@@ -6,6 +6,7 @@ on:
       - main
     paths:
       - .github/workflows/production-preflight.yml
+      - scripts/verify-production-preflight.mjs
   workflow_dispatch:
 
 permissions:
@@ -30,7 +31,7 @@ jobs:
 
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Set up Bun
         uses: oven-sh/setup-bun@v2
@@ -40,360 +41,69 @@ jobs:
       - name: Install locked dependencies
         run: bun install --frozen-lockfile
 
-      - name: Verify CI credentials and pinned Wrangler
+      - name: Verify credentials and pinned Wrangler
         shell: bash
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
           set -euo pipefail
-          test -n "${CLOUDFLARE_API_TOKEN:-}" || {
-            echo "::error::CLOUDFLARE_API_TOKEN is not available in the production environment."
-            exit 1
-          }
-          test -n "${CLOUDFLARE_ACCOUNT_ID:-}" || {
-            echo "::error::CLOUDFLARE_ACCOUNT_ID is not available in the production environment."
-            exit 1
-          }
-
-          wrangler_version="$(bunx wrangler --version)"
-          case "$wrangler_version" in
-            *"4.113.0"*) ;;
-            *)
-              echo "::error::Expected repository-pinned Wrangler 4.113.0."
-              exit 1
-              ;;
-          esac
-
+          test -n "${CLOUDFLARE_API_TOKEN:-}" || { echo "::error::Missing CLOUDFLARE_API_TOKEN."; exit 1; }
+          test -n "${CLOUDFLARE_ACCOUNT_ID:-}" || { echo "::error::Missing CLOUDFLARE_ACCOUNT_ID."; exit 1; }
+          bunx wrangler --version | grep -F "4.113.0"
           bunx wrangler whoami > /tmp/cloudflare-whoami.txt
           grep -Fq -- "$CLOUDFLARE_ACCOUNT_ID" /tmp/cloudflare-whoami.txt || {
-            echo "::error::The token did not authenticate to the configured Cloudflare account."
+            echo "::error::Cloudflare token is not authenticated to the production account."
             exit 1
           }
-          echo "Cloudflare authentication and pinned Wrangler verified."
 
-      - name: Verify D1 account ownership
+      - name: Collect read-only Cloudflare and live-route evidence
         shell: bash
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
           set -euo pipefail
-
           bunx wrangler d1 list --json > /tmp/d1-list.json
-
-          bun -e '
-            import { readFileSync } from "node:fs";
-
-            const config = readFileSync(process.env.WORKER_CONFIG, "utf8");
-            const accountId = config.match(
-              /^account_id\s*=\s*"([^"]+)"\s*$/m,
-            )?.[1];
-            if (!accountId) {
-              throw new Error("Worker configuration has no account_id.");
-            }
-            if (accountId !== process.env.CLOUDFLARE_ACCOUNT_ID) {
-              throw new Error(
-                "Worker configuration account_id does not match the production environment.",
-              );
-            }
-
-            const databaseBlock = config
-              .split("[[d1_databases]]")
-              .slice(1)
-              .find((block) => {
-                const name = block.match(
-                  /^database_name\s*=\s*"([^"]+)"\s*$/m,
-                )?.[1];
-                return name === process.env.D1_DATABASE;
-              });
-            const configuredDatabaseId = databaseBlock?.match(
-              /^database_id\s*=\s*"([^"]+)"\s*$/m,
-            )?.[1];
-            if (!configuredDatabaseId) {
-              throw new Error(
-                `Worker configuration has no database_id for ${process.env.D1_DATABASE}.`,
-              );
-            }
-
-            const payload = JSON.parse(
-              readFileSync("/tmp/d1-list.json", "utf8"),
-            );
-            const databases = Array.isArray(payload)
-              ? payload
-              : Array.isArray(payload?.result)
-                ? payload.result
-                : [];
-            const matches = databases.filter(
-              (database) => database?.name === process.env.D1_DATABASE,
-            );
-            if (matches.length !== 1) {
-              throw new Error(
-                `Expected exactly one ${process.env.D1_DATABASE} D1 database in the authenticated account; found ${matches.length}.`,
-              );
-            }
-
-            const accountDatabaseId = matches[0]?.uuid || matches[0]?.id;
-            if (!accountDatabaseId) {
-              throw new Error(
-                "Cloudflare returned the production D1 database without a UUID.",
-              );
-            }
-            if (configuredDatabaseId !== accountDatabaseId) {
-              throw new Error(
-                `Configured D1 UUID ${configuredDatabaseId} does not match ${accountDatabaseId} in the authenticated account.`,
-              );
-            }
-
-            console.log(
-              `D1 account ownership verified for ${process.env.D1_DATABASE} (${accountDatabaseId}).`,
-            );
-          '
-
-      - name: Verify D1 identity, migration state, and contact integrity
-        shell: bash
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        run: |
-          set -euo pipefail
-
-          bunx wrangler d1 info "$D1_DATABASE" \
-            --config "$WORKER_CONFIG" \
-            --json > /tmp/d1-info.json
-
+          bunx wrangler d1 info "$D1_DATABASE" --config "$WORKER_CONFIG" --json \
+            > /tmp/d1-info.json
           bunx wrangler d1 execute "$D1_DATABASE" \
             --remote \
             --config "$WORKER_CONFIG" \
             --json \
-            --command "
-              select
-                (select group_concat(name, '|')
-                  from (select name from d1_migrations order by name))
-                  as applied_migrations,
-                (select count(*) from d1_migrations)
-                  as applied_migration_count,
-                (select count(*) from pragma_index_list('contacts')
-                  where name = 'contacts_email_normalized_unique_idx'
-                    and \"unique\" = 1)
-                  as unique_index_count,
-                (select count(*) from (
-                  select email_normalized
-                  from contacts
-                  where email_normalized is not null
-                    and trim(email_normalized) <> ''
-                  group by email_normalized
-                  having count(*) > 1
-                )) as duplicate_email_group_count;
-            " > /tmp/d1-preflight.json
-
-          bun -e '
-            import { appendFileSync, readdirSync, readFileSync } from "node:fs";
-
-            const info = JSON.parse(readFileSync("/tmp/d1-info.json", "utf8"));
-            const infoRows = Array.isArray(info) ? info : [info];
-            const database = infoRows.find(
-              (entry) => entry?.name === process.env.D1_DATABASE,
-            );
-            if (!database) {
-              throw new Error("The configured production D1 database was not found.");
-            }
-
-            const payload = JSON.parse(
-              readFileSync("/tmp/d1-preflight.json", "utf8"),
-            );
-            const row = payload.flatMap((entry) => entry?.results || [])[0];
-            if (!row) {
-              throw new Error("D1 returned no preflight result.");
-            }
-
-            const expected = readdirSync("packages/db/migrations")
-              .filter((name) => name.endsWith(".sql"))
-              .sort();
-            const applied = String(row.applied_migrations || "")
-              .split("|")
-              .filter(Boolean)
-              .sort();
-            const pending = expected.filter((name) => !applied.includes(name));
-            const unexpected = applied.filter((name) => !expected.includes(name));
-            const uniqueIndexCount = Number(row.unique_index_count) || 0;
-            const duplicateEmailGroupCount =
-              Number(row.duplicate_email_group_count) || 0;
-            const formatNames = (names) =>
-              names.length > 0 ? names.join(", ") : "(none)";
-            const diagnosticReport = [
-              "### Production D1 read-only diagnostics",
-              "",
-              `- Expected migrations (${expected.length}): ${formatNames(expected)}`,
-              `- Applied migrations (${applied.length}): ${formatNames(applied)}`,
-              `- Pending migrations (${pending.length}): ${formatNames(pending)}`,
-              `- Unexpected ledger entries (${unexpected.length}): ${formatNames(unexpected)}`,
-              `- Unique normalized-email index count: ${uniqueIndexCount}`,
-              `- Duplicate normalized-email groups: ${duplicateEmailGroupCount}`,
-              "",
-            ].join("\n");
-
-            console.log(diagnosticReport);
-            appendFileSync(
-              process.env.GITHUB_STEP_SUMMARY,
-              `${diagnosticReport}\n`,
-            );
-
-            if (
-              Number(row.applied_migration_count) !== expected.length ||
-              JSON.stringify(applied) !== JSON.stringify(expected)
-            ) {
-              throw new Error(
-                `Production migration ledger mismatch: expected ${expected.length}, found ${Number(row.applied_migration_count) || 0}.`,
-              );
-            }
-            if (Number(row.unique_index_count) !== 1) {
-              throw new Error(
-                "The unique normalized-email index is not present.",
-              );
-            }
-            if (Number(row.duplicate_email_group_count) !== 0) {
-              throw new Error(
-                "Duplicate normalized-email groups exist; production migration/deploy must stop.",
-              );
-            }
-
-            console.log(
-              `D1 verified: ${expected.length} migrations, unique email index present, zero duplicate email groups.`,
-            );
-          '
-
-      - name: Verify Worker deployment and approved secret names
-        shell: bash
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        run: |
-          set -euo pipefail
-
+            --command "select (select group_concat(name, '|') from (select name from d1_migrations order by name)) as applied_migrations, (select count(*) from pragma_index_list('contacts') where name = 'contacts_email_normalized_unique_idx' and \"unique\" = 1) as unique_index_count, (select count(*) from (select email_normalized from contacts where email_normalized is not null and trim(email_normalized) <> '' group by email_normalized having count(*) > 1)) as duplicate_email_group_count;" \
+            > /tmp/d1-state.json
           bunx wrangler deployments status \
             --name "$WORKER_NAME" \
             --config "$WORKER_CONFIG" \
             --json > /tmp/worker-deployment.json
-
           bunx wrangler secret list \
             --name "$WORKER_NAME" \
             --config "$WORKER_CONFIG" \
             --format json > /tmp/worker-secrets.json
-
-          bun -e '
-            import { readFileSync } from "node:fs";
-
-            const deployment = JSON.parse(
-              readFileSync("/tmp/worker-deployment.json", "utf8"),
-            );
-            if (
-              deployment == null ||
-              (Array.isArray(deployment) && deployment.length === 0) ||
-              (!Array.isArray(deployment) &&
-                typeof deployment === "object" &&
-                Object.keys(deployment).length === 0)
-            ) {
-              throw new Error("No active Worker deployment was found.");
-            }
-
-            const approved = new Set([
-              "EMAIL_DELIVERY_TOKEN",
-              "INTERNAL_JOB_TOKEN",
-              "IRON_IDX_ACCESS_TOKEN",
-              "IRON_VOW_CLIENT_SECRET",
-              "TURNSTILE_SECRET_KEY",
-              "VOW_STATE_SECRET",
-              "WASHINGTON_IDX_ACCESS_TOKEN",
-              "WASHINGTON_VOW_CLIENT_SECRET",
-            ]);
-            const required = ["INTERNAL_JOB_TOKEN", "TURNSTILE_SECRET_KEY"];
-            const secrets = JSON.parse(
-              readFileSync("/tmp/worker-secrets.json", "utf8"),
-            );
-            if (!Array.isArray(secrets)) {
-              throw new Error("Worker secret-name inventory was not returned.");
-            }
-
-            const names = secrets.map((secret) => secret?.name).filter(Boolean);
-            const unapproved = names.filter((name) => !approved.has(name));
-            const missing = required.filter((name) => !names.includes(name));
-            if (unapproved.length > 0) {
-              throw new Error(
-                `Unapproved Worker secret names are configured: ${unapproved.join(", ")}.`,
-              );
-            }
-            if (missing.length > 0) {
-              throw new Error(
-                `Required Worker secret names are missing: ${missing.join(", ")}.`,
-              );
-            }
-
-            console.log(
-              `Worker deployment verified; ${names.length} approved secret names inventoried.`,
-            );
-          '
-
-      - name: Verify live API route and disabled MLS scopes
-        shell: bash
-        run: |
-          set -euo pipefail
-
           curl --fail-with-body --silent --show-error \
-            --retry 2 \
-            --connect-timeout 10 \
-            --max-time 30 \
+            --retry 2 --connect-timeout 10 --max-time 30 \
             https://homeinstgeorgeutah.com/api/health > /tmp/api-health.json
-
           curl --fail-with-body --silent --show-error \
-            --retry 2 \
-            --connect-timeout 10 \
-            --max-time 30 \
+            --retry 2 --connect-timeout 10 --max-time 30 \
             https://homeinstgeorgeutah.com/api/mls-status > /tmp/mls-status.json
 
-          bun -e '
-            import { readFileSync } from "node:fs";
-
-            const health = JSON.parse(
-              readFileSync("/tmp/api-health.json", "utf8"),
-            );
-            if (
-              health?.ok !== true ||
-              health?.data?.service !== "homeinstgeorgeutah-api" ||
-              health?.data?.status !== "ok"
-            ) {
-              throw new Error(
-                "The root-domain /api/health route is not serving the expected Worker.",
-              );
-            }
-
-            const mls = JSON.parse(readFileSync("/tmp/mls-status.json", "utf8"));
-            const expectedScopes = [
-              "washington-idx",
-              "washington-vow",
-              "iron-idx",
-              "iron-vow",
-            ];
-            const scopes = Array.isArray(mls?.data?.scopes)
-              ? mls.data.scopes
-              : [];
-            const keys = scopes.map((scope) => scope?.key).sort();
-            if (
-              mls?.ok !== true ||
-              mls?.data?.active !== false ||
-              scopes.length !== expectedScopes.length ||
-              JSON.stringify(keys) !== JSON.stringify(expectedScopes.sort()) ||
-              scopes.some((scope) => scope?.active !== false)
-            ) {
-              throw new Error(
-                "MLS activation is not in the required disabled state.",
-              );
-            }
-
-            console.log(
-              "Live API route verified; all four MLS scopes remain disabled.",
-            );
-          '
+      - name: Verify production evidence
+        shell: bash
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+          bun scripts/verify-production-preflight.mjs \
+            --config="$WORKER_CONFIG" \
+            --d1List=/tmp/d1-list.json \
+            --d1Info=/tmp/d1-info.json \
+            --d1State=/tmp/d1-state.json \
+            --workerDeployment=/tmp/worker-deployment.json \
+            --workerSecrets=/tmp/worker-secrets.json \
+            --health=/tmp/api-health.json \
+            --mlsStatus=/tmp/mls-status.json \
+            | tee /tmp/production-preflight-result.json
 
       - name: Record read-only result
         shell: bash
@@ -401,11 +111,11 @@ jobs:
           {
             echo "### Production read-only preflight passed"
             echo
-            echo "- Cloudflare account authentication verified"
-            echo "- Production D1 identity, migrations, unique index, and duplicate aggregate verified"
+            echo "- Cloudflare account and D1 ownership verified"
+            echo "- Production migration ledger and contact integrity verified"
             echo "- Worker deployment and approved secret-name inventory verified"
             echo "- Root-domain API route verified"
             echo "- Washington and Iron IDX/VOW scopes confirmed disabled"
             echo
-            echo "No backup, migration apply, D1 write, Worker deploy, route change, secret change, DNS change, form submission, or MLS activation was performed."
+            echo "No backup, migration apply, D1 write, Worker deploy, Pages deploy, route change, secret change, DNS change, form submission, or MLS activation was performed."
           } >> "$GITHUB_STEP_SUMMARY"
