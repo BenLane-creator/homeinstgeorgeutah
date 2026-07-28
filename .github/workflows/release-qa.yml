@@ -66,6 +66,9 @@ jobs:
       - name: Audit public release contract
         run: python3 scripts/audit-release.py
 
+      - name: Audit production release and rollback boundaries
+        run: python3 scripts/audit-production-workflows.py
+
       - name: Install Playwright browser
         run: bunx playwright install --with-deps chromium
 
