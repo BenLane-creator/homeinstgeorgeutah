@@ -115,6 +115,7 @@ bun --filter @home/app build
 python3 scripts/audit-neighborhood-links.py
 python3 scripts/audit-architecture-drift.py
 python3 scripts/audit-release.py
+python3 scripts/audit-production-workflows.py
 ```
 
 ## D1 migrations
@@ -129,10 +130,12 @@ bunx wrangler d1 migrations apply homeinstgeorgeutah --local --config apps/api/w
 bash scripts/test-d1-migrations.sh
 ```
 
-Production migration and Worker deployment are a single stop/go procedure. Follow `docs/operations/d1-production-migration.md`; do not apply remote migrations or deploy the Worker until its backup, duplicate-email preflight, verification, and approval gates are satisfied.
+Production migration, Worker deployment, and Pages deployment are one exact-SHA stop/go procedure. Follow `docs/operations/production-release.md`. The manual workflow records a D1 Time Travel bookmark, exports and locally restores the database, encrypts the export, applies migrations, deploys both runtime surfaces from the same SHA, and runs fail-closed production smoke tests.
 
 ## Operations
 
+- `docs/operations/production-release.md`
+- `docs/operations/prelaunch-go-no-go.md`
 - `docs/operations/lead-data-governance.md`
 - `docs/operations/notification-recovery.md`
 - `docs/operations/incident-response.md`
@@ -158,4 +161,4 @@ POST /api/internal/mls/sync?county=iron
 - Do not make a hosted vendor website the product core.
 - Do not make CRM, email, or booking software the source of truth.
 - Do not let provider quirks leak into product UI.
-- Do not put live API keys, access tokens, client secrets, internal job tokens, or VOW state secrets in source control.
+- Do not put live API keys, access tokens, client secrets, internal job tokens, backup passphrases, or VOW state secrets in source control.
