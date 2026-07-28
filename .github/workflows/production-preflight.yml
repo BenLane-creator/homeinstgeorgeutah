@@ -188,7 +188,7 @@ jobs:
             " > /tmp/d1-preflight.json
 
           bun -e '
-            import { readdirSync, readFileSync } from "node:fs";
+            import { appendFileSync, readdirSync, readFileSync } from "node:fs";
 
             const info = JSON.parse(readFileSync("/tmp/d1-info.json", "utf8"));
             const infoRows = Array.isArray(info) ? info : [info];
@@ -214,6 +214,30 @@ jobs:
               .split("|")
               .filter(Boolean)
               .sort();
+            const pending = expected.filter((name) => !applied.includes(name));
+            const unexpected = applied.filter((name) => !expected.includes(name));
+            const uniqueIndexCount = Number(row.unique_index_count) || 0;
+            const duplicateEmailGroupCount =
+              Number(row.duplicate_email_group_count) || 0;
+            const formatNames = (names) =>
+              names.length > 0 ? names.join(", ") : "(none)";
+            const diagnosticReport = [
+              "### Production D1 read-only diagnostics",
+              "",
+              `- Expected migrations (${expected.length}): ${formatNames(expected)}`,
+              `- Applied migrations (${applied.length}): ${formatNames(applied)}`,
+              `- Pending migrations (${pending.length}): ${formatNames(pending)}`,
+              `- Unexpected ledger entries (${unexpected.length}): ${formatNames(unexpected)}`,
+              `- Unique normalized-email index count: ${uniqueIndexCount}`,
+              `- Duplicate normalized-email groups: ${duplicateEmailGroupCount}`,
+              "",
+            ].join("\n");
+
+            console.log(diagnosticReport);
+            appendFileSync(
+              process.env.GITHUB_STEP_SUMMARY,
+              `${diagnosticReport}\n`,
+            );
 
             if (
               Number(row.applied_migration_count) !== expected.length ||
