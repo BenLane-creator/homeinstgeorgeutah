@@ -43,6 +43,23 @@ type SearchResponse = {
   };
 };
 
+type SessionResponse = {
+  ok: boolean;
+  data?: {
+    authenticated?: boolean;
+    account?: {
+      scopes?: string[];
+    } | null;
+  };
+};
+
+type SaveResponse = {
+  ok: boolean;
+  error?: {
+    message?: string;
+  };
+};
+
 type RequestState = "idle" | "loading" | "ready" | "error";
 type Pagination = NonNullable<
   NonNullable<SearchResponse["data"]>["pagination"]
@@ -100,6 +117,10 @@ function isMlsCounty(value: string | null): value is MlsCounty {
   return value === "washington" || value === "iron";
 }
 
+function scopeForCounty(county: MlsCounty) {
+  return `${county}-vow`;
+}
+
 export default function SearchResultsIsland() {
   const [requestState, setRequestState] = useState<RequestState>("idle");
   const [listings, setListings] = useState<ListingCard[]>([]);
@@ -108,6 +129,16 @@ export default function SearchResultsIsland() {
   const [message, setMessage] = useState("");
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState("newest");
+  const [authorizedScopes, setAuthorizedScopes] = useState<Set<string>>(
+    () => new Set(),
+  );
+  const [savingListingId, setSavingListingId] = useState<string | null>(null);
+  const [savedListingIds, setSavedListingIds] = useState<Set<string>>(
+    () => new Set(),
+  );
+  const [savingSearch, setSavingSearch] = useState(false);
+  const [searchSaved, setSearchSaved] = useState(false);
+  const [saveMessage, setSaveMessage] = useState("");
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -118,6 +149,31 @@ export default function SearchResultsIsland() {
   }, []);
 
   useEffect(() => {
+    const controller = new AbortController();
+
+    async function loadSession() {
+      try {
+        const response = await fetch("/api/v1/session", {
+          credentials: "same-origin",
+          headers: { accept: "application/json" },
+          signal: controller.signal,
+        });
+        const payload = (await response.json().catch(() => ({}))) as SessionResponse;
+        const scopes =
+          response.ok && payload.ok && payload.data?.authenticated
+            ? payload.data.account?.scopes || []
+            : [];
+        setAuthorizedScopes(new Set(scopes));
+      } catch {
+        if (!controller.signal.aborted) setAuthorizedScopes(new Set());
+      }
+    }
+
+    loadSession();
+    return () => controller.abort();
+  }, []);
+
+  useEffect(() => {
     if (!query) return;
 
     const controller = new AbortController();
@@ -125,6 +181,8 @@ export default function SearchResultsIsland() {
     async function runSearch() {
       setRequestState("loading");
       setMessage("");
+      setSaveMessage("");
+      setSearchSaved(false);
 
       try {
         const response = await fetch(`/api/search?${query}`, {
@@ -166,6 +224,10 @@ export default function SearchResultsIsland() {
     return isMlsCounty(value) ? value : "washington";
   }, [query]);
 
+  const selectedScopeAuthorized = authorizedScopes.has(
+    scopeForCounty(selectedCounty),
+  );
+
   const activeFilters = useMemo(() => {
     if (!query) return [];
     const params = new URLSearchParams(query);
@@ -198,6 +260,86 @@ export default function SearchResultsIsland() {
     if (page <= 1) url.searchParams.delete("page");
     else url.searchParams.set("page", String(page));
     window.location.assign(url.toString());
+  }
+
+  async function saveHome(listing: ListingCard) {
+    const county = listing.mlsScope || selectedCounty;
+    if (!authorizedScopes.has(scopeForCounty(county))) {
+      setSaveMessage(`Sign in to ${countyLabels[county]} access before saving.`);
+      return;
+    }
+
+    setSavingListingId(listing.listingId);
+    setSaveMessage("");
+    try {
+      const response = await fetch("/api/v1/saved-homes", {
+        method: "POST",
+        credentials: "same-origin",
+        headers: {
+          accept: "application/json",
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({ listingId: listing.listingId }),
+      });
+      const payload = (await response.json().catch(() => ({}))) as SaveResponse;
+      if (!response.ok || payload.ok === false) {
+        throw new Error(payload.error?.message || "The home could not be saved.");
+      }
+      setSavedListingIds((current) =>
+        new Set([...current, listing.listingId]),
+      );
+      setSaveMessage(`${listing.addressDisplay} was added to saved homes.`);
+    } catch (error) {
+      setSaveMessage(
+        error instanceof Error ? error.message : "The home could not be saved.",
+      );
+    } finally {
+      setSavingListingId(null);
+    }
+  }
+
+  async function saveCurrentSearch() {
+    if (!selectedScopeAuthorized || !query) return;
+
+    const params = new URLSearchParams(query);
+    params.delete("page");
+    params.delete("limit");
+    const searchName = `${
+      params.get("city") ||
+      params.get("neighborhood") ||
+      params.get("q") ||
+      countyLabels[selectedCounty]
+    } home search`;
+
+    setSavingSearch(true);
+    setSaveMessage("");
+    try {
+      const response = await fetch("/api/v1/saved-searches", {
+        method: "POST",
+        credentials: "same-origin",
+        headers: {
+          accept: "application/json",
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          name: searchName,
+          alertFrequency: "daily",
+          query: Object.fromEntries(params.entries()),
+        }),
+      });
+      const payload = (await response.json().catch(() => ({}))) as SaveResponse;
+      if (!response.ok || payload.ok === false) {
+        throw new Error(payload.error?.message || "The search could not be saved.");
+      }
+      setSearchSaved(true);
+      setSaveMessage(`${searchName} was added to your account.`);
+    } catch (error) {
+      setSaveMessage(
+        error instanceof Error ? error.message : "The search could not be saved.",
+      );
+    } finally {
+      setSavingSearch(false);
+    }
   }
 
   const resultCount = pagination?.total ?? listings.length;
@@ -255,6 +397,41 @@ export default function SearchResultsIsland() {
           ))}
         </fieldset>
       )}
+
+      {requestState === "ready" && listings.length > 0 && (
+        <div className="flex flex-col gap-4 border-b border-stone-200 py-5 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-sm leading-6 text-stone-600">
+            {selectedScopeAuthorized
+              ? `Signed in for ${countyLabels[selectedCounty]} saved searches.`
+              : `Sign in through the authorized ${countyLabels[selectedCounty]} scope to save homes and searches.`}
+          </p>
+          {selectedScopeAuthorized ? (
+            <button
+              type="button"
+              onClick={saveCurrentSearch}
+              disabled={savingSearch || searchSaved}
+              className="min-h-11 border border-stone-300 bg-white px-5 text-sm font-bold uppercase tracking-[0.12em] text-[var(--brand-ink)] disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {savingSearch
+                ? "Saving search…"
+                : searchSaved
+                  ? "Search saved"
+                  : "Save this search"}
+            </button>
+          ) : (
+            <a
+              href="/account/"
+              className="inline-flex min-h-11 items-center justify-center border border-stone-300 bg-white px-5 text-sm font-bold uppercase tracking-[0.12em] text-[var(--brand-ink)]"
+            >
+              Account sign in
+            </a>
+          )}
+        </div>
+      )}
+
+      <p className="sr-only" aria-live="polite">
+        {saveMessage}
+      </p>
 
       <div aria-live="polite" aria-busy={requestState === "loading"}>
         {requestState === "loading" && (
@@ -336,7 +513,12 @@ export default function SearchResultsIsland() {
               const location = [listing.city, listing.state, listing.postalCode]
                 .filter(Boolean)
                 .join(", ");
-              const detailsHref = `/contact/?intent=property_inquiry&listingId=${encodeURIComponent(listing.listingId)}&propertyAddress=${encodeURIComponent(listing.addressDisplay)}&county=${listing.mlsScope || selectedCounty}`;
+              const listingCounty = listing.mlsScope || selectedCounty;
+              const canSaveListing = authorizedScopes.has(
+                scopeForCounty(listingCounty),
+              );
+              const listingSaved = savedListingIds.has(listing.listingId);
+              const detailsHref = `/contact/?intent=property_inquiry&listingId=${encodeURIComponent(listing.listingId)}&propertyAddress=${encodeURIComponent(listing.addressDisplay)}&county=${listingCounty}`;
 
               return (
                 <article
@@ -395,18 +577,36 @@ export default function SearchResultsIsland() {
                         Listed by {listing.attribution}
                         {updated ? ` · Updated ${updated}` : ""}
                       </p>
-                      <a
-                        href={detailsHref}
-                        className="mt-4 inline-flex min-h-11 items-center text-sm font-bold uppercase tracking-[0.12em] text-[var(--brand-ink)] hover:text-[var(--brand-deep-olive)]"
-                      >
-                        Request property details
-                        <span
-                          aria-hidden="true"
-                          className="ml-3 text-[var(--brand-gold)]"
+                      <div className="mt-4 flex flex-col gap-3">
+                        <a
+                          href={detailsHref}
+                          className="inline-flex min-h-11 items-center text-sm font-bold uppercase tracking-[0.12em] text-[var(--brand-ink)] hover:text-[var(--brand-deep-olive)]"
                         >
-                          →
-                        </span>
-                      </a>
+                          Request property details
+                          <span
+                            aria-hidden="true"
+                            className="ml-3 text-[var(--brand-gold)]"
+                          >
+                            →
+                          </span>
+                        </a>
+                        {canSaveListing && (
+                          <button
+                            type="button"
+                            onClick={() => saveHome(listing)}
+                            disabled={
+                              savingListingId === listing.listingId || listingSaved
+                            }
+                            className="min-h-11 border border-stone-300 bg-white px-4 text-sm font-bold uppercase tracking-[0.12em] text-[var(--brand-ink)] disabled:cursor-not-allowed disabled:opacity-60"
+                          >
+                            {savingListingId === listing.listingId
+                              ? "Saving home…"
+                              : listingSaved
+                                ? "Home saved"
+                                : "Save home"}
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </article>
