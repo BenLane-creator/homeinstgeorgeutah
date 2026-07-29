@@ -142,6 +142,7 @@ for phrase in [
     "duplicate_email_group_count",
     "INTERNAL_JOB_TOKEN",
     "TURNSTILE_SECRET_KEY",
+    "VOW_TOKEN_ENCRYPTION_KEY",
     "washington-idx",
     "iron-vow",
 ]:
