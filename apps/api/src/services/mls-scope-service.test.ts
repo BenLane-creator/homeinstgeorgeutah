@@ -7,6 +7,27 @@ import {
   getMlsScopeState,
 } from "./mls-scope-service";
 
+const washingtonVowConfiguration = {
+  WASHINGTON_VOW_APPROVAL_STATUS: "approved",
+  WASHINGTON_VOW_ENABLED: "true",
+  WASHINGTON_VOW_POLICY_VERSION: APPROVED_POLICY_VERSIONS.washington.vow,
+  WASHINGTON_VOW_CLIENT_ID: "client",
+  WASHINGTON_VOW_CLIENT_SECRET: "secret",
+  WASHINGTON_VOW_AUTHORIZATION_URL:
+    "https://sparkplatform.com/openid/authorize",
+  WASHINGTON_VOW_TOKEN_URL: "https://sparkplatform.com/openid/token",
+  WASHINGTON_VOW_CONTACT_URL:
+    "https://replication.sparkapi.com/v1/my/account",
+  WASHINGTON_VOW_ISSUER: "https://sparkplatform.com",
+  WASHINGTON_VOW_JWKS_URL: "https://sparkplatform.com/openid/jwks",
+  WASHINGTON_VOW_SCOPES: "openid",
+  WASHINGTON_VOW_MLS_ID: "washington-mls",
+  VOW_REDIRECT_URI:
+    "https://homeinstgeorgeutah.com/api/v1/auth/flexmls/callback",
+  VOW_STATE_SECRET: "state-secret-state-secret-state-secret",
+  VOW_TOKEN_ENCRYPTION_KEY: "token-encryption-key-token-encryption-key",
+};
+
 describe("independent MLS scope activation", () => {
   test("records pending applications without activating data access", () => {
     const state = getMlsScopeState(
@@ -65,58 +86,44 @@ describe("independent MLS scope activation", () => {
     );
   });
 
-  test("requires every server-side VOW endpoint, credential, and encryption boundary", () => {
-    const env = {
-      WASHINGTON_VOW_APPROVAL_STATUS: "approved",
-      WASHINGTON_VOW_ENABLED: "true",
-      WASHINGTON_VOW_POLICY_VERSION:
-        APPROVED_POLICY_VERSIONS.washington.vow,
-      WASHINGTON_VOW_CLIENT_ID: "client",
-      WASHINGTON_VOW_CLIENT_SECRET: "secret",
-      WASHINGTON_VOW_AUTHORIZATION_URL:
-        "https://sparkplatform.com/auth/vow",
-      WASHINGTON_VOW_TOKEN_URL: "https://sparkapi.com/v1/oauth2/grant",
-      WASHINGTON_VOW_CONTACT_URL: "https://sparkapi.com/v1/my/contact",
-      WASHINGTON_VOW_MLS_ID: "washington-mls",
-      VOW_REDIRECT_URI:
-        "https://homeinstgeorgeutah.com/api/v1/auth/flexmls/callback",
-      VOW_STATE_SECRET: "state-secret-state-secret-state-secret",
-      VOW_TOKEN_ENCRYPTION_KEY:
-        "token-encryption-key-token-encryption-key",
-    };
-
-    expect(getMlsScopeState(env, "washington", "vow").active).toBe(true);
-    expect(getActiveVowSource(env, "washington")).toMatchObject({
+  test("requires every OIDC endpoint, credential, and encryption boundary", () => {
+    expect(
+      getMlsScopeState(washingtonVowConfiguration, "washington", "vow").active,
+    ).toBe(true);
+    expect(getActiveVowSource(washingtonVowConfiguration, "washington")).toMatchObject({
       county: "washington",
       scopeKey: "washington-vow",
-      tokenUrl: "https://sparkapi.com/v1/oauth2/grant",
-      contactUrl: "https://sparkapi.com/v1/my/contact",
+      tokenUrl: "https://sparkplatform.com/openid/token",
+      contactUrl: "https://replication.sparkapi.com/v1/my/account",
+      issuer: "https://sparkplatform.com",
+      jwksUrl: "https://sparkplatform.com/openid/jwks",
+      scopes: "openid",
       mlsId: "washington-mls",
     });
-    expect(getActiveVowSource(env, "iron")).toBeNull();
+    expect(getActiveVowSource(washingtonVowConfiguration, "iron")).toBeNull();
   });
 
-  test("keeps VOW inactive when the contact endpoint or encryption key is absent", () => {
-    const base = {
-      IRON_VOW_APPROVAL_STATUS: "approved",
-      IRON_VOW_ENABLED: "true",
-      IRON_VOW_POLICY_VERSION: APPROVED_POLICY_VERSIONS.iron.vow,
-      IRON_VOW_CLIENT_ID: "client",
-      IRON_VOW_CLIENT_SECRET: "secret",
-      IRON_VOW_AUTHORIZATION_URL: "https://sparkplatform.com/auth/vow",
-      IRON_VOW_TOKEN_URL: "https://sparkapi.com/v1/oauth2/grant",
-      VOW_REDIRECT_URI:
-        "https://homeinstgeorgeutah.com/api/v1/auth/flexmls/callback",
-      VOW_STATE_SECRET: "state-secret-state-secret-state-secret",
-    };
-    expect(getMlsScopeState(base, "iron", "vow").active).toBe(false);
+  test("keeps VOW inactive without issuer, signing keys, contact endpoint, or encryption key", () => {
+    for (const missing of [
+      "WASHINGTON_VOW_CONTACT_URL",
+      "WASHINGTON_VOW_ISSUER",
+      "WASHINGTON_VOW_JWKS_URL",
+      "VOW_TOKEN_ENCRYPTION_KEY",
+    ] as const) {
+      const env = { ...washingtonVowConfiguration } as Record<string, string | undefined>;
+      delete env[missing];
+      expect(getMlsScopeState(env, "washington", "vow").active).toBe(false);
+    }
+  });
+
+  test("requires the openid scope", () => {
     expect(
       getMlsScopeState(
         {
-          ...base,
-          IRON_VOW_CONTACT_URL: "https://sparkapi.com/v1/my/contact",
+          ...washingtonVowConfiguration,
+          WASHINGTON_VOW_SCOPES: "profile email",
         },
-        "iron",
+        "washington",
         "vow",
       ).active,
     ).toBe(false);
