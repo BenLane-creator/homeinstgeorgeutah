@@ -1,5 +1,5 @@
 name = "homeinstgeorgeutah-api"
-main = "src/index.ts"
+main = "src/worker.ts"
 compatibility_date = "2026-05-28"
 account_id = "5c2c50cd82516e7f000aac929d48c0d2"
 
@@ -22,6 +22,7 @@ SITE_URL = "https://homeinstgeorgeutah.com"
 API_WRITE_ORIGINS = "https://homeinstgeorgeutah.com,https://www.homeinstgeorgeutah.com"
 OWNER_NOTIFICATION_EMAIL = "joel@homeinstgeorgeutah.com"
 EMAIL_DELIVERY_WEBHOOK_URL = ""
+ACCOUNT_SESSION_TTL_SECONDS = "1209600"
 
 # Four independent MLS approval and activation scopes. Pending status is
 # informational only; no live data path activates until every county/role gate passes.
@@ -37,6 +38,11 @@ WASHINGTON_VOW_POLICY_VERSION = ""
 WASHINGTON_VOW_CLIENT_ID = ""
 WASHINGTON_VOW_AUTHORIZATION_URL = ""
 WASHINGTON_VOW_TOKEN_URL = ""
+WASHINGTON_VOW_ISSUER = ""
+WASHINGTON_VOW_JWKS_URL = ""
+WASHINGTON_VOW_USERINFO_URL = ""
+WASHINGTON_VOW_SCOPES = "openid profile email"
+WASHINGTON_VOW_TOKEN_AUTH_METHOD = "client_secret_post"
 WASHINGTON_VOW_MLS_ID = ""
 
 IRON_IDX_APPROVAL_STATUS = "pending"
@@ -51,6 +57,11 @@ IRON_VOW_POLICY_VERSION = ""
 IRON_VOW_CLIENT_ID = ""
 IRON_VOW_AUTHORIZATION_URL = ""
 IRON_VOW_TOKEN_URL = ""
+IRON_VOW_ISSUER = ""
+IRON_VOW_JWKS_URL = ""
+IRON_VOW_USERINFO_URL = ""
+IRON_VOW_SCOPES = "openid profile email"
+IRON_VOW_TOKEN_AUTH_METHOD = "client_secret_post"
 IRON_VOW_MLS_ID = ""
 
 VOW_REDIRECT_URI = "https://homeinstgeorgeutah.com/api/v1/auth/flexmls/callback"
@@ -61,6 +72,7 @@ VOW_REDIRECT_URI = "https://homeinstgeorgeutah.com/api/v1/auth/flexmls/callback"
 # bunx wrangler secret put IRON_IDX_ACCESS_TOKEN --config apps/api/wrangler.toml
 # bunx wrangler secret put IRON_VOW_CLIENT_SECRET --config apps/api/wrangler.toml
 # bunx wrangler secret put VOW_STATE_SECRET --config apps/api/wrangler.toml
+# bunx wrangler secret put VOW_TOKEN_ENCRYPTION_SECRET --config apps/api/wrangler.toml
 # bunx wrangler secret put TURNSTILE_SECRET_KEY --config apps/api/wrangler.toml
 # bunx wrangler secret put INTERNAL_JOB_TOKEN --config apps/api/wrangler.toml
 # bunx wrangler secret put EMAIL_DELIVERY_TOKEN --config apps/api/wrangler.toml
