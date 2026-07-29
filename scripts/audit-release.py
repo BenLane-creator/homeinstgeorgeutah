@@ -197,10 +197,10 @@ for route in [
 ]:
     if route not in api_index:
         errors.append(f"Consumer account API route is missing: {route}")
-if "VOW_AUTHORIZATION_PENDING" not in api_index:
-    errors.append("VOW authorization does not fail closed while pending.")
 
 vow_auth_service = require(ROOT / "apps" / "api" / "src" / "services" / "vow-auth-service.ts")
+if "VOW_AUTHORIZATION_PENDING" not in api_index + vow_auth_service:
+    errors.append("VOW authorization does not fail closed while pending.")
 for control in [
     "AES-GCM",
     "__Host-hisgu_session",
