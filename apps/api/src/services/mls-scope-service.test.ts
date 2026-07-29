@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 import {
   APPROVED_POLICY_VERSIONS,
   getActiveIdxSource,
+  getActiveVowProvider,
   getAllMlsScopeStates,
   getMlsScopeState,
 } from "./mls-scope-service";
@@ -64,26 +65,56 @@ describe("independent MLS scope activation", () => {
     );
   });
 
-  test("requires server-side VOW credentials and HTTPS endpoints", () => {
+  test("requires verified OIDC endpoints and separate server-side VOW secrets", () => {
+    const env = {
+      WASHINGTON_VOW_APPROVAL_STATUS: "approved",
+      WASHINGTON_VOW_ENABLED: "true",
+      WASHINGTON_VOW_POLICY_VERSION:
+        APPROVED_POLICY_VERSIONS.washington.vow,
+      WASHINGTON_VOW_CLIENT_ID: "client",
+      WASHINGTON_VOW_CLIENT_SECRET: "secret",
+      WASHINGTON_VOW_AUTHORIZATION_URL: "https://id.example.com/authorize",
+      WASHINGTON_VOW_TOKEN_URL: "https://id.example.com/token",
+      WASHINGTON_VOW_ISSUER: "https://id.example.com",
+      WASHINGTON_VOW_JWKS_URL: "https://id.example.com/.well-known/jwks.json",
+      VOW_REDIRECT_URI:
+        "https://homeinstgeorgeutah.com/api/v1/auth/flexmls/callback",
+      VOW_STATE_SECRET: "state-secret",
+      VOW_TOKEN_ENCRYPTION_SECRET: "token-secret",
+    };
+    const state = getMlsScopeState(env, "washington", "vow");
+
+    expect(state.active).toBe(true);
+    expect(getActiveVowProvider(env, "washington")).toMatchObject({
+      county: "washington",
+      scopeKey: "washington-vow",
+      issuer: "https://id.example.com",
+      tokenAuthMethod: "client_secret_post",
+    });
+    expect(getActiveVowProvider(env, "iron")).toBeNull();
+  });
+
+  test("does not activate VOW without a signing-key endpoint", () => {
     const state = getMlsScopeState(
       {
-        WASHINGTON_VOW_APPROVAL_STATUS: "approved",
-        WASHINGTON_VOW_ENABLED: "true",
-        WASHINGTON_VOW_POLICY_VERSION:
-          APPROVED_POLICY_VERSIONS.washington.vow,
-        WASHINGTON_VOW_CLIENT_ID: "client",
-        WASHINGTON_VOW_CLIENT_SECRET: "secret",
-        WASHINGTON_VOW_AUTHORIZATION_URL:
-          "https://sparkplatform.com/auth/vow",
-        WASHINGTON_VOW_TOKEN_URL: "https://sparkplatform.com/openid/token",
+        IRON_VOW_APPROVAL_STATUS: "approved",
+        IRON_VOW_ENABLED: "true",
+        IRON_VOW_POLICY_VERSION: APPROVED_POLICY_VERSIONS.iron.vow,
+        IRON_VOW_CLIENT_ID: "client",
+        IRON_VOW_CLIENT_SECRET: "secret",
+        IRON_VOW_AUTHORIZATION_URL: "https://id.example.com/authorize",
+        IRON_VOW_TOKEN_URL: "https://id.example.com/token",
+        IRON_VOW_ISSUER: "https://id.example.com",
         VOW_REDIRECT_URI:
           "https://homeinstgeorgeutah.com/api/v1/auth/flexmls/callback",
         VOW_STATE_SECRET: "state-secret",
+        VOW_TOKEN_ENCRYPTION_SECRET: "token-secret",
       },
-      "washington",
+      "iron",
       "vow",
     );
 
-    expect(state.active).toBe(true);
+    expect(state.providerConfigured).toBe(false);
+    expect(state.active).toBe(false);
   });
 });
