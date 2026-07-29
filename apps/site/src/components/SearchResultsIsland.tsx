@@ -43,6 +43,17 @@ type SearchResponse = {
   };
 };
 
+type AccountSessionResponse = {
+  ok: boolean;
+  data?: { authenticated?: boolean };
+  error?: { message?: string };
+};
+
+type SaveResponse = {
+  ok: boolean;
+  error?: { message?: string };
+};
+
 type RequestState = "idle" | "loading" | "ready" | "error";
 type Pagination = NonNullable<
   NonNullable<SearchResponse["data"]>["pagination"]
@@ -108,6 +119,9 @@ export default function SearchResultsIsland() {
   const [message, setMessage] = useState("");
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState("newest");
+  const [accountAuthenticated, setAccountAuthenticated] = useState(false);
+  const [savingListingId, setSavingListingId] = useState<string | null>(null);
+  const [saveMessage, setSaveMessage] = useState("");
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -115,6 +129,24 @@ export default function SearchResultsIsland() {
     if (!params.has("limit")) params.set("limit", "12");
     setSort(params.get("sort") || "newest");
     setQuery(params.toString());
+  }, []);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    async function loadAccount() {
+      try {
+        const response = await fetch("/api/v1/account/session", {
+          headers: { accept: "application/json" },
+          signal: controller.signal,
+        });
+        const payload = (await response.json()) as AccountSessionResponse;
+        setAccountAuthenticated(Boolean(response.ok && payload.data?.authenticated));
+      } catch {
+        if (!controller.signal.aborted) setAccountAuthenticated(false);
+      }
+    }
+    loadAccount();
+    return () => controller.abort();
   }, []);
 
   useEffect(() => {
@@ -200,6 +232,43 @@ export default function SearchResultsIsland() {
     window.location.assign(url.toString());
   }
 
+  async function saveHome(listing: ListingCard) {
+    if (!accountAuthenticated) {
+      window.location.assign("/account/");
+      return;
+    }
+    setSavingListingId(listing.listingId);
+    setSaveMessage("");
+    try {
+      const response = await fetch("/api/v1/account/saved-homes", {
+        method: "POST",
+        headers: {
+          accept: "application/json",
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          listingId: listing.listingId,
+          sourceListingKey: listing.sourceListingId || "",
+        }),
+      });
+      const payload = (await response.json().catch(() => ({}))) as SaveResponse;
+      if (response.status === 401) {
+        window.location.assign("/account/");
+        return;
+      }
+      if (!response.ok || payload.ok === false) {
+        throw new Error(payload.error?.message || "The home could not be saved.");
+      }
+      setSaveMessage(`${listing.addressDisplay} was saved to your account.`);
+    } catch (error) {
+      setSaveMessage(
+        error instanceof Error ? error.message : "The home could not be saved.",
+      );
+    } finally {
+      setSavingListingId(null);
+    }
+  }
+
   const resultCount = pagination?.total ?? listings.length;
   const totalPages = pagination
     ? Math.max(1, Math.ceil(pagination.total / pagination.limit))
@@ -222,21 +291,38 @@ export default function SearchResultsIsland() {
           </h2>
         </div>
 
-        <label className="grid gap-2 text-xs font-bold uppercase tracking-[0.14em] text-stone-600">
-          Sort listings
-          <select
-            value={sort}
-            onChange={(event) => changeSort(event.target.value)}
-            className="min-h-12 min-w-52 border border-stone-300 bg-white px-4 text-sm font-semibold normal-case tracking-normal text-[var(--brand-ink)]"
+        <div className="flex flex-col gap-3 sm:items-end">
+          <a
+            href="/account/"
+            className="text-sm font-bold text-[var(--brand-ink)] underline decoration-[var(--brand-gold)] underline-offset-4"
           >
-            <option value="newest">Newest listings</option>
-            <option value="price-asc">Price: low to high</option>
-            <option value="price-desc">Price: high to low</option>
-            <option value="beds">Most bedrooms</option>
-            <option value="sqft">Most square feet</option>
-          </select>
-        </label>
+            Manage saved homes and searches
+          </a>
+          <label className="grid gap-2 text-xs font-bold uppercase tracking-[0.14em] text-stone-600">
+            Sort listings
+            <select
+              value={sort}
+              onChange={(event) => changeSort(event.target.value)}
+              className="min-h-12 min-w-52 border border-stone-300 bg-white px-4 text-sm font-semibold normal-case tracking-normal text-[var(--brand-ink)]"
+            >
+              <option value="newest">Newest listings</option>
+              <option value="price-asc">Price: low to high</option>
+              <option value="price-desc">Price: high to low</option>
+              <option value="beds">Most bedrooms</option>
+              <option value="sqft">Most square feet</option>
+            </select>
+          </label>
+        </div>
       </div>
+
+      {saveMessage && (
+        <p
+          role="status"
+          className="mt-4 border border-stone-300 bg-white px-4 py-3 text-sm font-medium text-stone-700"
+        >
+          {saveMessage}
+        </p>
+      )}
 
       {activeFilters.length > 0 && (
         <fieldset className="flex flex-wrap gap-2 border-b border-stone-200 py-4">
@@ -306,7 +392,7 @@ export default function SearchResultsIsland() {
         )}
 
         {requestState === "ready" && listings.length === 0 && (
-          <div className="my-8 grid gap-8 border border-stone-200 bg-[var(--brand-warm-ivory)] px-6 py-10 sm:px-10 lg:grid-cols-[1fr_auto] lg:items-center">
+          <div className="my-8 grid gap-8 border border-[var(--brand-pink-sand)] bg-[var(--brand-warm-ivory)] px-6 py-10 sm:px-10 lg:grid-cols-[1fr_auto] lg:items-center">
             <div>
               <p className="text-xs font-bold uppercase tracking-[0.22em] text-[var(--brand-gold)]">
                 Personalized search
@@ -395,18 +481,32 @@ export default function SearchResultsIsland() {
                         Listed by {listing.attribution}
                         {updated ? ` · Updated ${updated}` : ""}
                       </p>
-                      <a
-                        href={detailsHref}
-                        className="mt-4 inline-flex min-h-11 items-center text-sm font-bold uppercase tracking-[0.12em] text-[var(--brand-ink)] hover:text-[var(--brand-deep-olive)]"
-                      >
-                        Request property details
-                        <span
-                          aria-hidden="true"
-                          className="ml-3 text-[var(--brand-gold)]"
+                      <div className="mt-4 flex flex-wrap items-center gap-4">
+                        <a
+                          href={detailsHref}
+                          className="inline-flex min-h-11 items-center text-sm font-bold uppercase tracking-[0.12em] text-[var(--brand-ink)] hover:text-[var(--brand-deep-olive)]"
                         >
-                          →
-                        </span>
-                      </a>
+                          Request details
+                          <span
+                            aria-hidden="true"
+                            className="ml-3 text-[var(--brand-gold)]"
+                          >
+                            →
+                          </span>
+                        </a>
+                        <button
+                          type="button"
+                          disabled={savingListingId === listing.listingId}
+                          onClick={() => saveHome(listing)}
+                          className="min-h-11 border border-stone-300 px-4 text-sm font-bold uppercase tracking-[0.12em] text-[var(--brand-ink)] disabled:cursor-wait disabled:opacity-50"
+                        >
+                          {savingListingId === listing.listingId
+                            ? "Saving…"
+                            : accountAuthenticated
+                              ? "Save home"
+                              : "Sign in to save"}
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </article>
