@@ -26,6 +26,9 @@ export interface MlsScopeEnv {
   WASHINGTON_VOW_AUTHORIZATION_URL?: string;
   WASHINGTON_VOW_TOKEN_URL?: string;
   WASHINGTON_VOW_CONTACT_URL?: string;
+  WASHINGTON_VOW_ISSUER?: string;
+  WASHINGTON_VOW_JWKS_URL?: string;
+  WASHINGTON_VOW_SCOPES?: string;
   WASHINGTON_VOW_MLS_ID?: string;
 
   IRON_IDX_APPROVAL_STATUS?: string;
@@ -43,6 +46,9 @@ export interface MlsScopeEnv {
   IRON_VOW_AUTHORIZATION_URL?: string;
   IRON_VOW_TOKEN_URL?: string;
   IRON_VOW_CONTACT_URL?: string;
+  IRON_VOW_ISSUER?: string;
+  IRON_VOW_JWKS_URL?: string;
+  IRON_VOW_SCOPES?: string;
   IRON_VOW_MLS_ID?: string;
 
   VOW_REDIRECT_URI?: string;
@@ -87,6 +93,9 @@ export type ActiveVowSource = {
   authorizationUrl: string;
   tokenUrl: string;
   contactUrl: string;
+  issuer: string;
+  jwksUrl: string;
+  scopes: string;
   clientId: string;
   clientSecret: string;
   mlsId: string | null;
@@ -133,6 +142,14 @@ function hasHttpsUrl(value: string | undefined) {
   }
 }
 
+function validOidcScopes(value: string | undefined) {
+  const scopes = (value || "openid")
+    .split(/\s+/)
+    .map((scope) => scope.trim())
+    .filter(Boolean);
+  return scopes.includes("openid") && scopes.every((scope) => /^[A-Za-z0-9._:-]+$/.test(scope));
+}
+
 export function getMlsScopeState(
   env: MlsScopeEnv,
   county: MlsCounty,
@@ -150,7 +167,10 @@ export function getMlsScopeState(
       ? Boolean(read(env, `${envPrefix}_PROVIDER`))
       : hasHttpsUrl(read(env, `${envPrefix}_AUTHORIZATION_URL`)) &&
         hasHttpsUrl(read(env, `${envPrefix}_TOKEN_URL`)) &&
-        hasHttpsUrl(read(env, `${envPrefix}_CONTACT_URL`));
+        hasHttpsUrl(read(env, `${envPrefix}_CONTACT_URL`)) &&
+        hasHttpsUrl(read(env, `${envPrefix}_ISSUER`)) &&
+        hasHttpsUrl(read(env, `${envPrefix}_JWKS_URL`)) &&
+        validOidcScopes(read(env, `${envPrefix}_SCOPES`));
 
   const credentialsConfigured =
     role === "idx"
@@ -219,6 +239,9 @@ export function getActiveVowSource(
     authorizationUrl: read(env, `${envPrefix}_AUTHORIZATION_URL`) as string,
     tokenUrl: read(env, `${envPrefix}_TOKEN_URL`) as string,
     contactUrl: read(env, `${envPrefix}_CONTACT_URL`) as string,
+    issuer: read(env, `${envPrefix}_ISSUER`) as string,
+    jwksUrl: read(env, `${envPrefix}_JWKS_URL`) as string,
+    scopes: read(env, `${envPrefix}_SCOPES`) || "openid",
     clientId: read(env, `${envPrefix}_CLIENT_ID`) as string,
     clientSecret: read(env, `${envPrefix}_CLIENT_SECRET`) as string,
     mlsId: read(env, `${envPrefix}_MLS_ID`) || null,
