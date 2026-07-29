@@ -58,7 +58,7 @@ POST /api/internal/mls/sync?county=iron
 
 When a scope is pending, disabled, missing its approved policy version, or missing credentials, the operation records a skipped run and does not contact the provider.
 
-## Activation sequence
+## IDX activation sequence
 
 For one county at a time:
 
@@ -73,7 +73,34 @@ For one county at a time:
 9. Record broker and technical approval.
 10. Enable the approved production scope.
 
-Repeat independently for the other county. VOW activation has its own authorization and account-linking evidence and remains disabled until fully implemented and approved.
+Repeat independently for the other county.
+
+## VOW authorization and account path
+
+```text
+active county VOW scope
+  -> signed one-time OAuth state
+  -> provider authorization and code exchange
+  -> current-contact identity verification
+  -> AES-GCM encrypted provider tokens in D1
+  -> first-party HttpOnly/Secure/SameSite session
+  -> county-scoped VOW grant
+  -> owned saved homes and saved searches
+```
+
+Provider access and refresh tokens never enter browser storage, cookies, URL fragments, or API responses. The callback accepts only a valid signed, unexpired, and unclaimed state record. Local sessions expose only the owned account identity and county grants.
+
+For one county at a time, VOW activation additionally requires:
+
+1. Approved authorization, token, and current-contact endpoints.
+2. Approved client ID and server-side client secret.
+3. `VOW_STATE_SECRET` and a distinct `VOW_TOKEN_ENCRYPTION_KEY` configured server-side.
+4. The exact registered callback URI verified with the provider.
+5. Controlled authorization, state-replay rejection, token-encryption, identity-linking, logout, and saved-data tests.
+6. Confirmation that disabling the county scope blocks new authorization and VOW-restricted display without affecting the other county.
+7. Broker and technical-owner approval recorded before the enable flag changes.
+
+The implementation is complete but remains fail-closed until those county-specific approvals, values, tests, and activation decisions are recorded.
 
 ## Kill switch
 
@@ -82,10 +109,11 @@ To stop one scope immediately:
 1. Set that exact scope's enable flag to `false`.
 2. Deploy the Worker configuration change only after the incident/change record is opened.
 3. Confirm `/api/mls-status` reports the scope inactive.
-4. Confirm public search returns the honest unavailable/contact state for that county.
-5. Stop source synchronization for the scope.
-6. Purge or retain cached records strictly according to the applicable MLS rule and incident/legal instructions.
-7. Do not disable the other county or role unless separately required.
+4. Confirm public search or VOW authorization returns the honest unavailable state for that county.
+5. Stop source synchronization or new VOW authorization for the scope.
+6. Revoke or expire sessions and provider tokens when required by the MLS rule or incident response.
+7. Purge or retain cached records strictly according to the applicable MLS rule and incident/legal instructions.
+8. Do not disable the other county or role unless separately required.
 
 ## Current project state
 
