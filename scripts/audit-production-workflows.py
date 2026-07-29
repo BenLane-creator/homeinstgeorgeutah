@@ -49,6 +49,15 @@ if "\n  push:" in rollback or "\n  pull_request:" in rollback:
 release_requirements = [
     "DEPLOY FOUNDATION",
     "BACKUP_ENCRYPTION_PASSPHRASE",
+    "allow_worker_bootstrap",
+    "ALLOW_WORKER_BOOTSTRAP",
+    "default: false",
+    "code: 10007",
+    "WORKER_PREEXISTING",
+    "INTERNAL_JOB_TOKEN",
+    "TURNSTILE_SECRET_KEY",
+    "$RUNNER_TEMP/homeinstgeorgeutah-worker-secrets.json",
+    "--secrets-file \"$worker_secrets\"",
     "wrangler d1 export",
     "verify-d1-export.mjs",
     "openssl enc -aes-256-cbc -pbkdf2",
@@ -56,6 +65,7 @@ release_requirements = [
     "wrangler deploy",
     "--strict",
     "--tag \"$RELEASE_SHA\"",
+    "wrangler secret list",
     "wrangler pages deploy",
     "--commit-hash \"$RELEASE_SHA\"",
     "verify-production-deployment.mjs",
@@ -65,6 +75,22 @@ release_requirements = [
 for requirement in release_requirements:
     if requirement not in release:
         raise SystemExit(f"Production release is missing required control: {requirement}")
+
+if not re.search(
+    r"allow_worker_bootstrap:\s*\n(?:.*\n){0,5}?\s*default:\s*false\s*$",
+    release,
+    re.MULTILINE,
+):
+    raise SystemExit("Worker bootstrap must be explicit and default to false.")
+
+if "test \"$ALLOW_WORKER_BOOTSTRAP\" = \"true\"" not in release:
+    raise SystemExit("Missing Worker must not be accepted without explicit bootstrap approval.")
+
+if "release-evidence/homeinstgeorgeutah-worker-secrets" in release:
+    raise SystemExit("Runtime secret values must never be written into the release evidence directory.")
+
+if "trap 'rm -f \"$worker_secrets\"' EXIT" not in release:
+    raise SystemExit("Temporary Worker secret material must be removed on every deploy-step exit.")
 
 ordered_step_boundaries = [
     "- name: Export, locally restore, and encrypt production D1",
@@ -117,6 +143,7 @@ prohibited_command_patterns = {
     "wrangler rollback": r"\bwrangler\s+rollback(?:\s|\\)",
     "time-travel restore": r"\btime-travel\s+restore(?:\s|\\)",
     "secret put": r"\bsecret\s+put(?:\s|\\)",
+    "secret bulk": r"\bsecret\s+bulk(?:\s|\\)",
     "secret delete": r"\bsecret\s+delete(?:\s|\\)",
 }
 for label, pattern in prohibited_command_patterns.items():

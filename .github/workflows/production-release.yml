@@ -11,6 +11,11 @@ on:
         description: Exact Cloudflare Pages project name
         required: true
         type: string
+      allow_worker_bootstrap:
+        description: Allow creation of homeinstgeorgeutah-api only when Cloudflare confirms it does not exist
+        required: true
+        default: false
+        type: boolean
       confirmation:
         description: Type DEPLOY FOUNDATION
         required: true
@@ -37,6 +42,7 @@ jobs:
       D1_DATABASE: homeinstgeorgeutah
       RELEASE_SHA: ${{ inputs.release_sha }}
       PAGES_PROJECT: ${{ inputs.pages_project }}
+      ALLOW_WORKER_BOOTSTRAP: ${{ inputs.allow_worker_bootstrap }}
 
     steps:
       - name: Check out exact release SHA
@@ -59,6 +65,10 @@ jobs:
             echo "::error::release_sha must be a full lowercase 40-character SHA."
             exit 1
           }
+          test "$ALLOW_WORKER_BOOTSTRAP" = "true" || test "$ALLOW_WORKER_BOOTSTRAP" = "false" || {
+            echo "::error::allow_worker_bootstrap must be true or false."
+            exit 1
+          }
           test "$(git rev-parse HEAD)" = "$RELEASE_SHA" || {
             echo "::error::Checked-out commit does not match release_sha."
             exit 1
@@ -69,8 +79,9 @@ jobs:
             exit 1
           }
           mkdir -p release-evidence
-          printf 'release_sha=%s\npages_project=%s\nrequested_at=%s\n' \
-            "$RELEASE_SHA" "$PAGES_PROJECT" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+          printf 'release_sha=%s\npages_project=%s\nallow_worker_bootstrap=%s\nrequested_at=%s\n' \
+            "$RELEASE_SHA" "$PAGES_PROJECT" "$ALLOW_WORKER_BOOTSTRAP" \
+            "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
             > release-evidence/release-request.txt
 
       - name: Set up Bun
@@ -100,17 +111,21 @@ jobs:
           bun run test:e2e
           bun --filter @home/app build
 
-      - name: Verify Cloudflare credentials, project, and pinned Wrangler
+      - name: Verify Cloudflare credentials, project, runtime secrets, and pinned Wrangler
         shell: bash
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           BACKUP_ENCRYPTION_PASSPHRASE: ${{ secrets.BACKUP_ENCRYPTION_PASSPHRASE }}
+          INTERNAL_JOB_TOKEN: ${{ secrets.INTERNAL_JOB_TOKEN }}
+          TURNSTILE_SECRET_KEY: ${{ secrets.TURNSTILE_SECRET_KEY }}
         run: |
           set -euo pipefail
           test -n "${CLOUDFLARE_API_TOKEN:-}" || { echo "::error::Missing CLOUDFLARE_API_TOKEN."; exit 1; }
           test -n "${CLOUDFLARE_ACCOUNT_ID:-}" || { echo "::error::Missing CLOUDFLARE_ACCOUNT_ID."; exit 1; }
           test -n "${BACKUP_ENCRYPTION_PASSPHRASE:-}" || { echo "::error::Missing BACKUP_ENCRYPTION_PASSPHRASE."; exit 1; }
+          test -n "${INTERNAL_JOB_TOKEN:-}" || { echo "::error::Missing INTERNAL_JOB_TOKEN."; exit 1; }
+          test -n "${TURNSTILE_SECRET_KEY:-}" || { echo "::error::Missing TURNSTILE_SECRET_KEY."; exit 1; }
           bunx wrangler --version | grep -F "4.113.0"
           bunx wrangler whoami > release-evidence/cloudflare-whoami.txt
           grep -Fq -- "$CLOUDFLARE_ACCOUNT_ID" release-evidence/cloudflare-whoami.txt
@@ -148,10 +163,33 @@ jobs:
               throw new Error("Duplicate normalized-email groups exist; release stopped before migration.");
             }
           '
+
+          set +e
           bunx wrangler deployments status --name "$WORKER_NAME" --config "$WORKER_CONFIG" --json \
-            > release-evidence/worker-deployment-before.json
-          bunx wrangler versions list --name "$WORKER_NAME" --config "$WORKER_CONFIG" --json \
-            > release-evidence/worker-versions-before.json
+            > release-evidence/worker-deployment-before.json \
+            2> release-evidence/worker-deployment-before.stderr
+          worker_status=$?
+          set -e
+
+          if (( worker_status == 0 )); then
+            echo "WORKER_PREEXISTING=true" >> "$GITHUB_ENV"
+            bunx wrangler versions list --name "$WORKER_NAME" --config "$WORKER_CONFIG" --json \
+              > release-evidence/worker-versions-before.json
+          elif grep -Fq "code: 10007" release-evidence/worker-deployment-before.stderr; then
+            test "$ALLOW_WORKER_BOOTSTRAP" = "true" || {
+              echo "::error::Worker $WORKER_NAME does not exist and allow_worker_bootstrap was not approved."
+              exit 1
+            }
+            echo "WORKER_PREEXISTING=false" >> "$GITHUB_ENV"
+            printf '{"worker":"%s","preexisting":false,"cloudflare_code":10007}\n' "$WORKER_NAME" \
+              > release-evidence/worker-deployment-before.json
+            printf '[]\n' > release-evidence/worker-versions-before.json
+          else
+            cat release-evidence/worker-deployment-before.stderr >&2
+            exit "$worker_status"
+          fi
+
+          rm -f release-evidence/worker-deployment-before.stderr
           bunx wrangler pages deployment list --project-name "$PAGES_PROJECT" --environment production --json \
             > release-evidence/pages-deployments-before.json
 
@@ -206,11 +244,26 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          INTERNAL_JOB_TOKEN: ${{ secrets.INTERNAL_JOB_TOKEN }}
+          TURNSTILE_SECRET_KEY: ${{ secrets.TURNSTILE_SECRET_KEY }}
         run: |
           set -euo pipefail
+          worker_secrets="$RUNNER_TEMP/homeinstgeorgeutah-worker-secrets.json"
+          trap 'rm -f "$worker_secrets"' EXIT
+          jq -n \
+            --arg internalJobToken "$INTERNAL_JOB_TOKEN" \
+            --arg turnstileSecretKey "$TURNSTILE_SECRET_KEY" \
+            '{INTERNAL_JOB_TOKEN: $internalJobToken, TURNSTILE_SECRET_KEY: $turnstileSecretKey}' \
+            > "$worker_secrets"
+          chmod 600 "$worker_secrets"
+
           WRANGLER_OUTPUT_FILE_PATH=release-evidence/worker-deploy.ndjson \
             bunx wrangler deploy --config "$WORKER_CONFIG" --strict \
+              --secrets-file "$worker_secrets" \
               --tag "$RELEASE_SHA" --message "release-sha:$RELEASE_SHA"
+          rm -f "$worker_secrets"
+          trap - EXIT
+
           WRANGLER_OUTPUT_FILE_PATH=release-evidence/pages-deploy.ndjson \
             bunx wrangler pages deploy apps/site/dist \
               --project-name "$PAGES_PROJECT" \
@@ -230,6 +283,16 @@ jobs:
             > release-evidence/worker-versions-after.json
           bunx wrangler deployments status --name "$WORKER_NAME" --config "$WORKER_CONFIG" --json \
             > release-evidence/worker-deployment-after.json
+          bunx wrangler secret list --name "$WORKER_NAME" --config "$WORKER_CONFIG" --format json \
+            > release-evidence/worker-secrets-after.json
+          bun -e '
+            import { readFileSync } from "node:fs";
+            const payload = JSON.parse(readFileSync("release-evidence/worker-secrets-after.json", "utf8"));
+            const names = new Set((Array.isArray(payload) ? payload : []).map((entry) => entry?.name));
+            for (const required of ["INTERNAL_JOB_TOKEN", "TURNSTILE_SECRET_KEY"]) {
+              if (!names.has(required)) throw new Error(`Required Worker secret ${required} is missing after deploy.`);
+            }
+          '
           bunx wrangler pages deployment list --project-name "$PAGES_PROJECT" --environment production --json \
             > release-evidence/pages-deployments-after.json
           bun scripts/verify-production-deployment.mjs \
@@ -251,6 +314,8 @@ jobs:
             echo ""
             echo "- Release SHA: \`$RELEASE_SHA\`"
             echo "- Pages project: \`$PAGES_PROJECT\`"
+            echo "- Worker preexisting: \`${WORKER_PREEXISTING:-unknown}\`"
+            echo "- Worker bootstrap approved: \`$ALLOW_WORKER_BOOTSTRAP\`"
             echo "- MLS activation: unchanged; all four scopes must remain disabled"
             echo "- Evidence artifact: \`production-release-$RELEASE_SHA\`"
           } >> "$GITHUB_STEP_SUMMARY"
