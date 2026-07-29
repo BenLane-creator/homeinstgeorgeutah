@@ -84,7 +84,7 @@ if (scopes.length !== expectedScopes.length) {
 }
 for (const key of expectedScopes) {
   const scope = scopes.find((candidate) => candidate?.key === key);
-  if (!scope || scope.active !== false) {
+  if (scope?.active !== false) {
     throw new Error(`${key} must remain inactive during the foundation release.`);
   }
 }
