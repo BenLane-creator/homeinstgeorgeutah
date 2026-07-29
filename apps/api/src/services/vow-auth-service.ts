@@ -1,3 +1,4 @@
+import { verifyOidcIdToken } from "../security/oidc";
 import {
   getActiveVowSource,
   type MlsCounty,
@@ -55,11 +56,15 @@ function randomToken(size = 32) {
 }
 
 async function sha256Bytes(value: string) {
-  return new Uint8Array(await crypto.subtle.digest("SHA-256", encoder.encode(value)));
+  return new Uint8Array(
+    await crypto.subtle.digest("SHA-256", encoder.encode(value)),
+  );
 }
 
 async function sha256Hex(value: string) {
-  return Array.from(await sha256Bytes(value), (byte) => byte.toString(16).padStart(2, "0")).join("");
+  return Array.from(await sha256Bytes(value), (byte) =>
+    byte.toString(16).padStart(2, "0"),
+  ).join("");
 }
 
 async function hmac(value: string, secret: string) {
@@ -71,7 +76,9 @@ async function hmac(value: string, secret: string) {
     ["sign"],
   );
   return bytesToBase64Url(
-    new Uint8Array(await crypto.subtle.sign("HMAC", key, encoder.encode(value))),
+    new Uint8Array(
+      await crypto.subtle.sign("HMAC", key, encoder.encode(value)),
+    ),
   );
 }
 
@@ -187,7 +194,9 @@ function parseContact(payload: unknown) {
   const email = asString(contact?.PrimaryEmail).toLowerCase();
   const displayName =
     asString(contact?.DisplayName) ||
-    [asString(contact?.GivenName), asString(contact?.FamilyName)].filter(Boolean).join(" ");
+    [asString(contact?.GivenName), asString(contact?.FamilyName)]
+      .filter(Boolean)
+      .join(" ");
   if (!externalId || !email || !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) {
     throw new VowAuthError(
       502,
@@ -212,19 +221,23 @@ function parseTokenResponse(payload: unknown) {
   const root = asRecord(payload);
   const accessToken = asString(root?.access_token);
   const refreshToken = asString(root?.refresh_token);
+  const idToken = asString(root?.id_token);
+  const tokenType = asString(root?.token_type) || "Bearer";
   const rawExpiresIn = Number(root?.expires_in);
   const expiresIn =
-    Number.isFinite(rawExpiresIn) && rawExpiresIn > 0 && rawExpiresIn <= 7 * 24 * 60 * 60
+    Number.isFinite(rawExpiresIn) &&
+    rawExpiresIn > 0 &&
+    rawExpiresIn <= 7 * 24 * 60 * 60
       ? Math.floor(rawExpiresIn)
       : 24 * 60 * 60;
-  if (!accessToken) {
+  if (!accessToken || !idToken || tokenType.toLowerCase() !== "bearer") {
     throw new VowAuthError(
       502,
       "VOW_TOKEN_EXCHANGE_FAILED",
       "Consumer account authorization could not be completed.",
     );
   }
-  return { accessToken, refreshToken, expiresIn };
+  return { accessToken, refreshToken, idToken, tokenType: "Bearer", expiresIn };
 }
 
 export async function startVowAuthorization(
@@ -242,16 +255,18 @@ export async function startVowAuthorization(
   }
 
   const state = await createState(source.stateSecret);
+  const nonce = randomToken();
   const attemptId = crypto.randomUUID();
   await env.DB.prepare(
     `insert into vow_authorization_attempts
-      (id, scope_key, state_hash, redirect_after, status, expires_at)
-     values (?, ?, ?, ?, 'started', ?)`,
+      (id, scope_key, state_hash, nonce_hash, redirect_after, status, expires_at)
+     values (?, ?, ?, ?, ?, 'started', ?)`,
   )
     .bind(
       attemptId,
       source.scopeKey,
       await sha256Hex(state),
+      await sha256Hex(nonce),
       safeReturnTo(returnTo),
       expiresAt(STATE_TTL_SECONDS),
     )
@@ -261,7 +276,9 @@ export async function startVowAuthorization(
   authorizationUrl.searchParams.set("client_id", source.clientId);
   authorizationUrl.searchParams.set("redirect_uri", source.redirectUri);
   authorizationUrl.searchParams.set("response_type", "code");
+  authorizationUrl.searchParams.set("scope", source.scopes);
   authorizationUrl.searchParams.set("state", state);
+  authorizationUrl.searchParams.set("nonce", nonce);
   if (source.mlsId) authorizationUrl.searchParams.set("mls", source.mlsId);
 
   return authorizationUrl.toString();
@@ -270,6 +287,7 @@ export async function startVowAuthorization(
 type ClaimedAttempt = {
   id: string;
   scope_key: `${MlsCounty}-vow`;
+  nonce_hash: string;
   redirect_after: string | null;
 };
 
@@ -281,11 +299,11 @@ async function claimAttempt(env: VowAuthEnv, state: string) {
         and status = 'started'
         and claimed_at is null
         and expires_at > CURRENT_TIMESTAMP
-      returning id, scope_key, redirect_after`,
+      returning id, scope_key, nonce_hash, redirect_after`,
   )
     .bind(await sha256Hex(state))
     .first<ClaimedAttempt>();
-  if (!claimed) {
+  if (!claimed?.nonce_hash) {
     throw new VowAuthError(
       400,
       "VOW_STATE_INVALID",
@@ -343,7 +361,7 @@ async function fetchCurrentContact(
 ) {
   const response = await fetch(source.contactUrl, {
     headers: {
-      authorization: `OAuth ${accessToken}`,
+      authorization: `Bearer ${accessToken}`,
       accept: "application/json",
     },
     signal: AbortSignal.timeout(8_000),
@@ -361,7 +379,10 @@ async function fetchCurrentContact(
 
 export async function completeVowAuthorization(env: VowAuthEnv, url: URL) {
   const state = asString(url.searchParams.get("state"));
-  if (!state || !(await verifyStateSignature(state, env.VOW_STATE_SECRET?.trim() || ""))) {
+  if (
+    !state ||
+    !(await verifyStateSignature(state, env.VOW_STATE_SECRET?.trim() || ""))
+  ) {
     throw new VowAuthError(
       400,
       "VOW_STATE_INVALID",
@@ -370,7 +391,9 @@ export async function completeVowAuthorization(env: VowAuthEnv, url: URL) {
   }
 
   const attempt = await claimAttempt(env, state);
-  const county = attempt.scope_key.startsWith("washington") ? "washington" : "iron";
+  const county = attempt.scope_key.startsWith("washington")
+    ? "washington"
+    : "iron";
   const source = getActiveVowSource(env, county);
   if (!source || source.scopeKey !== attempt.scope_key) {
     await markAttempt(env, attempt.id, "failed", "scope_inactive");
@@ -404,6 +427,13 @@ export async function completeVowAuthorization(env: VowAuthEnv, url: URL) {
 
   try {
     const token = await exchangeAuthorizationCode(source, code);
+    const verifiedIdentity = await verifyOidcIdToken({
+      idToken: token.idToken,
+      issuer: source.issuer,
+      audience: source.clientId,
+      expectedNonceHash: attempt.nonce_hash,
+      jwksUrl: source.jwksUrl,
+    });
     const contact = await fetchCurrentContact(source, token.accessToken);
     const accessTokenEncrypted = await encryptToken(
       token.accessToken,
@@ -421,7 +451,7 @@ export async function completeVowAuthorization(env: VowAuthEnv, url: URL) {
     const auditId = crypto.randomUUID();
     const accessExpiresAt = expiresAt(token.expiresIn);
     const sessionExpiresAt = expiresAt(SESSION_TTL_SECONDS);
-    const provider = `spark-vow:${county}`;
+    const identityProvider = `oidc:${verifiedIdentity.issuer}`;
 
     const contactIdSql =
       "(select id from contacts where email_normalized = ? limit 1)";
@@ -467,17 +497,24 @@ export async function completeVowAuthorization(env: VowAuthEnv, url: URL) {
          values (?, ${contactIdSql}, ?, ?)
          on conflict(provider, external_id) do update set
            contact_id = excluded.contact_id`,
-      ).bind(crypto.randomUUID(), contact.email, provider, contact.externalId),
+      ).bind(
+        crypto.randomUUID(),
+        contact.email,
+        identityProvider,
+        verifiedIdentity.subject,
+      ),
       env.DB.prepare(
         `insert into vow_access_grants
-          (id, user_account_id, scope_key, provider_contact_id, status,
-           authenticated_at, expires_at, last_seen_at)
-         values (?, ${userIdSql}, ?, ?, 'active', CURRENT_TIMESTAMP, ?, CURRENT_TIMESTAMP)
+          (id, user_account_id, scope_key, provider_contact_id, provider_issuer,
+           provider_subject, status, authenticated_at, expires_at, last_seen_at)
+         values (?, ${userIdSql}, ?, ?, ?, ?, 'active', CURRENT_TIMESTAMP, null, CURRENT_TIMESTAMP)
          on conflict(user_account_id, scope_key) do update set
            provider_contact_id = excluded.provider_contact_id,
+           provider_issuer = excluded.provider_issuer,
+           provider_subject = excluded.provider_subject,
            status = 'active',
            authenticated_at = CURRENT_TIMESTAMP,
-           expires_at = excluded.expires_at,
+           expires_at = null,
            last_seen_at = CURRENT_TIMESTAMP,
            updated_at = CURRENT_TIMESTAMP`,
       ).bind(
@@ -485,13 +522,14 @@ export async function completeVowAuthorization(env: VowAuthEnv, url: URL) {
         contact.email,
         source.scopeKey,
         contact.externalId,
-        accessExpiresAt,
+        verifiedIdentity.issuer,
+        verifiedIdentity.subject,
       ),
       env.DB.prepare(
         `insert into vow_oauth_tokens
           (grant_id, access_token_encrypted, refresh_token_encrypted, token_type,
            access_expires_at)
-         values (${grantIdSql}, ?, ?, 'OAuth', ?)
+         values (${grantIdSql}, ?, ?, ?, ?)
          on conflict(grant_id) do update set
            access_token_encrypted = excluded.access_token_encrypted,
            refresh_token_encrypted = excluded.refresh_token_encrypted,
@@ -503,6 +541,7 @@ export async function completeVowAuthorization(env: VowAuthEnv, url: URL) {
         source.scopeKey,
         accessTokenEncrypted,
         refreshTokenEncrypted,
+        token.tokenType,
         accessExpiresAt,
       ),
       env.DB.prepare(
@@ -524,7 +563,11 @@ export async function completeVowAuthorization(env: VowAuthEnv, url: URL) {
         auditId,
         contact.email,
         source.scopeKey,
-        JSON.stringify({ providerContactId: contact.externalId }),
+        JSON.stringify({
+          providerContactId: contact.externalId,
+          issuer: verifiedIdentity.issuer,
+          subject: verifiedIdentity.subject,
+        }),
       ),
       env.DB.prepare(
         `select ua.id as user_account_id, ua.contact_id
@@ -550,9 +593,18 @@ export async function completeVowAuthorization(env: VowAuthEnv, url: URL) {
       env,
       attempt.id,
       "failed",
-      error instanceof VowAuthError ? error.code : "account_link_failed",
+      error instanceof VowAuthError
+        ? error.code
+        : error instanceof Error
+          ? error.name
+          : "account_link_failed",
     ).catch(() => undefined);
-    throw error;
+    if (error instanceof VowAuthError) throw error;
+    throw new VowAuthError(
+      502,
+      "VOW_IDENTITY_VERIFICATION_FAILED",
+      "Consumer account authorization could not be completed.",
+    );
   }
 }
 
@@ -594,6 +646,14 @@ export async function readVowSession(
   )
     .bind(row.user_account_id)
     .all<{ scope_key: string }>();
+  const activeScopes = grants.results
+    .map((grant) => grant.scope_key)
+    .filter((scopeKey): scopeKey is `${MlsCounty}-vow` =>
+      scopeKey === "washington-vow" || scopeKey === "iron-vow",
+    )
+    .filter((scopeKey) =>
+      Boolean(getActiveVowSource(env, scopeKey.startsWith("washington") ? "washington" : "iron")),
+    );
 
   return {
     userAccountId: row.user_account_id,
@@ -601,7 +661,7 @@ export async function readVowSession(
     email: row.email,
     displayName: row.full_name || row.email,
     sessionExpiresAt: row.expires_at,
-    scopes: grants.results.map((grant) => grant.scope_key),
+    scopes: activeScopes,
   };
 }
 
