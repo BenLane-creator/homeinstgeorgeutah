@@ -9,6 +9,7 @@ export type MlsApprovalStatus =
   | "approved"
   | "denied"
   | "suspended";
+export type VowTokenAuthMethod = "client_secret_post" | "client_secret_basic";
 
 export interface MlsScopeEnv {
   WASHINGTON_IDX_APPROVAL_STATUS?: string;
@@ -25,6 +26,11 @@ export interface MlsScopeEnv {
   WASHINGTON_VOW_CLIENT_SECRET?: string;
   WASHINGTON_VOW_AUTHORIZATION_URL?: string;
   WASHINGTON_VOW_TOKEN_URL?: string;
+  WASHINGTON_VOW_ISSUER?: string;
+  WASHINGTON_VOW_JWKS_URL?: string;
+  WASHINGTON_VOW_USERINFO_URL?: string;
+  WASHINGTON_VOW_SCOPES?: string;
+  WASHINGTON_VOW_TOKEN_AUTH_METHOD?: string;
   WASHINGTON_VOW_MLS_ID?: string;
 
   IRON_IDX_APPROVAL_STATUS?: string;
@@ -41,10 +47,16 @@ export interface MlsScopeEnv {
   IRON_VOW_CLIENT_SECRET?: string;
   IRON_VOW_AUTHORIZATION_URL?: string;
   IRON_VOW_TOKEN_URL?: string;
+  IRON_VOW_ISSUER?: string;
+  IRON_VOW_JWKS_URL?: string;
+  IRON_VOW_USERINFO_URL?: string;
+  IRON_VOW_SCOPES?: string;
+  IRON_VOW_TOKEN_AUTH_METHOD?: string;
   IRON_VOW_MLS_ID?: string;
 
   VOW_REDIRECT_URI?: string;
   VOW_STATE_SECRET?: string;
+  VOW_TOKEN_ENCRYPTION_SECRET?: string;
 }
 
 export const APPROVED_POLICY_VERSIONS = {
@@ -76,6 +88,24 @@ export type ActiveIdxSource = {
   provider: string;
   apiBaseUrl: string;
   accessToken: string;
+};
+
+export type ActiveVowProvider = {
+  county: MlsCounty;
+  scopeKey: `${MlsCounty}-vow`;
+  clientId: string;
+  clientSecret: string;
+  authorizationUrl: string;
+  tokenUrl: string;
+  issuer: string;
+  jwksUrl: string;
+  userinfoUrl?: string;
+  scopes: string;
+  tokenAuthMethod: VowTokenAuthMethod;
+  mlsId?: string;
+  redirectUri: string;
+  stateSecret: string;
+  tokenEncryptionSecret: string;
 };
 
 const COUNTY_LABELS: Record<MlsCounty, string> = {
@@ -116,6 +146,10 @@ function hasHttpsUrl(value: string | undefined) {
   }
 }
 
+function tokenAuthMethod(value: string | undefined): VowTokenAuthMethod {
+  return value === "client_secret_basic" ? value : "client_secret_post";
+}
+
 export function getMlsScopeState(
   env: MlsScopeEnv,
   county: MlsCounty,
@@ -132,7 +166,9 @@ export function getMlsScopeState(
     role === "idx"
       ? Boolean(read(env, `${envPrefix}_PROVIDER`))
       : hasHttpsUrl(read(env, `${envPrefix}_AUTHORIZATION_URL`)) &&
-        hasHttpsUrl(read(env, `${envPrefix}_TOKEN_URL`));
+        hasHttpsUrl(read(env, `${envPrefix}_TOKEN_URL`)) &&
+        hasHttpsUrl(read(env, `${envPrefix}_ISSUER`)) &&
+        hasHttpsUrl(read(env, `${envPrefix}_JWKS_URL`));
 
   const credentialsConfigured =
     role === "idx"
@@ -142,7 +178,8 @@ export function getMlsScopeState(
           read(env, `${envPrefix}_CLIENT_ID`) &&
             read(env, `${envPrefix}_CLIENT_SECRET`) &&
             hasHttpsUrl(env.VOW_REDIRECT_URI) &&
-            env.VOW_STATE_SECRET,
+            env.VOW_STATE_SECRET?.trim() &&
+            env.VOW_TOKEN_ENCRYPTION_SECRET?.trim(),
         );
 
   return {
@@ -183,6 +220,34 @@ export function getActiveIdxSource(
     provider: read(env, `${envPrefix}_PROVIDER`) as string,
     apiBaseUrl: read(env, `${envPrefix}_API_BASE_URL`) as string,
     accessToken: read(env, `${envPrefix}_ACCESS_TOKEN`) as string,
+  };
+}
+
+export function getActiveVowProvider(
+  env: MlsScopeEnv,
+  county: MlsCounty,
+): ActiveVowProvider | null {
+  const state = getMlsScopeState(env, county, "vow");
+  if (!state.active) return null;
+
+  const envPrefix = prefix(county, "vow");
+  const userinfoUrl = read(env, `${envPrefix}_USERINFO_URL`);
+  return {
+    county,
+    scopeKey: `${county}-vow`,
+    clientId: read(env, `${envPrefix}_CLIENT_ID`) as string,
+    clientSecret: read(env, `${envPrefix}_CLIENT_SECRET`) as string,
+    authorizationUrl: read(env, `${envPrefix}_AUTHORIZATION_URL`) as string,
+    tokenUrl: read(env, `${envPrefix}_TOKEN_URL`) as string,
+    issuer: read(env, `${envPrefix}_ISSUER`) as string,
+    jwksUrl: read(env, `${envPrefix}_JWKS_URL`) as string,
+    userinfoUrl: hasHttpsUrl(userinfoUrl) ? userinfoUrl : undefined,
+    scopes: read(env, `${envPrefix}_SCOPES`) || "openid profile email",
+    tokenAuthMethod: tokenAuthMethod(read(env, `${envPrefix}_TOKEN_AUTH_METHOD`)),
+    mlsId: read(env, `${envPrefix}_MLS_ID`) || undefined,
+    redirectUri: env.VOW_REDIRECT_URI?.trim() as string,
+    stateSecret: env.VOW_STATE_SECRET?.trim() as string,
+    tokenEncryptionSecret: env.VOW_TOKEN_ENCRYPTION_SECRET?.trim() as string,
   };
 }
 
