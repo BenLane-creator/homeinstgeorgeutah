@@ -260,9 +260,9 @@ export default function SearchResultsIsland() {
         throw new Error(payload.error?.message || "The home could not be saved.");
       }
       setSaveMessage(`${listing.addressDisplay} was saved to your account.`);
-    } catch (error) {
+    } catch {
       setSaveMessage(
-        error instanceof Error ? error.message : "The home could not be saved.",
+        "The home could not be saved. Please try again or manage saved homes from your account.",
       );
     } finally {
       setSavingListingId(null);
