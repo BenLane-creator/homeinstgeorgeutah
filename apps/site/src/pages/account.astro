@@ -1,0 +1,30 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import AccountIsland from "../components/AccountIsland";
+---
+
+<BaseLayout
+  title="Consumer Account"
+  pathname="/account/"
+  description="Manage authorized Southern Utah home searches and saved properties through HomeInStGeorgeUtah.com."
+>
+  <section class="bg-[var(--brand-warm-ivory)] px-5 py-16 sm:py-20 md:py-24">
+    <div class="mx-auto max-w-7xl">
+      <div class="max-w-4xl">
+        <p class="text-xs font-bold uppercase tracking-[0.28em] text-[var(--brand-gold)]">
+          Owned consumer account
+        </p>
+        <h1 class="mt-5 text-5xl font-medium leading-[0.95] tracking-[-0.055em] text-[var(--brand-ink)] sm:text-6xl md:text-7xl">
+          Keep your search organized.
+        </h1>
+        <p class="mt-6 max-w-3xl text-lg leading-8 text-stone-700">
+          Authorize the county scope you use, save searches, and keep selected homes in one broker-controlled account. Washington County and Iron County permissions remain independent.
+        </p>
+      </div>
+
+      <div class="mt-10">
+        <AccountIsland client:load />
+      </div>
+    </div>
+  </section>
+</BaseLayout>
