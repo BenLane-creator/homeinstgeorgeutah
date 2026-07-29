@@ -69,7 +69,7 @@ The registered production VOW callback is:
 https://homeinstgeorgeutah.com/api/v1/auth/flexmls/callback
 ```
 
-The callback fails closed while approvals, production credentials, token exchange, and local-account linking remain incomplete.
+The VOW authorization start/callback, encrypted provider-token storage, first-party session, and owned saved-data boundary are implemented but fail closed while approvals, production endpoints, credentials, policy versions, and explicit activation remain incomplete.
 
 ## Lead and notification contract
 

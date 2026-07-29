@@ -86,20 +86,43 @@ describe("API routing", () => {
     expect(payload.data.listings).toEqual([]);
   });
 
-  test("keeps the registered VOW callback fail-closed while approvals are pending", async () => {
+  test("keeps VOW authorization start fail-closed while approvals are pending", async () => {
+    const response = await handleRequest(
+      new Request(
+        "https://homeinstgeorgeutah.com/api/v1/auth/flexmls/start?county=washington",
+      ),
+      env(),
+    );
+    const payload = (await response.json()) as { error: { code: string } };
+
+    expect(response.status).toBe(503);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(payload.error.code).toBe("VOW_AUTHORIZATION_PENDING");
+  });
+
+  test("rejects callback responses that do not contain a signed one-time state", async () => {
     const response = await handleRequest(
       new Request(
         "https://homeinstgeorgeutah.com/api/v1/auth/flexmls/callback?code=demo",
       ),
       env(),
     );
-    const payload = (await response.json()) as {
-      error: { code: string };
-    };
+    const payload = (await response.json()) as { error: { code: string } };
 
-    expect(response.status).toBe(503);
+    expect(response.status).toBe(400);
     expect(response.headers.get("cache-control")).toBe("no-store");
-    expect(payload.error.code).toBe("VOW_AUTHORIZATION_PENDING");
+    expect(payload.error.code).toBe("VOW_STATE_INVALID");
+  });
+
+  test("reports an unauthenticated session without touching D1 when no cookie exists", async () => {
+    const response = await handleRequest(
+      new Request("https://homeinstgeorgeutah.com/api/v1/session"),
+      env(),
+    );
+    expect(response.status).toBe(200);
+    expect((await response.json()) as Record<string, unknown>).toMatchObject({
+      data: { authenticated: false, account: null },
+    });
   });
 
   test("does not expose public listing-detail routes", async () => {

@@ -27,8 +27,10 @@ required_source_files = [
     SITE_SRC / "pages" / "accessibility.astro",
     SITE_SRC / "pages" / "404.astro",
     SITE_SRC / "pages" / "homes" / "search.astro",
+    SITE_SRC / "pages" / "account" / "index.astro",
     SITE_SRC / "components" / "LeadFormIsland.tsx",
     SITE_SRC / "components" / "SearchResultsIsland.tsx",
+    SITE_SRC / "components" / "ConsumerAccountIsland.tsx",
     SITE / "public" / "_headers",
     SITE / "public" / "_redirects",
     SITE / "public" / "brand" / "hero" / "sot-hero-image.webp",
@@ -38,8 +40,11 @@ required_source_files = [
     ROOT / "apps" / "api" / "src" / "security" / "request-security.ts",
     ROOT / "apps" / "api" / "src" / "services" / "listing-service.ts",
     ROOT / "apps" / "api" / "src" / "services" / "mls-scope-service.ts",
+    ROOT / "apps" / "api" / "src" / "services" / "vow-auth-service.ts",
+    ROOT / "apps" / "api" / "src" / "services" / "consumer-account-service.ts",
     ROOT / "packages" / "db" / "migrations" / "0002_contact_integrity.sql",
     ROOT / "packages" / "db" / "migrations" / "0003_mls_scopes.sql",
+    ROOT / "packages" / "db" / "migrations" / "0006_vow_consumer_accounts.sql",
     ROOT / "THIRD_PARTY_FONT_LICENSES.md",
 ]
 
@@ -118,6 +123,21 @@ lead_island = require(SITE_SRC / "components" / "LeadFormIsland.tsx")
 if "/api/v1/leads/intake" not in lead_island:
     errors.append("Lead form is not connected to /api/v1/leads/intake.")
 
+account_page = require(SITE_SRC / "pages" / "account" / "index.astro")
+account_island = require(SITE_SRC / "components" / "ConsumerAccountIsland.tsx")
+if "ConsumerAccountIsland" not in account_page or 'pathname="/account/"' not in account_page:
+    errors.append("Consumer account route is not wired to the account island.")
+for control in [
+    "/api/v1/session",
+    "/api/mls-status",
+    "/api/v1/saved-homes",
+    "/api/v1/saved-searches",
+    "/api/v1/auth/flexmls/start",
+    "scope.active",
+]:
+    if control not in account_island:
+        errors.append(f"Consumer account UI is missing fail-closed control: {control}")
+
 listing_service = require(ROOT / "apps" / "api" / "src" / "services" / "listing-service.ts")
 mls_scope_service = require(ROOT / "apps" / "api" / "src" / "services" / "mls-scope-service.ts")
 for gate in [
@@ -127,6 +147,7 @@ for gate in [
     "IRON_VOW_APPROVAL_STATUS",
     "APPROVED_POLICY_VERSIONS",
     "getActiveIdxSource",
+    "getActiveVowSource",
 ]:
     if gate not in mls_scope_service and gate not in listing_service:
         errors.append(f"MLS integration is missing county/role activation gate: {gate}")
@@ -152,6 +173,13 @@ for disabled_gate in [
         errors.append(f"Production MLS scope must default disabled: {disabled_gate}")
 if 'VOW_REDIRECT_URI = "https://homeinstgeorgeutah.com/api/v1/auth/flexmls/callback"' not in wrangler:
     errors.append("Registered production VOW callback is missing from Worker configuration.")
+for vow_configuration in [
+    'WASHINGTON_VOW_CONTACT_URL = ""',
+    'IRON_VOW_CONTACT_URL = ""',
+    "VOW_TOKEN_ENCRYPTION_KEY",
+]:
+    if vow_configuration not in wrangler:
+        errors.append(f"VOW production configuration is missing: {vow_configuration}")
 if 'name = "LEAD_RATE_LIMITER"' not in wrangler:
     errors.append("Production lead rate-limit binding is missing.")
 
@@ -159,8 +187,31 @@ api_index = require(ROOT / "apps" / "api" / "src" / "index.ts")
 for control in ["requireApprovedWriteOrigin", "enforceLeadRateLimit", "readJsonBody", "verifyTurnstile"]:
     if control not in api_index:
         errors.append(f"Lead route is missing request protection: {control}")
-if "/api/v1/auth/flexmls/callback" not in api_index or "VOW_AUTHORIZATION_PENDING" not in api_index:
-    errors.append("VOW callback boundary is missing or does not fail closed while pending.")
+for route in [
+    "/api/v1/auth/flexmls/start",
+    "/api/v1/auth/flexmls/callback",
+    "/api/v1/session",
+    "/api/v1/session/logout",
+    "/api/v1/saved-homes",
+    "/api/v1/saved-searches",
+]:
+    if route not in api_index:
+        errors.append(f"Consumer account API route is missing: {route}")
+
+vow_auth_service = require(ROOT / "apps" / "api" / "src" / "services" / "vow-auth-service.ts")
+if "VOW_AUTHORIZATION_PENDING" not in api_index + vow_auth_service:
+    errors.append("VOW authorization does not fail closed while pending.")
+for control in [
+    "AES-GCM",
+    "__Host-hisgu_session",
+    "HttpOnly",
+    "Secure",
+    "SameSite=Lax",
+    "claimAttempt",
+    "tokenEncryptionKey",
+]:
+    if control not in vow_auth_service:
+        errors.append(f"VOW authorization service is missing security control: {control}")
 
 lead_service = require(ROOT / "apps" / "api" / "src" / "services" / "lead-service.ts")
 if ".batch(" not in lead_service or "coalesce(excluded.phone, contacts.phone)" not in lead_service:
@@ -200,6 +251,7 @@ required_dist_routes = [
     "terms/index.html",
     "accessibility/index.html",
     "homes/search/index.html",
+    "account/index.html",
 ]
 
 if DIST.exists():

@@ -25,6 +25,7 @@ export interface MlsScopeEnv {
   WASHINGTON_VOW_CLIENT_SECRET?: string;
   WASHINGTON_VOW_AUTHORIZATION_URL?: string;
   WASHINGTON_VOW_TOKEN_URL?: string;
+  WASHINGTON_VOW_CONTACT_URL?: string;
   WASHINGTON_VOW_MLS_ID?: string;
 
   IRON_IDX_APPROVAL_STATUS?: string;
@@ -41,10 +42,12 @@ export interface MlsScopeEnv {
   IRON_VOW_CLIENT_SECRET?: string;
   IRON_VOW_AUTHORIZATION_URL?: string;
   IRON_VOW_TOKEN_URL?: string;
+  IRON_VOW_CONTACT_URL?: string;
   IRON_VOW_MLS_ID?: string;
 
   VOW_REDIRECT_URI?: string;
   VOW_STATE_SECRET?: string;
+  VOW_TOKEN_ENCRYPTION_KEY?: string;
 }
 
 export const APPROVED_POLICY_VERSIONS = {
@@ -76,6 +79,20 @@ export type ActiveIdxSource = {
   provider: string;
   apiBaseUrl: string;
   accessToken: string;
+};
+
+export type ActiveVowSource = {
+  county: MlsCounty;
+  scopeKey: `${MlsCounty}-vow`;
+  authorizationUrl: string;
+  tokenUrl: string;
+  contactUrl: string;
+  clientId: string;
+  clientSecret: string;
+  mlsId: string | null;
+  redirectUri: string;
+  stateSecret: string;
+  tokenEncryptionKey: string;
 };
 
 const COUNTY_LABELS: Record<MlsCounty, string> = {
@@ -132,7 +149,8 @@ export function getMlsScopeState(
     role === "idx"
       ? Boolean(read(env, `${envPrefix}_PROVIDER`))
       : hasHttpsUrl(read(env, `${envPrefix}_AUTHORIZATION_URL`)) &&
-        hasHttpsUrl(read(env, `${envPrefix}_TOKEN_URL`));
+        hasHttpsUrl(read(env, `${envPrefix}_TOKEN_URL`)) &&
+        hasHttpsUrl(read(env, `${envPrefix}_CONTACT_URL`));
 
   const credentialsConfigured =
     role === "idx"
@@ -142,7 +160,8 @@ export function getMlsScopeState(
           read(env, `${envPrefix}_CLIENT_ID`) &&
             read(env, `${envPrefix}_CLIENT_SECRET`) &&
             hasHttpsUrl(env.VOW_REDIRECT_URI) &&
-            env.VOW_STATE_SECRET,
+            env.VOW_STATE_SECRET?.trim() &&
+            env.VOW_TOKEN_ENCRYPTION_KEY?.trim(),
         );
 
   return {
@@ -183,6 +202,29 @@ export function getActiveIdxSource(
     provider: read(env, `${envPrefix}_PROVIDER`) as string,
     apiBaseUrl: read(env, `${envPrefix}_API_BASE_URL`) as string,
     accessToken: read(env, `${envPrefix}_ACCESS_TOKEN`) as string,
+  };
+}
+
+export function getActiveVowSource(
+  env: MlsScopeEnv,
+  county: MlsCounty,
+): ActiveVowSource | null {
+  const state = getMlsScopeState(env, county, "vow");
+  if (!state.active) return null;
+
+  const envPrefix = prefix(county, "vow");
+  return {
+    county,
+    scopeKey: `${county}-vow`,
+    authorizationUrl: read(env, `${envPrefix}_AUTHORIZATION_URL`) as string,
+    tokenUrl: read(env, `${envPrefix}_TOKEN_URL`) as string,
+    contactUrl: read(env, `${envPrefix}_CONTACT_URL`) as string,
+    clientId: read(env, `${envPrefix}_CLIENT_ID`) as string,
+    clientSecret: read(env, `${envPrefix}_CLIENT_SECRET`) as string,
+    mlsId: read(env, `${envPrefix}_MLS_ID`) || null,
+    redirectUri: env.VOW_REDIRECT_URI?.trim() as string,
+    stateSecret: env.VOW_STATE_SECRET?.trim() as string,
+    tokenEncryptionKey: env.VOW_TOKEN_ENCRYPTION_KEY?.trim() as string,
   };
 }
 

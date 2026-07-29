@@ -37,6 +37,7 @@ WASHINGTON_VOW_POLICY_VERSION = ""
 WASHINGTON_VOW_CLIENT_ID = ""
 WASHINGTON_VOW_AUTHORIZATION_URL = ""
 WASHINGTON_VOW_TOKEN_URL = ""
+WASHINGTON_VOW_CONTACT_URL = ""
 WASHINGTON_VOW_MLS_ID = ""
 
 IRON_IDX_APPROVAL_STATUS = "pending"
@@ -51,6 +52,7 @@ IRON_VOW_POLICY_VERSION = ""
 IRON_VOW_CLIENT_ID = ""
 IRON_VOW_AUTHORIZATION_URL = ""
 IRON_VOW_TOKEN_URL = ""
+IRON_VOW_CONTACT_URL = ""
 IRON_VOW_MLS_ID = ""
 
 VOW_REDIRECT_URI = "https://homeinstgeorgeutah.com/api/v1/auth/flexmls/callback"
@@ -61,11 +63,13 @@ VOW_REDIRECT_URI = "https://homeinstgeorgeutah.com/api/v1/auth/flexmls/callback"
 # bunx wrangler secret put IRON_IDX_ACCESS_TOKEN --config apps/api/wrangler.toml
 # bunx wrangler secret put IRON_VOW_CLIENT_SECRET --config apps/api/wrangler.toml
 # bunx wrangler secret put VOW_STATE_SECRET --config apps/api/wrangler.toml
+# bunx wrangler secret put VOW_TOKEN_ENCRYPTION_KEY --config apps/api/wrangler.toml
 # bunx wrangler secret put TURNSTILE_SECRET_KEY --config apps/api/wrangler.toml
 # bunx wrangler secret put INTERNAL_JOB_TOKEN --config apps/api/wrangler.toml
 # bunx wrangler secret put EMAIL_DELIVERY_TOKEN --config apps/api/wrangler.toml
 #
-# Do not commit live tokens, API keys, client secrets, state secrets, or MLS credentials.
+# Do not commit live tokens, API keys, client secrets, state secrets, encryption keys,
+# session values, or MLS credentials.
 
 [[ratelimits]]
 name = "LEAD_RATE_LIMITER"

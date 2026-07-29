@@ -54,7 +54,7 @@ cat > "$fixture_dir/worker-deployment.json" <<JSON
 {"versions":[{"version_id":"$version_id"}]}
 JSON
 cat > "$fixture_dir/worker-secrets.json" <<'JSON'
-[{"name":"INTERNAL_JOB_TOKEN"},{"name":"TURNSTILE_SECRET_KEY"}]
+[{"name":"INTERNAL_JOB_TOKEN"},{"name":"TURNSTILE_SECRET_KEY"},{"name":"VOW_TOKEN_ENCRYPTION_KEY"}]
 JSON
 cat > "$fixture_dir/health.json" <<'JSON'
 {"ok":true,"data":{"service":"homeinstgeorgeutah-api","status":"ok"}}
