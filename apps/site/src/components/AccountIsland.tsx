@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 type County = "washington" | "iron";
 
@@ -11,37 +11,34 @@ type MlsScope = {
   active: boolean;
 };
 
+type Grant = {
+  scope_key: string;
+  status: string;
+  access_expires_at: string | null;
+  last_verified_at: string;
+};
+
 type AccountData = {
   authenticated: boolean;
   account?: {
     email: string;
     fullName: string | null;
     sessionExpiresAt: string;
-    grants: Array<{
-      scope_key: string;
-      status: string;
-      access_expires_at: string | null;
-      last_verified_at: string;
-    }>;
+    grants: Grant[];
   };
 };
 
 type SavedHome = {
   id: string;
   listing_id: string;
-  source_listing_key: string | null;
   county_key: County | null;
-  created_at: string;
 };
 
 type SavedSearch = {
   id: string;
   name: string;
-  county_key: County | null;
   query_json: string;
   alert_frequency: string;
-  status: string;
-  created_at: string;
 };
 
 type ApiResponse<T> = {
@@ -55,11 +52,15 @@ const countyLabels: Record<County, string> = {
   iron: "Iron County",
 };
 
-async function api<T>(url: string, init?: RequestInit) {
-  const response = await fetch(url, {
-    headers: { accept: "application/json", ...init?.headers },
-    ...init,
-  });
+const inputClassName =
+  "min-h-12 border border-stone-300 bg-white px-3 text-base normal-case tracking-normal text-[var(--brand-ink)]";
+const labelClassName =
+  "grid gap-2 text-xs font-bold uppercase tracking-[0.12em] text-stone-600";
+
+async function api<T>(url: string, init: RequestInit = {}) {
+  const headers = new Headers(init.headers);
+  if (!headers.has("accept")) headers.set("accept", "application/json");
+  const response = await fetch(url, { ...init, headers });
   const payload = (await response.json().catch(() => ({}))) as ApiResponse<T>;
   if (!response.ok || payload.ok === false) {
     throw new Error(payload.error?.message || "The account request failed.");
@@ -88,21 +89,21 @@ export default function AccountIsland() {
   const [feedback, setFeedback] = useState("");
   const [saving, setSaving] = useState(false);
 
-  async function refreshAccount() {
+  const refreshAccount = useCallback(async () => {
     const session = await api<AccountData>("/api/v1/account/session");
     setAccount(session);
-    if (session.authenticated) {
-      const [homes, searches] = await Promise.all([
-        api<SavedHome[]>("/api/v1/account/saved-homes"),
-        api<SavedSearch[]>("/api/v1/account/saved-searches"),
-      ]);
-      setSavedHomes(homes);
-      setSavedSearches(searches);
-    } else {
+    if (!session.authenticated) {
       setSavedHomes([]);
       setSavedSearches([]);
+      return;
     }
-  }
+    const [homes, searches] = await Promise.all([
+      api<SavedHome[]>("/api/v1/account/saved-homes"),
+      api<SavedSearch[]>("/api/v1/account/saved-searches"),
+    ]);
+    setSavedHomes(homes);
+    setSavedSearches(searches);
+  }, []);
 
   useEffect(() => {
     async function load() {
@@ -127,7 +128,7 @@ export default function AccountIsland() {
       }
     }
     load();
-  }, []);
+  }, [refreshAccount]);
 
   async function logout() {
     setSaving(true);
@@ -175,37 +176,21 @@ export default function AccountIsland() {
     }
   }
 
-  async function removeSavedHome(id: string) {
+  async function removeItem(type: "saved-homes" | "saved-searches", id: string) {
     setSaving(true);
+    setFeedback("");
     try {
-      await api(`/api/v1/account/saved-homes/${encodeURIComponent(id)}`, {
+      await api(`/api/v1/account/${type}/${encodeURIComponent(id)}`, {
         method: "DELETE",
       });
       await refreshAccount();
-      setFeedback("Saved home removed.");
+      setFeedback(type === "saved-homes" ? "Saved home removed." : "Saved search removed.");
     } catch (error) {
-      setFeedback(error instanceof Error ? error.message : "Saved home could not be removed.");
+      setFeedback(error instanceof Error ? error.message : "The saved item could not be removed.");
     } finally {
       setSaving(false);
     }
   }
-
-  async function removeSavedSearch(id: string) {
-    setSaving(true);
-    try {
-      await api(`/api/v1/account/saved-searches/${encodeURIComponent(id)}`, {
-        method: "DELETE",
-      });
-      await refreshAccount();
-      setFeedback("Saved search removed.");
-    } catch (error) {
-      setFeedback(error instanceof Error ? error.message : "Saved search could not be removed.");
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  const vowScopes = scopes.filter((scope) => scope.role === "vow");
 
   if (loading) {
     return (
@@ -214,6 +199,11 @@ export default function AccountIsland() {
       </div>
     );
   }
+
+  const vowScopes = scopes.filter((scope) => scope.role === "vow");
+  const authorizedCounties = (account.account?.grants || []).map((grant) =>
+    grant.scope_key.startsWith("iron") ? "iron" : "washington",
+  ) as County[];
 
   return (
     <div className="grid gap-8">
@@ -235,7 +225,7 @@ export default function AccountIsland() {
             Authorize the county scope you use.
           </h2>
           <p className="mt-4 max-w-3xl leading-7 text-stone-600">
-            Each county authorization is independent. Signing in does not activate another county or expose restricted data outside the approved scope.
+            Washington County and Iron County permissions are independent. An inactive scope remains unavailable even when another county is authorized.
           </p>
           <div className="mt-7 grid gap-4 sm:grid-cols-2">
             {(["washington", "iron"] as County[]).map((county) => {
@@ -249,13 +239,8 @@ export default function AccountIsland() {
                   Continue with {countyLabels[county]}
                 </a>
               ) : (
-                <div
-                  key={county}
-                  className="border border-stone-300 bg-stone-50 px-5 py-4"
-                >
-                  <p className="font-semibold text-[var(--brand-ink)]">
-                    {countyLabels[county]}
-                  </p>
+                <div key={county} className="border border-stone-300 bg-stone-50 px-5 py-4">
+                  <p className="font-semibold text-[var(--brand-ink)]">{countyLabels[county]}</p>
                   <p className="mt-1 text-sm text-stone-600">
                     Account authorization is not active yet.
                   </p>
@@ -307,7 +292,7 @@ export default function AccountIsland() {
                       <button
                         type="button"
                         disabled={saving}
-                        onClick={() => removeSavedHome(home.id)}
+                        onClick={() => removeItem("saved-homes", home.id)}
                         className="mt-3 min-h-10 text-sm font-bold text-[var(--brand-ink)] underline underline-offset-4 disabled:opacity-50"
                       >
                         Remove
@@ -336,7 +321,7 @@ export default function AccountIsland() {
                       <button
                         type="button"
                         disabled={saving}
-                        onClick={() => removeSavedSearch(search.id)}
+                        onClick={() => removeItem("saved-searches", search.id)}
                         className="mt-3 min-h-10 text-sm font-bold text-[var(--brand-ink)] underline underline-offset-4 disabled:opacity-50"
                       >
                         Remove
@@ -352,32 +337,35 @@ export default function AccountIsland() {
             onSubmit={createSavedSearch}
             className="border border-stone-200 bg-white p-6 sm:p-8"
           >
-            <h2 className="text-2xl font-semibold text-[var(--brand-ink)]">Create a saved search</h2>
+            <h2 className="text-2xl font-semibold text-[var(--brand-ink)]">
+              Create a saved search
+            </h2>
             <div className="mt-6 grid gap-5 md:grid-cols-2 lg:grid-cols-5">
-              <label className="grid gap-2 text-xs font-bold uppercase tracking-[0.12em] text-stone-600">
+              <label className={labelClassName}>
                 County
-                <select name="county" className="min-h-12 border border-stone-300 bg-white px-3 text-base normal-case tracking-normal" required>
-                  {account.account?.grants.map((grant) => {
-                    const county = grant.scope_key.startsWith("iron") ? "iron" : "washington";
-                    return <option key={grant.scope_key} value={county}>{countyLabels[county]}</option>;
-                  })}
+                <select name="county" className={inputClassName} required>
+                  {authorizedCounties.map((county) => (
+                    <option key={county} value={county}>
+                      {countyLabels[county]}
+                    </option>
+                  ))}
                 </select>
               </label>
-              <label className="grid gap-2 text-xs font-bold uppercase tracking-[0.12em] text-stone-600">
+              <label className={labelClassName}>
                 Name
-                <input name="name" className="min-h-12 border border-stone-300 px-3 text-base normal-case tracking-normal" required />
+                <input name="name" className={inputClassName} required />
               </label>
-              <label className="grid gap-2 text-xs font-bold uppercase tracking-[0.12em] text-stone-600">
+              <label className={labelClassName}>
                 Keyword
-                <input name="q" className="min-h-12 border border-stone-300 px-3 text-base normal-case tracking-normal" />
+                <input name="q" className={inputClassName} />
               </label>
-              <label className="grid gap-2 text-xs font-bold uppercase tracking-[0.12em] text-stone-600">
+              <label className={labelClassName}>
                 Maximum price
-                <input name="maxPrice" inputMode="numeric" className="min-h-12 border border-stone-300 px-3 text-base normal-case tracking-normal" />
+                <input name="maxPrice" inputMode="numeric" className={inputClassName} />
               </label>
-              <label className="grid gap-2 text-xs font-bold uppercase tracking-[0.12em] text-stone-600">
+              <label className={labelClassName}>
                 Alerts
-                <select name="alertFrequency" className="min-h-12 border border-stone-300 bg-white px-3 text-base normal-case tracking-normal">
+                <select name="alertFrequency" className={inputClassName}>
                   <option value="daily">Daily</option>
                   <option value="weekly">Weekly</option>
                   <option value="off">Off</option>
@@ -386,7 +374,7 @@ export default function AccountIsland() {
             </div>
             <button
               type="submit"
-              disabled={saving}
+              disabled={saving || authorizedCounties.length === 0}
               className="mt-6 min-h-13 bg-[var(--brand-ink)] px-7 text-sm font-bold uppercase tracking-[0.12em] text-white disabled:opacity-50"
             >
               Save search
