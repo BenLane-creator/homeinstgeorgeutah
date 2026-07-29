@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 type ScopeState = {
   key: string;
@@ -77,7 +77,7 @@ export default function ConsumerAccountIsland() {
   const [homes, setHomes] = useState<SavedHome[]>([]);
   const [searches, setSearches] = useState<SavedSearch[]>([]);
 
-  async function load() {
+  const load = useCallback(async () => {
     setLoadState("loading");
     setMessage("");
     try {
@@ -109,11 +109,11 @@ export default function ConsumerAccountIsland() {
       );
       setLoadState("error");
     }
-  }
+  }, []);
 
   useEffect(() => {
     load();
-  }, []);
+  }, [load]);
 
   const activeScopes = useMemo(
     () => new Set(scopes.filter((scope) => scope.active).map((scope) => scope.key)),
