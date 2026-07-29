@@ -98,10 +98,16 @@ preflight_requirements = [
     "wrangler secret list",
     "/api/health",
     "/api/mls-status",
+    "/api/v1/session",
 ]
 for requirement in preflight_requirements:
     if requirement not in preflight:
         raise SystemExit(f"Production preflight is missing: {requirement}")
+
+if "/api/v1/auth/flexmls/start" in preflight:
+    raise SystemExit(
+        "Read-only production preflight must not invoke the stateful VOW authorization start route."
+    )
 
 prohibited_command_patterns = {
     "wrangler deploy": r"\bwrangler\s+deploy(?:\s|\\)",
@@ -145,6 +151,7 @@ for phrase in [
     "VOW_TOKEN_ENCRYPTION_KEY",
     "washington-idx",
     "iron-vow",
+    "anonymousAccountSession",
 ]:
     if phrase not in preflight_helper:
         raise SystemExit(f"Production preflight verifier is missing: {phrase}")

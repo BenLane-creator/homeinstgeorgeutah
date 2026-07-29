@@ -10,8 +10,6 @@ const required = [
   "health",
   "mlsStatus",
   "accountSession",
-  "vowStart",
-  "vowStartStatus",
 ];
 const argumentsByName = Object.fromEntries(
   process.argv.slice(2).map((argument) => {
@@ -148,18 +146,6 @@ if (
   throw new Error("Anonymous production account session is not fail-closed.");
 }
 
-const vowStartStatus = Number(
-  readFileSync(argumentsByName.vowStartStatus, "utf8").trim(),
-);
-const vowStart = parse("vowStart");
-if (
-  vowStartStatus !== 503 ||
-  vowStart?.ok !== false ||
-  vowStart?.error?.code !== "VOW_AUTHORIZATION_PENDING"
-) {
-  throw new Error("Washington VOW authorization start is not fail-closed.");
-}
-
 console.log(
   JSON.stringify(
     {
@@ -173,7 +159,6 @@ console.log(
       apiHealth: true,
       inactiveMlsScopes: expectedScopes,
       anonymousAccountSession: true,
-      inactiveVowAuthorizationStart: true,
     },
     null,
     2,

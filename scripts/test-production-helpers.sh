@@ -65,10 +65,6 @@ JSON
 cat > "$fixture_dir/account-session.json" <<'JSON'
 {"ok":true,"data":{"authenticated":false,"account":null}}
 JSON
-cat > "$fixture_dir/vow-start.json" <<'JSON'
-{"ok":false,"error":{"code":"VOW_AUTHORIZATION_PENDING","message":"Consumer account access is not active while MLS authorization remains pending."}}
-JSON
-printf '503' > "$fixture_dir/vow-start-status.txt"
 
 CLOUDFLARE_ACCOUNT_ID=test-account D1_DATABASE=homeinstgeorgeutah \
   bun scripts/verify-production-preflight.mjs \
@@ -81,8 +77,6 @@ CLOUDFLARE_ACCOUNT_ID=test-account D1_DATABASE=homeinstgeorgeutah \
     --health="$fixture_dir/health.json" \
     --mlsStatus="$fixture_dir/mls-status.json" \
     --accountSession="$fixture_dir/account-session.json" \
-    --vowStart="$fixture_dir/vow-start.json" \
-    --vowStartStatus="$fixture_dir/vow-start-status.txt" \
     > "$fixture_dir/preflight-result.json"
 
 echo "Production release helper fixtures passed."
