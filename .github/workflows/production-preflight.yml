@@ -87,6 +87,15 @@ jobs:
           curl --fail-with-body --silent --show-error \
             --retry 2 --connect-timeout 10 --max-time 30 \
             https://homeinstgeorgeutah.com/api/mls-status > /tmp/mls-status.json
+          curl --fail-with-body --silent --show-error \
+            --retry 2 --connect-timeout 10 --max-time 30 \
+            https://homeinstgeorgeutah.com/api/v1/session > /tmp/account-session.json
+          curl --silent --show-error \
+            --retry 2 --connect-timeout 10 --max-time 30 \
+            --output /tmp/vow-start.json \
+            --write-out '%{http_code}' \
+            'https://homeinstgeorgeutah.com/api/v1/auth/flexmls/start?county=washington' \
+            > /tmp/vow-start-status.txt
 
       - name: Verify production evidence
         shell: bash
@@ -103,6 +112,9 @@ jobs:
             --workerSecrets=/tmp/worker-secrets.json \
             --health=/tmp/api-health.json \
             --mlsStatus=/tmp/mls-status.json \
+            --accountSession=/tmp/account-session.json \
+            --vowStart=/tmp/vow-start.json \
+            --vowStartStatus=/tmp/vow-start-status.txt \
             | tee /tmp/production-preflight-result.json
 
       - name: Record read-only result
@@ -116,6 +128,7 @@ jobs:
             echo "- Worker deployment and approved secret-name inventory verified"
             echo "- Root-domain API route verified"
             echo "- Washington and Iron IDX/VOW scopes confirmed disabled"
+            echo "- Consumer session is anonymous and Washington VOW authorization start fails closed"
             echo
-            echo "No backup, migration apply, D1 write, Worker deploy, Pages deploy, route change, secret change, DNS change, form submission, or MLS activation was performed."
+            echo "No backup, migration apply, D1 write, Worker deploy, Pages deploy, route change, secret change, DNS change, form submission, account creation, or MLS activation was performed."
           } >> "$GITHUB_STEP_SUMMARY"
