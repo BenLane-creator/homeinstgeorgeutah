@@ -46,7 +46,19 @@ jobs:
         run: bash scripts/test-d1-migrations.sh
 
       - name: Validate Worker bundle without deploying
-        run: bunx wrangler deploy --dry-run --config apps/api/wrangler.toml --outdir /tmp/homeinstgeorgeutah-worker
+        shell: bash
+        run: |
+          set -euo pipefail
+          secrets_file="$(mktemp)"
+          trap 'rm -f "$secrets_file"' EXIT
+          printf '{"INTERNAL_JOB_TOKEN":"dry-run-only","TURNSTILE_SECRET_KEY":"dry-run-only"}\n' \
+            > "$secrets_file"
+          chmod 600 "$secrets_file"
+          bunx wrangler deploy \
+            --dry-run \
+            --config apps/api/wrangler.toml \
+            --secrets-file "$secrets_file" \
+            --outdir /tmp/homeinstgeorgeutah-worker
 
       - name: Audit high-severity dependency findings
         run: bun audit --audit-level=high
