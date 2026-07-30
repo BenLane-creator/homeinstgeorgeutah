@@ -5,10 +5,13 @@ on:
   push:
     branches:
       - main
-      - agent/mobile-first-luxury-hero
 
 permissions:
   contents: read
+
+concurrency:
+  group: release-qa-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   production-readiness:
