@@ -34,6 +34,35 @@ bun scripts/verify-production-deployment.mjs \
   "$fixture_dir/deployment.json" \
   > "$fixture_dir/deployment-result.json"
 
+cat > "$fixture_dir/workers-present.json" <<'JSON'
+{"success":true,"result":[{"id":"homeinstgeorgeutah-api"},{"id":"homeinstgeorgeutah-email-worker"}]}
+JSON
+bun scripts/verify-worker-bootstrap-state.mjs \
+  homeinstgeorgeutah-api \
+  "$fixture_dir/workers-present.json" \
+  > "$fixture_dir/worker-present-state.json"
+grep -Fq '"exists": true' "$fixture_dir/worker-present-state.json"
+
+cat > "$fixture_dir/workers-absent.json" <<'JSON'
+{"success":true,"result":[{"id":"homeinstgeorgeutah-email-worker"}]}
+JSON
+bun scripts/verify-worker-bootstrap-state.mjs \
+  homeinstgeorgeutah-api \
+  "$fixture_dir/workers-absent.json" \
+  > "$fixture_dir/worker-absent-state.json"
+grep -Fq '"exists": false' "$fixture_dir/worker-absent-state.json"
+
+cat > "$fixture_dir/workers-invalid.json" <<'JSON'
+{"success":false,"errors":[{"code":10000,"message":"unauthorized"}]}
+JSON
+if bun scripts/verify-worker-bootstrap-state.mjs \
+  homeinstgeorgeutah-api \
+  "$fixture_dir/workers-invalid.json" \
+  > /dev/null 2>&1; then
+  echo "Invalid Cloudflare Worker inventory should fail closed." >&2
+  exit 1
+fi
+
 cat > "$fixture_dir/wrangler.toml" <<'TOML'
 account_id = "test-account"
 [[d1_databases]]
