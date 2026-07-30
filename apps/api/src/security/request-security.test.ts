@@ -4,6 +4,7 @@ import {
   enforceLeadRateLimit,
   readJsonBody,
   validateAndMinimizeLeadBody,
+  verifyTurnstile,
 } from "./request-security";
 
 describe("write origin policy", () => {
@@ -82,5 +83,126 @@ describe("lead request protection", () => {
     expect(result).not.toHaveProperty("turnstileToken");
     expect(result).not.toHaveProperty("unexpected");
     expect(result.details).toEqual({ movingFrom: "Colorado" });
+  });
+});
+
+describe("Turnstile siteverify", () => {
+  const request = new Request("https://homeinstgeorgeutah.com/api/v1/leads/intake", {
+    method: "POST",
+    headers: { "cf-connecting-ip": "203.0.113.10" },
+  });
+  const env = {
+    APP_ENV: "production",
+    TURNSTILE_SECRET_KEY: "test-secret",
+    TURNSTILE_HOSTNAMES:
+      "homeinstgeorgeutah.com,www.homeinstgeorgeutah.com",
+    TURNSTILE_EXPECTED_ACTION: "turnstile-spin-v2",
+  };
+
+  test("posts the token and client IP to canonical siteverify", async () => {
+    const originalFetch = globalThis.fetch;
+    let capturedUrl = "";
+    let capturedBody = "";
+
+    globalThis.fetch = async (input, init) => {
+      capturedUrl = String(input);
+      capturedBody = String(init?.body || "");
+      return new Response(
+        JSON.stringify({
+          success: true,
+          action: "turnstile-spin-v2",
+          hostname: "homeinstgeorgeutah.com",
+        }),
+        { status: 200, headers: { "content-type": "application/json" } },
+      );
+    };
+
+    try {
+      await verifyTurnstile(request, env, { turnstileToken: "token-value" });
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+
+    expect(capturedUrl).toBe(
+      "https://challenges.cloudflare.com/turnstile/v0/siteverify",
+    );
+    const payload = new URLSearchParams(capturedBody);
+    expect(payload.get("secret")).toBe("test-secret");
+    expect(payload.get("response")).toBe("token-value");
+    expect(payload.get("remoteip")).toBe("203.0.113.10");
+  });
+
+  test("rejects a successful response with the wrong action", async () => {
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = async () =>
+      new Response(
+        JSON.stringify({
+          success: true,
+          action: "different-action",
+          hostname: "homeinstgeorgeutah.com",
+        }),
+        { status: 200 },
+      );
+
+    try {
+      await expect(
+        verifyTurnstile(request, env, { turnstileToken: "token-value" }),
+      ).rejects.toMatchObject({ status: 400, code: "TURNSTILE_FAILED" });
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  test("rejects a successful response from an unapproved hostname", async () => {
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = async () =>
+      new Response(
+        JSON.stringify({
+          success: true,
+          action: "turnstile-spin-v2",
+          hostname: "preview.example.com",
+        }),
+        { status: 200 },
+      );
+
+    try {
+      await expect(
+        verifyTurnstile(request, env, { turnstileToken: "token-value" }),
+      ).rejects.toMatchObject({ status: 400, code: "TURNSTILE_FAILED" });
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  test("fails closed when hostname configuration is absent", async () => {
+    await expect(
+      verifyTurnstile(
+        request,
+        {
+          APP_ENV: "production",
+          TURNSTILE_SECRET_KEY: "test-secret",
+          TURNSTILE_EXPECTED_ACTION: "turnstile-spin-v2",
+        },
+        { turnstileToken: "token-value" },
+      ),
+    ).rejects.toMatchObject({
+      status: 503,
+      code: "LEAD_PROTECTION_NOT_CONFIGURED",
+    });
+  });
+
+  test("fails closed when siteverify is unavailable", async () => {
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = async () => {
+      throw new Error("network unavailable");
+    };
+
+    try {
+      await expect(
+        verifyTurnstile(request, env, { turnstileToken: "token-value" }),
+      ).rejects.toMatchObject({ status: 502, code: "TURNSTILE_UNAVAILABLE" });
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
   });
 });

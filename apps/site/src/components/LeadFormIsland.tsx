@@ -2,6 +2,14 @@ import { site } from "@home/config/site";
 import { motion } from "motion/react";
 import { useRef, useState } from "react";
 
+declare global {
+  interface Window {
+    turnstile?: {
+      reset(widget?: HTMLElement | string): void;
+    };
+  }
+}
+
 type Status = "idle" | "submitting" | "success" | "error";
 
 type LeadFormVariant =
@@ -34,6 +42,7 @@ export default function LeadFormIsland({
   const [status, setStatus] = useState<Status>("idle");
   const [feedback, setFeedback] = useState("");
   const submissionIdRef = useRef<string | null>(null);
+  const turnstileRef = useRef<HTMLDivElement | null>(null);
   const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY as
     | string
     | undefined;
@@ -135,6 +144,10 @@ export default function LeadFormIsland({
       setFeedback(
         "We could not send your request. Please try again or call Joel directly.",
       );
+    } finally {
+      if (turnstileRef.current) {
+        window.turnstile?.reset(turnstileRef.current);
+      }
     }
   }
 
@@ -144,7 +157,7 @@ export default function LeadFormIsland({
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
       onSubmit={submit}
-      className="border border-stone-200 bg-white p-6 shadow-xl shadow-stone-900/5 sm:p-8"
+      className="border border-stone-200 bg-white px-4 py-6 shadow-xl shadow-stone-900/5 sm:p-8"
       aria-describedby="lead-form-status"
     >
       <div className="mb-6">
@@ -307,8 +320,11 @@ export default function LeadFormIsland({
 
         {turnstileSiteKey && (
           <div
+            ref={turnstileRef}
             className="cf-turnstile"
             data-sitekey={turnstileSiteKey}
+            data-action="turnstile-spin-v2"
+            data-size="flexible"
             data-theme="light"
           />
         )}

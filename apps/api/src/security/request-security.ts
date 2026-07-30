@@ -2,6 +2,8 @@ export interface LeadSecurityEnv {
   APP_ENV?: string;
   API_WRITE_ORIGINS?: string;
   TURNSTILE_SECRET_KEY?: string;
+  TURNSTILE_HOSTNAMES?: string;
+  TURNSTILE_EXPECTED_ACTION?: string;
   LEAD_RATE_LIMITER?: {
     limit(input: { key: string }): Promise<{ success: boolean }>;
   };
@@ -18,6 +20,7 @@ export class RequestSecurityError extends Error {
 }
 
 const MAX_BODY_BYTES = 24_576;
+const DEFAULT_TURNSTILE_ACTION = "turnstile-spin-v2";
 
 export function parseAllowedOrigins(env: LeadSecurityEnv) {
   return (env.API_WRITE_ORIGINS || "")
@@ -299,6 +302,27 @@ export function validateAndMinimizeLeadBody(body: Record<string, unknown>) {
   };
 }
 
+function turnstileConfiguration(env: LeadSecurityEnv) {
+  const expectedAction =
+    asString(env.TURNSTILE_EXPECTED_ACTION) || DEFAULT_TURNSTILE_ACTION;
+  const allowedHostnames = new Set(
+    (env.TURNSTILE_HOSTNAMES || "")
+      .split(",")
+      .map((hostname) => hostname.trim().toLowerCase())
+      .filter(Boolean),
+  );
+
+  if (!expectedAction || allowedHostnames.size === 0) {
+    throw new RequestSecurityError(
+      503,
+      "LEAD_PROTECTION_NOT_CONFIGURED",
+      "Lead intake is temporarily unavailable.",
+    );
+  }
+
+  return { expectedAction, allowedHostnames };
+}
+
 export async function verifyTurnstile(
   request: Request,
   env: LeadSecurityEnv,
@@ -325,6 +349,7 @@ export async function verifyTurnstile(
     );
   }
 
+  const { expectedAction, allowedHostnames } = turnstileConfiguration(env);
   const payload = new URLSearchParams({
     secret: env.TURNSTILE_SECRET_KEY,
     response: token,
@@ -332,11 +357,26 @@ export async function verifyTurnstile(
   const remoteIp = getClientIp(request);
   if (remoteIp) payload.set("remoteip", remoteIp);
 
-  const response = await fetch(
-    "https://challenges.cloudflare.com/turnstile/v0/siteverify",
-    { method: "POST", body: payload, signal: AbortSignal.timeout(5_000) },
-  );
-  if (!response.ok) {
+  let result: {
+    success?: boolean;
+    action?: string;
+    hostname?: string;
+    "error-codes"?: string[];
+  };
+
+  try {
+    const response = await fetch(
+      "https://challenges.cloudflare.com/turnstile/v0/siteverify",
+      {
+        method: "POST",
+        headers: { "content-type": "application/x-www-form-urlencoded" },
+        body: payload,
+        signal: AbortSignal.timeout(5_000),
+      },
+    );
+    if (!response.ok) throw new Error(`siteverify ${response.status}`);
+    result = (await response.json()) as typeof result;
+  } catch {
     throw new RequestSecurityError(
       502,
       "TURNSTILE_UNAVAILABLE",
@@ -344,8 +384,12 @@ export async function verifyTurnstile(
     );
   }
 
-  const result = (await response.json()) as { success?: boolean };
-  if (result.success !== true) {
+  const hostname = asString(result.hostname).toLowerCase();
+  if (
+    result.success !== true ||
+    result.action !== expectedAction ||
+    !allowedHostnames.has(hostname)
+  ) {
     throw new RequestSecurityError(
       400,
       "TURNSTILE_FAILED",
