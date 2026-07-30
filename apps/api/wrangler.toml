@@ -12,9 +12,10 @@ routes = [
 enabled = true
 
 [triggers]
-# Safe while MLS gates are pending: source sync records a skipped run and never
-# contacts an MLS provider until that county's full activation contract passes.
-crons = ["*/5 * * * *"]
+# Lead delivery is attempted immediately with waitUntil. This lower-frequency
+# schedule is recovery-only while MLS scopes remain inactive, reducing idle
+# invocations without weakening fail-closed source synchronization.
+crons = ["*/30 * * * *"]
 
 [vars]
 APP_ENV = "production"

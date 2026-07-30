@@ -1,38 +1,106 @@
 # Deployment Plan
 
-## Phase 0: backup and staging
+## Release doctrine
 
-1. Keep a complete backup of the current source ZIP before each optimization pass.
-2. Keep a rollback copy of the current production site and DNS configuration.
-3. Use staging on Cloudflare/benlane.us until redirects, MLS compliance, forms, and API routes are verified.
+Production changes are made only from an immutable SHA already contained in `main`.
 
-## Phase 1: Cloudflare source of truth setup
+The manual release workflow is authoritative for the approved production release. A Git-connected Cloudflare Pages source must not independently overwrite that release; verify or disable automatic production deployment before proceeding.
 
-1. Deploy `apps/site` to Cloudflare Pages.
-2. Deploy `apps/api` to Cloudflare Workers.
-3. Create the Cloudflare D1 database.
-4. Apply `packages/db/migrations/0001_foundation.sql`.
-5. Replace the placeholder D1 database id in `apps/api/wrangler.toml`.
-6. Set Worker secrets for Spark® / RESO and Turnstile.
+A foundation deployment keeps indexing and all Washington/Iron IDX/VOW scopes disabled. Live MLS activation is a separate approved change.
 
-## Phase 2: launch custom public shell
+## 1. Qualify the release SHA
 
-1. Deploy static pages, neighborhoods, buyer/seller/relocation pages, and `/homes/search/` shell.
-2. Verify canonical URLs, sitemap, robots.txt, schema, and redirects all use `homeinstgeorgeutah.com`.
-3. Run Playwright smoke tests and route audits.
-4. Verify lead forms post to the Worker API and persist in D1.
+1. Merge reviewed repository changes to `main`.
+2. Record the full 40-character SHA.
+3. Require Release QA to pass on that exact SHA.
+4. Resolve all actionable review threads.
+5. Confirm `docs/operations/prelaunch-go-no-go.md` accurately reflects the intended release state.
 
-## Phase 3: MLS search activation
+## 2. Run read-only production preflight
 
-1. Confirm Washington County BOR IDX permissions and Spark® / RESO credentials.
-2. Implement provider adapter normalization behind the Source Layer.
-3. Apply compliance display rules before exposing fields or media.
-4. Add search results, property detail pages, attribution, disclaimers, and update timestamp display.
-5. Add saved homes/searches only through first-party account logic.
+Dispatch `.github/workflows/production-preflight.yml` and require it to verify:
 
-## Phase 4: downstream utilities
+- Cloudflare account identity
+- Committed D1 database name and UUID
+- Complete remote migration ledger
+- Contact-email integrity
+- Existing Worker deployment and approved secret-name inventory
+- Root-domain API routing
+- Anonymous consumer session state
+- All four IDX/VOW scopes inactive
 
-1. Add CRM sync jobs as downstream mirrors only.
-2. Add booking handoff creation only after routing decisions are made internally.
-3. Add email/SMS delivery infrastructure without moving canonical records out of D1.
-4. Add reporting exports from owned D1 data.
+The preflight performs no D1 write, deployment, secret change, route change, account creation, or MLS activation.
+
+## 3. Configure required production utilities
+
+Before lead operations are approved:
+
+- `CLOUDFLARE_API_TOKEN`
+- `CLOUDFLARE_ACCOUNT_ID`
+- `BACKUP_ENCRYPTION_PASSPHRASE`
+- `INTERNAL_JOB_TOKEN`
+- `TURNSTILE_SECRET_KEY`
+- approved `EMAIL_DELIVERY_WEBHOOK_URL`
+- `EMAIL_DELIVERY_TOKEN` when required by the delivery utility
+
+Do not configure MLS credentials or enable flags until the corresponding authorization and policy contract is approved.
+
+## 4. Dispatch the foundation release
+
+Use `.github/workflows/production-release.yml` with:
+
+- the approved immutable SHA;
+- the exact existing Pages project name;
+- Worker bootstrap approval only when Cloudflare confirms the Worker does not exist;
+- the exact confirmation phrase.
+
+The workflow must complete in this order:
+
+1. full release gates;
+2. Cloudflare account/project/secret validation;
+3. D1 identity and integrity evidence;
+4. encrypted D1 backup and local restore drill;
+5. remote migration apply and ledger verification;
+6. fail-closed bootstrap Worker when required;
+7. Worker and Pages deploy from the same SHA;
+8. deployment metadata verification;
+9. production route and disabled-MLS smoke tests;
+10. encrypted evidence upload.
+
+## 5. Controlled lead verification
+
+After deployment, submit one approved test lead through the real production form with valid consent and Turnstile.
+
+Verify exactly one:
+
+- contact;
+- attribution session;
+- property context;
+- lead event;
+- routing decision;
+- intake/idempotency record;
+- notification outbox record;
+- delivered owner notification.
+
+Reuse the same submission identifier and confirm no duplicate records or notifications are created.
+
+## 6. Rollback readiness
+
+Record the prior Pages SHA, prior Worker version, D1 Time Travel bookmark, encrypted backup hash, operator, and UTC timestamps.
+
+Use `.github/workflows/production-rollback.yml` for application rollback. It must not automatically restore D1. D1 restoration requires a separate incident decision and approved procedure.
+
+## 7. Final launch and MLS activation
+
+Do not enable indexing or any IDX/VOW scope during the foundation release.
+
+Final launch additionally requires:
+
+- executed Washington and Iron authorization;
+- exact policy versions and provider configuration;
+- approved credentials in Worker secrets;
+- encoded display/media/attribution/cache rules;
+- controlled county-specific tests;
+- first-party property/account capabilities required by the Final Website Project;
+- broker/legal and technical-owner signoff;
+- a separate indexing release that changes both metadata and `robots.txt` deliberately.
