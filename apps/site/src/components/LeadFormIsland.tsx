@@ -324,6 +324,7 @@ export default function LeadFormIsland({
             className="cf-turnstile"
             data-sitekey={turnstileSiteKey}
             data-action="turnstile-spin-v2"
+            data-size="flexible"
             data-theme="light"
           />
         )}
