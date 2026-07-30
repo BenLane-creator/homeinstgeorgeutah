@@ -71,6 +71,9 @@ VOW_REDIRECT_URI = "https://homeinstgeorgeutah.com/api/v1/auth/flexmls/callback"
 # Do not commit live tokens, API keys, client secrets, state secrets, encryption keys,
 # session values, or MLS credentials.
 
+[secrets]
+required = ["INTERNAL_JOB_TOKEN", "TURNSTILE_SECRET_KEY"]
+
 [[ratelimits]]
 name = "LEAD_RATE_LIMITER"
 namespace_id = "7731220"
