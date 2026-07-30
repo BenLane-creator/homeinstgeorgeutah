@@ -38,6 +38,7 @@ jobs:
       CI: "true"
       WRANGLER_SEND_METRICS: "false"
       WORKER_CONFIG: apps/api/wrangler.toml
+      BOOTSTRAP_WORKER_CONFIG: apps/api/wrangler.bootstrap.toml
       WORKER_NAME: homeinstgeorgeutah-api
       D1_DATABASE: homeinstgeorgeutah
       RELEASE_SHA: ${{ inputs.release_sha }}
@@ -239,6 +240,33 @@ jobs:
           bunx wrangler d1 time-travel info "$D1_DATABASE" --config "$WORKER_CONFIG" --json \
             > release-evidence/d1-bookmark-after.json
 
+      - name: Establish fail-closed rollback version for first Worker deployment
+        if: env.WORKER_PREEXISTING == 'false'
+        shell: bash
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+          WRANGLER_OUTPUT_FILE_PATH=release-evidence/bootstrap-worker-deploy.ndjson \
+            bunx wrangler deploy --config "$BOOTSTRAP_WORKER_CONFIG" --strict \
+              --tag "bootstrap-unavailable-$RELEASE_SHA" \
+              --message "bootstrap-unavailable release-sha:$RELEASE_SHA"
+          bunx wrangler deployments status --name "$WORKER_NAME" --config "$BOOTSTRAP_WORKER_CONFIG" --json \
+            > release-evidence/bootstrap-worker-deployment.json
+          bunx wrangler versions list --name "$WORKER_NAME" --config "$BOOTSTRAP_WORKER_CONFIG" --json \
+            > release-evidence/bootstrap-worker-versions.json
+          RELEASE_SHA="$RELEASE_SHA" bun -e '
+            import { readFileSync, writeFileSync } from "node:fs";
+            const deployment = JSON.parse(readFileSync("release-evidence/bootstrap-worker-deployment.json", "utf8"));
+            const versionId = deployment?.versions?.[0]?.version_id;
+            if (!versionId) throw new Error("Bootstrap Worker deployment did not expose an active version ID.");
+            writeFileSync(
+              "release-evidence/bootstrap-worker.json",
+              `${JSON.stringify({ created: true, versionId, releaseSha: process.env.RELEASE_SHA }, null, 2)}\n`,
+            );
+          '
+
       - name: Deploy Worker and Pages from the same release SHA
         shell: bash
         env:
@@ -316,6 +344,7 @@ jobs:
             echo "- Pages project: \`$PAGES_PROJECT\`"
             echo "- Worker preexisting: \`${WORKER_PREEXISTING:-unknown}\`"
             echo "- Worker bootstrap approved: \`$ALLOW_WORKER_BOOTSTRAP\`"
+            echo "- First-deployment rollback evidence: \`release-evidence/bootstrap-worker.json\` when created"
             echo "- MLS activation: unchanged; all four scopes must remain disabled"
             echo "- Evidence artifact: \`production-release-$RELEASE_SHA\`"
           } >> "$GITHUB_STEP_SUMMARY"
