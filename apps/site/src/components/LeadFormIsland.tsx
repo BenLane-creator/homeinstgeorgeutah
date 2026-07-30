@@ -157,7 +157,7 @@ export default function LeadFormIsland({
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
       onSubmit={submit}
-      className="border border-stone-200 bg-white p-6 shadow-xl shadow-stone-900/5 sm:p-8"
+      className="border border-stone-200 bg-white px-4 py-6 shadow-xl shadow-stone-900/5 sm:p-8"
       aria-describedby="lead-form-status"
     >
       <div className="mb-6">
