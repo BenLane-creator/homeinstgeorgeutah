@@ -11,6 +11,7 @@ bootstrap_source_path = ROOT / "apps/api/src/bootstrap-unavailable.ts"
 smoke_path = ROOT / "scripts/verify-production-smoke.mjs"
 export_path = ROOT / "scripts/verify-d1-export.mjs"
 preflight_helper_path = ROOT / "scripts/verify-production-preflight.mjs"
+pages_project_helper_path = ROOT / "scripts/verify-pages-project-list.mjs"
 
 audit_paths = [
     release_path,
@@ -21,6 +22,7 @@ audit_paths = [
     smoke_path,
     export_path,
     preflight_helper_path,
+    pages_project_helper_path,
 ]
 for path in audit_paths:
     if not path.is_file():
@@ -34,6 +36,7 @@ bootstrap_source = bootstrap_source_path.read_text()
 smoke = smoke_path.read_text()
 export_check = export_path.read_text()
 preflight_helper = preflight_helper_path.read_text()
+pages_project_helper = pages_project_helper_path.read_text()
 
 for name, workflow in [
     ("release", release),
@@ -69,6 +72,7 @@ release_requirements = [
     "bootstrap-worker.json",
     "wrangler d1 export",
     "verify-d1-export.mjs",
+    "verify-pages-project-list.mjs",
     "openssl enc -aes-256-cbc -pbkdf2",
     "wrangler d1 migrations apply",
     "wrangler deploy",
@@ -100,6 +104,10 @@ if "release-evidence/homeinstgeorgeutah-worker-secrets" in release:
 
 if "trap 'rm -f \"$worker_secrets\"' EXIT" not in release:
     raise SystemExit("Temporary Worker secret material must be removed on every deploy-step exit.")
+
+for phrase in ["Project Name", "project_name", "expectedProject"]:
+    if phrase not in pages_project_helper:
+        raise SystemExit(f"Pages project verifier is missing Wrangler compatibility control: {phrase}")
 
 for phrase in [
     'name = "homeinstgeorgeutah-api"',

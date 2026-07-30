@@ -34,6 +34,29 @@ bun scripts/verify-production-deployment.mjs \
   "$fixture_dir/deployment.json" \
   > "$fixture_dir/deployment-result.json"
 
+pages_project="homeinstgeorgeutah-cloudflare"
+cat > "$fixture_dir/pages-projects-api.json" <<JSON
+[{"name":"$pages_project"}]
+JSON
+cat > "$fixture_dir/pages-projects-wrangler.json" <<JSON
+[{"Project Name":"$pages_project","Project Domains":"$pages_project.pages.dev, homeinstgeorgeutah.com, www.homeinstgeorgeutah.com","Git Provider":"Yes","Last Modified":"1 hour ago"}]
+JSON
+bun scripts/verify-pages-project-list.mjs \
+  "$pages_project" \
+  "$fixture_dir/pages-projects-api.json" \
+  > "$fixture_dir/pages-project-api-result.json"
+bun scripts/verify-pages-project-list.mjs \
+  "$pages_project" \
+  "$fixture_dir/pages-projects-wrangler.json" \
+  > "$fixture_dir/pages-project-wrangler-result.json"
+if bun scripts/verify-pages-project-list.mjs \
+  "missing-pages-project" \
+  "$fixture_dir/pages-projects-wrangler.json" \
+  > /dev/null 2>&1; then
+  echo "Pages project verifier accepted a missing project." >&2
+  exit 1
+fi
+
 cat > "$fixture_dir/wrangler.toml" <<'TOML'
 account_id = "test-account"
 [[d1_databases]]
