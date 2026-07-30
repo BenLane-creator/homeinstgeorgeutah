@@ -1,0 +1,12 @@
+name = "homeinstgeorgeutah-api"
+main = "src/bootstrap-unavailable.ts"
+compatibility_date = "2026-05-28"
+account_id = "5c2c50cd82516e7f000aac929d48c0d2"
+
+routes = [
+  { pattern = "homeinstgeorgeutah.com/api/*", zone_name = "homeinstgeorgeutah.com" },
+  { pattern = "www.homeinstgeorgeutah.com/api/*", zone_name = "homeinstgeorgeutah.com" }
+]
+
+[observability]
+enabled = true
