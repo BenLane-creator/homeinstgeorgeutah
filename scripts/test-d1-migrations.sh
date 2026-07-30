@@ -58,6 +58,28 @@ on conflict(email_normalized) do update set
   phone = coalesce(excluded.phone, contacts.phone),
   phone_normalized = coalesce(excluded.phone_normalized, contacts.phone_normalized),
   updated_at = CURRENT_TIMESTAMP;
+
+insert into user_accounts
+  (id, email, email_normalized, status)
+values
+  ('migration-vow-user', 'vow-session@test.example', 'vow-session@test.example', 'active');
+
+insert into vow_access_grants
+  (id, user_account_id, scope_key, provider_contact_id, status, expires_at)
+values
+  ('migration-vow-grant', 'migration-vow-user', 'washington-vow',
+   'migration-provider-contact', 'active', '2030-01-01T00:00:00.000Z');
+
+insert into user_auth_sessions
+  (id, user_account_id, session_hash, expires_at)
+values
+  ('migration-vow-session', 'migration-vow-user', 'migration-session-hash',
+   '2030-02-01T00:00:00.000Z');
+
+update vow_access_grants
+set expires_at = '2029-12-01T00:00:00.000Z',
+    updated_at = CURRENT_TIMESTAMP
+where id = 'migration-vow-grant';
 "
 
 bunx wrangler d1 execute "$database_name" \
@@ -79,7 +101,13 @@ select
   (select full_name from contacts
     where email_normalized = 'migration@test.example') as full_name,
   (select phone_normalized from contacts
-    where email_normalized = 'migration@test.example') as phone_normalized;
+    where email_normalized = 'migration@test.example') as phone_normalized,
+  (select count(*) from sqlite_master
+    where type = 'trigger'
+      and name = 'user_auth_sessions_bound_to_vow_grants_after_insert')
+    as vow_session_trigger_count,
+  (select expires_at from user_auth_sessions
+    where id = 'migration-vow-session') as vow_session_expires_at;
 "
 
 verification_json="$(
@@ -105,9 +133,11 @@ if (
   Number(row.contact_count) !== 1 ||
   row.contact_id !== "migration-contact-1" ||
   row.full_name !== "Updated Lead" ||
-  row.phone_normalized !== "4355550100"
+  row.phone_normalized !== "4355550100" ||
+  Number(row.vow_session_trigger_count) !== 1 ||
+  row.vow_session_expires_at !== "2029-12-01 00:00:00"
 ) {
-  console.error("D1 migration/upsert verification failed.", {
+  console.error("D1 migration/upsert/session-expiry verification failed.", {
     expectedMigrationCount,
     row,
   });
@@ -115,6 +145,6 @@ if (
 }
 
 console.log(
-  `D1 migration test passed: ${expectedMigrationCount} migrations applied; unique email upsert verified.`,
+  `D1 migration test passed: ${expectedMigrationCount} migrations applied; unique email upsert and VOW session expiry verified.`,
 );
 '
