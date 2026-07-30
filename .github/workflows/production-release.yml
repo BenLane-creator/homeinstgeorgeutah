@@ -131,14 +131,10 @@ jobs:
           bunx wrangler whoami > release-evidence/cloudflare-whoami.txt
           grep -Fq -- "$CLOUDFLARE_ACCOUNT_ID" release-evidence/cloudflare-whoami.txt
           bunx wrangler pages project list --json > release-evidence/pages-projects.json
-          PAGES_PROJECT="$PAGES_PROJECT" bun -e '
-            import { readFileSync } from "node:fs";
-            const payload = JSON.parse(readFileSync("release-evidence/pages-projects.json", "utf8"));
-            const projects = Array.isArray(payload) ? payload : Array.isArray(payload?.result) ? payload.result : [];
-            if (!projects.some((project) => project?.name === process.env.PAGES_PROJECT)) {
-              throw new Error(`Cloudflare Pages project ${process.env.PAGES_PROJECT} was not found.`);
-            }
-          '
+          bun scripts/verify-pages-project-list.mjs \
+            "$PAGES_PROJECT" \
+            release-evidence/pages-projects.json \
+            > release-evidence/pages-project-verification.json
 
       - name: Capture pre-release D1 and deployment evidence
         shell: bash
