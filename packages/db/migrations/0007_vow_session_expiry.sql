@@ -21,7 +21,7 @@ set expires_at = coalesce(
 create trigger if not exists user_auth_sessions_bound_to_vow_grants_after_insert
 after insert on user_auth_sessions
 for each row
-begin
+BEGIN
   update user_auth_sessions
   set expires_at = coalesce(
     min(
@@ -37,12 +37,12 @@ begin
     CURRENT_TIMESTAMP
   )
   where id = NEW.id;
-end;
+END;
 
 create trigger if not exists vow_access_grants_rebound_sessions_after_insert
 after insert on vow_access_grants
 for each row
-begin
+BEGIN
   update user_auth_sessions
   set expires_at = coalesce(
     min(
@@ -58,12 +58,12 @@ begin
     CURRENT_TIMESTAMP
   )
   where user_account_id = NEW.user_account_id;
-end;
+END;
 
 create trigger if not exists vow_access_grants_rebound_sessions_after_update
 after update of status, expires_at on vow_access_grants
 for each row
-begin
+BEGIN
   update user_auth_sessions
   set expires_at = coalesce(
     min(
@@ -79,12 +79,12 @@ begin
     CURRENT_TIMESTAMP
   )
   where user_account_id = NEW.user_account_id;
-end;
+END;
 
 create trigger if not exists vow_access_grants_expire_sessions_after_delete
 after delete on vow_access_grants
 for each row
-begin
+BEGIN
   update user_auth_sessions
   set expires_at = coalesce(
     min(
@@ -100,4 +100,4 @@ begin
     CURRENT_TIMESTAMP
   )
   where user_account_id = OLD.user_account_id;
-end;
+END;
