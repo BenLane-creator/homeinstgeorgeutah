@@ -100,6 +100,7 @@ jobs:
           WRANGLER_OUTPUT_FILE_PATH=recovery-evidence/pages-deploy.ndjson \
             bunx wrangler pages deploy apps/site/dist \
               --project-name "$PAGES_PROJECT" \
+              --branch "$PRODUCTION_BRANCH" \
               --commit-hash "$TARGET_SHA" \
               --commit-message "foundation-recovery release-sha:$TARGET_SHA" \
               --commit-dirty=false
