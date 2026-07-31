@@ -1,7 +1,7 @@
 PRAGMA foreign_keys = ON;
 
 -- A local consumer session must never outlive the earliest active VOW grant.
--- Normalize existing session timestamps to SQLite's comparison format and fail
+-- Normalize existing session timestamps to SQLite comparison format and fail
 -- closed when no active grant exists for the account.
 update user_auth_sessions
 set expires_at = coalesce(
