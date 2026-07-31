@@ -1,0 +1,214 @@
+name: Align Pages production branch and release
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/pages-production-align.yml
+  workflow_dispatch:
+
+permissions:
+  actions: write
+  contents: read
+
+concurrency:
+  group: production-pages-alignment
+  cancel-in-progress: false
+
+jobs:
+  align-and-release:
+    name: Align Cloudflare Pages and verify foundation release
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    environment: production
+    env:
+      PAGES_PROJECT: homeinstgeorgeutah-cloudflare
+      PRODUCTION_BRANCH: main
+      RELEASE_SHA: e50997b7c581af3ce2a4a5fecf825b37c3f1c772
+
+    steps:
+      - name: Validate protected configuration
+        shell: bash
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+          test -n "${CLOUDFLARE_API_TOKEN:-}" || {
+            echo "::error::Missing CLOUDFLARE_API_TOKEN in the production environment."
+            exit 1
+          }
+          test -n "${CLOUDFLARE_ACCOUNT_ID:-}" || {
+            echo "::error::Missing CLOUDFLARE_ACCOUNT_ID in the production environment."
+            exit 1
+          }
+          [[ "$RELEASE_SHA" =~ ^[0-9a-f]{40}$ ]] || {
+            echo "::error::RELEASE_SHA must be a full lowercase commit SHA."
+            exit 1
+          }
+          mkdir -p pages-alignment-evidence
+
+      - name: Align and verify Pages production branch
+        shell: bash
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+          project_url="https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/pages/projects/${PAGES_PROJECT}"
+
+          curl --fail-with-body --silent --show-error \
+            --header "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
+            --header "Content-Type: application/json" \
+            "$project_url" \
+            > pages-alignment-evidence/pages-project-before.json
+
+          PAGES_PROJECT="$PAGES_PROJECT" jq -e '
+            .success == true and
+            .result.name == env.PAGES_PROJECT
+          ' pages-alignment-evidence/pages-project-before.json > /dev/null
+
+          curl --fail-with-body --silent --show-error \
+            --request PATCH \
+            --header "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
+            --header "Content-Type: application/json" \
+            --data "{\"production_branch\":\"${PRODUCTION_BRANCH}\"}" \
+            "$project_url" \
+            > pages-alignment-evidence/pages-project-update.json
+
+          PAGES_PROJECT="$PAGES_PROJECT" PRODUCTION_BRANCH="$PRODUCTION_BRANCH" jq -e '
+            .success == true and
+            .result.name == env.PAGES_PROJECT and
+            .result.production_branch == env.PRODUCTION_BRANCH
+          ' pages-alignment-evidence/pages-project-update.json > /dev/null
+
+          for attempt in 1 2 3 4 5; do
+            curl --fail-with-body --silent --show-error \
+              --header "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
+              --header "Content-Type: application/json" \
+              "$project_url" \
+              > pages-alignment-evidence/pages-project-after.json
+
+            if PAGES_PROJECT="$PAGES_PROJECT" PRODUCTION_BRANCH="$PRODUCTION_BRANCH" jq -e '
+              .success == true and
+              .result.name == env.PAGES_PROJECT and
+              .result.production_branch == env.PRODUCTION_BRANCH
+            ' pages-alignment-evidence/pages-project-after.json > /dev/null; then
+              exit 0
+            fi
+            sleep 3
+          done
+
+          echo "::error::Cloudflare Pages production branch did not persist as ${PRODUCTION_BRANCH}."
+          exit 1
+
+      - name: Dispatch exact-SHA production foundation release
+        id: dispatch
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          dispatch_url="https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/workflows/production-release.yml/dispatches"
+          jq -n \
+            --arg ref "main" \
+            --arg releaseSha "$RELEASE_SHA" \
+            --arg pagesProject "$PAGES_PROJECT" \
+            '{
+              ref: $ref,
+              inputs: {
+                release_sha: $releaseSha,
+                pages_project: $pagesProject,
+                allow_worker_bootstrap: "true",
+                confirmation: "DEPLOY FOUNDATION"
+              }
+            }' > pages-alignment-evidence/release-dispatch-request.json
+
+          http_code="$(
+            curl --silent --show-error \
+              --output pages-alignment-evidence/release-dispatch-response.json \
+              --write-out '%{http_code}' \
+              --request POST \
+              --header "Accept: application/vnd.github+json" \
+              --header "Authorization: Bearer ${GH_TOKEN}" \
+              --header "X-GitHub-Api-Version: 2026-03-10" \
+              --header "Content-Type: application/json" \
+              --data @pages-alignment-evidence/release-dispatch-request.json \
+              "$dispatch_url"
+          )"
+          test "$http_code" = "200" || {
+            echo "::error::Foundation release dispatch returned HTTP ${http_code}."
+            cat pages-alignment-evidence/release-dispatch-response.json
+            exit 1
+          }
+
+          run_id="$(jq -r '.workflow_run_id // empty' pages-alignment-evidence/release-dispatch-response.json)"
+          run_url="$(jq -r '.html_url // empty' pages-alignment-evidence/release-dispatch-response.json)"
+          [[ "$run_id" =~ ^[0-9]+$ ]] || {
+            echo "::error::Foundation release dispatch did not return a workflow run ID."
+            exit 1
+          }
+          echo "run_id=$run_id" >> "$GITHUB_OUTPUT"
+          echo "run_url=$run_url" >> "$GITHUB_OUTPUT"
+
+      - name: Wait for foundation release result
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_RUN_ID: ${{ steps.dispatch.outputs.run_id }}
+          RELEASE_RUN_URL: ${{ steps.dispatch.outputs.run_url }}
+        run: |
+          set -euo pipefail
+          run_api="https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/runs/${RELEASE_RUN_ID}"
+
+          for attempt in $(seq 1 120); do
+            curl --fail-with-body --silent --show-error \
+              --header "Accept: application/vnd.github+json" \
+              --header "Authorization: Bearer ${GH_TOKEN}" \
+              --header "X-GitHub-Api-Version: 2026-03-10" \
+              "$run_api" \
+              > pages-alignment-evidence/foundation-release-run.json
+
+            status="$(jq -r '.status // empty' pages-alignment-evidence/foundation-release-run.json)"
+            conclusion="$(jq -r '.conclusion // empty' pages-alignment-evidence/foundation-release-run.json)"
+            if [[ "$status" = "completed" ]]; then
+              if [[ "$conclusion" = "success" ]]; then
+                exit 0
+              fi
+              echo "::error::Foundation release ${RELEASE_RUN_ID} completed with conclusion ${conclusion}."
+              echo "Release run: ${RELEASE_RUN_URL}"
+              exit 1
+            fi
+            sleep 10
+          done
+
+          echo "::error::Timed out waiting for foundation release ${RELEASE_RUN_ID}."
+          echo "Release run: ${RELEASE_RUN_URL}"
+          exit 1
+
+      - name: Write alignment summary
+        if: always()
+        shell: bash
+        env:
+          RELEASE_RUN_URL: ${{ steps.dispatch.outputs.run_url }}
+        run: |
+          {
+            echo "### Cloudflare Pages alignment"
+            echo
+            echo "- Project: \`$PAGES_PROJECT\`"
+            echo "- Production branch: \`$PRODUCTION_BRANCH\`"
+            echo "- Foundation release SHA: \`$RELEASE_SHA\`"
+            if [[ -n "${RELEASE_RUN_URL:-}" ]]; then
+              echo "- Foundation release: $RELEASE_RUN_URL"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload alignment evidence
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: pages-production-alignment-${{ env.RELEASE_SHA }}
+          path: pages-alignment-evidence
+          if-no-files-found: error
+          retention-days: 30
