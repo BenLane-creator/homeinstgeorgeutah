@@ -203,25 +203,28 @@ jobs:
         run: |
           set -euo pipefail
           deployment_id="$(TARGET_SHA="$TARGET_SHA" jq -r '.result[] | select(.environment == "production" and .deployment_trigger.metadata.commit_hash == env.TARGET_SHA) | .id' recovery-evidence/pages-deployments-api.json | head -n1)"
-          body="$(cat <<EOF
-## Production foundation recovery verified
-
-- Exact release SHA: \`$TARGET_SHA\`
-- Pages project: \`$PAGES_PROJECT\`
-- Production branch: \`$PRODUCTION_BRANCH\`
-- Pages deployment ID: \`$deployment_id\`
-- Worker: \`$WORKER_NAME\`
-- Raw Cloudflare Pages API metadata: verified
-- Exact Worker version and active deployment: verified
-- Required Worker secret names: verified
-- Production smoke tests: passed
-- Read-only production preflight: passed
-- IDX/VOW activation: unchanged and disabled
-- Indexing activation: unchanged
-- Recovery workflow: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID
-EOF
-)"
-          jq -n --arg body "$body" '{body: $body}' > recovery-evidence/issue-comment.json
+          jq -n \
+            --arg targetSha "$TARGET_SHA" \
+            --arg pagesProject "$PAGES_PROJECT" \
+            --arg productionBranch "$PRODUCTION_BRANCH" \
+            --arg deploymentId "$deployment_id" \
+            --arg workerName "$WORKER_NAME" \
+            --arg workflowUrl "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" \
+            '{body: ("## Production foundation recovery verified\n\n" +
+              "- Exact release SHA: `" + $targetSha + "`\n" +
+              "- Pages project: `" + $pagesProject + "`\n" +
+              "- Production branch: `" + $productionBranch + "`\n" +
+              "- Pages deployment ID: `" + $deploymentId + "`\n" +
+              "- Worker: `" + $workerName + "`\n" +
+              "- Raw Cloudflare Pages API metadata: verified\n" +
+              "- Exact Worker version and active deployment: verified\n" +
+              "- Required Worker secret names: verified\n" +
+              "- Production smoke tests: passed\n" +
+              "- Read-only production preflight: passed\n" +
+              "- IDX/VOW activation: unchanged and disabled\n" +
+              "- Indexing activation: unchanged\n" +
+              "- Recovery workflow: " + $workflowUrl)}' \
+            > recovery-evidence/issue-comment.json
           curl --fail-with-body --silent --show-error \
             --request POST \
             --header "Accept: application/vnd.github+json" \
