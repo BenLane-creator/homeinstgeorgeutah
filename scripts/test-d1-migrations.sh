@@ -7,6 +7,18 @@ state_dir="$(mktemp -d)"
 migration_files=(packages/db/migrations/*.sql)
 expected_migration_count="${#migration_files[@]}"
 
+invalid_trigger_endings="$(
+  grep -nH -E '^[[:space:]]*[Ee][Nn][Dd][[:space:]]*;' "${migration_files[@]}" \
+    | grep -v -E ':[0-9]+:[[:space:]]*END[[:space:]]*;$' \
+    || true
+)"
+if [[ -n "$invalid_trigger_endings" ]]; then
+  echo "D1 trigger compound statements must terminate with uppercase END;." >&2
+  echo "Wrangler 4.113.0 matches trigger END case-sensitively when splitting remote migration statements." >&2
+  echo "$invalid_trigger_endings" >&2
+  exit 1
+fi
+
 cleanup() {
   rm -rf -- "$state_dir"
 }
