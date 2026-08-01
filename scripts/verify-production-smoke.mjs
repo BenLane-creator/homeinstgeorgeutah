@@ -1,3 +1,5 @@
+import { homepageHasCanonicalHeadline } from "./homepage-contract.mjs";
+
 const apex = "https://homeinstgeorgeutah.com";
 const www = "https://www.homeinstgeorgeutah.com";
 
@@ -32,7 +34,6 @@ if (wwwLocation.href !== `${apex}/`) {
   throw new Error(`www redirect target must be ${apex}/; received ${wwwLocation.href}.`);
 }
 
-const canonicalHeadline = "Better Real Estate Decisions.";
 const homepagePropagationAttempts = 18;
 const homepagePropagationDelayMs = 5_000;
 
@@ -53,7 +54,7 @@ async function readReadyHomepage() {
     lastStatus = response.status;
     lastText = await response.text();
 
-    const headlineReady = lastText.includes(canonicalHeadline);
+    const headlineReady = homepageHasCanonicalHeadline(lastText);
     const crawlControlsReady = /noindex/i.test(lastText) && /nofollow/i.test(lastText);
 
     if (lastStatus === 200 && headlineReady && crawlControlsReady) {
@@ -77,14 +78,13 @@ async function readReadyHomepage() {
   if (lastStatus !== 200) {
     throw new Error(`Homepage returned ${lastStatus}.`);
   }
-  if (!lastText.includes(canonicalHeadline)) {
+  if (!homepageHasCanonicalHeadline(lastText)) {
     throw new Error("Homepage does not contain the canonical headline.");
   }
   throw new Error("Prelaunch homepage must contain noindex,nofollow controls.");
 }
 
 const home = await readReadyHomepage();
-const homeText = home.text;
 
 const unknownPage = await request("/__release-smoke-not-found__/");
 if (unknownPage.status !== 404) {

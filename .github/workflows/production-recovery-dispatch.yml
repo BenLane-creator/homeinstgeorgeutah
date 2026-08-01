@@ -23,6 +23,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
+          # Retrigger after semantic headline verification replaced raw HTML matching.
           jq -n --arg ref "main" '{ref: $ref}' > "$RUNNER_TEMP/recovery-dispatch.json"
           curl --fail-with-body --silent --show-error \
             --request POST \

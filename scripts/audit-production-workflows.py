@@ -9,6 +9,7 @@ preflight_path = ROOT / ".github/workflows/production-preflight.yml"
 bootstrap_config_path = ROOT / "apps/api/wrangler.bootstrap.toml"
 bootstrap_source_path = ROOT / "apps/api/src/bootstrap-unavailable.ts"
 smoke_path = ROOT / "scripts/verify-production-smoke.mjs"
+homepage_contract_path = ROOT / "scripts/homepage-contract.mjs"
 export_path = ROOT / "scripts/verify-d1-export.mjs"
 preflight_helper_path = ROOT / "scripts/verify-production-preflight.mjs"
 pages_project_helper_path = ROOT / "scripts/verify-pages-project-list.mjs"
@@ -20,6 +21,7 @@ audit_paths = [
     bootstrap_config_path,
     bootstrap_source_path,
     smoke_path,
+    homepage_contract_path,
     export_path,
     preflight_helper_path,
     pages_project_helper_path,
@@ -34,6 +36,7 @@ preflight = preflight_path.read_text()
 bootstrap_config = bootstrap_config_path.read_text()
 bootstrap_source = bootstrap_source_path.read_text()
 smoke = smoke_path.read_text()
+homepage_contract = homepage_contract_path.read_text()
 export_check = export_path.read_text()
 preflight_helper = preflight_helper_path.read_text()
 pages_project_helper = pages_project_helper_path.read_text()
@@ -182,7 +185,6 @@ for label, pattern in prohibited_command_patterns.items():
         raise SystemExit(f"Read-only production preflight contains a mutation command: {label}")
 
 for phrase in [
-    "Better Real Estate Decisions.",
     "washington-idx",
     "washington-vow",
     "iron-idx",
@@ -193,6 +195,25 @@ for phrase in [
 ]:
     if phrase not in smoke:
         raise SystemExit(f"Production smoke test is missing: {phrase}")
+
+for phrase in [
+    "Better Real Estate Decisions.",
+    "export const canonicalHeadline",
+    "export function htmlToVisibleText",
+    "export function homepageHasCanonicalHeadline",
+    "script|style|noscript",
+    ".replace(/<[^>]+>/g, \" \")",
+    ".replace(/\\s+/g, \" \")",
+]:
+    if phrase not in homepage_contract:
+        raise SystemExit(f"Homepage semantic contract is missing: {phrase}")
+
+for phrase in [
+    'from "./homepage-contract.mjs"',
+    "homepageHasCanonicalHeadline(lastText)",
+]:
+    if phrase not in smoke:
+        raise SystemExit(f"Production smoke test is missing semantic headline control: {phrase}")
 
 for phrase in ["pragma integrity_check", "contacts", "lead_events", "d1_migrations"]:
     if phrase not in export_check:
