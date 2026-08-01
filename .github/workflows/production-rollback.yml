@@ -134,7 +134,6 @@ jobs:
           WRANGLER_OUTPUT_FILE_PATH=rollback-evidence/pages-rollback.ndjson \
             bunx wrangler pages deploy apps/site/dist \
               --project-name "$PAGES_PROJECT" \
-              --branch main \
               --commit-hash "$ROLLBACK_SHA" \
               --commit-message "rollback-sha:$ROLLBACK_SHA" \
               --commit-dirty=false
