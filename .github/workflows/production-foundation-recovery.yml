@@ -112,28 +112,33 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
           set -euo pipefail
-          deployments_url="https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/pages/projects/${PAGES_PROJECT}/deployments?env=production&per_page=100"
+          project_url="https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/pages/projects/${PAGES_PROJECT}"
           pages_ok=false
           for attempt in $(seq 1 18); do
             curl --fail-with-body --silent --show-error \
               --header "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
-              "$deployments_url" > recovery-evidence/pages-deployments-api.json
-            if TARGET_SHA="$TARGET_SHA" jq -e '
-              .success == true and any(.result[];
-                .environment == "production" and
-                .deployment_trigger.metadata.commit_hash == env.TARGET_SHA and
-                .latest_stage.status == "success"
-              )
-            ' recovery-evidence/pages-deployments-api.json > /dev/null; then
+              "$project_url" > recovery-evidence/pages-project-after-deploy.json
+            if TARGET_SHA="$TARGET_SHA" PRODUCTION_BRANCH="$PRODUCTION_BRANCH" jq -e '
+              .success == true and
+              .result.production_branch == env.PRODUCTION_BRANCH and
+              .result.canonical_deployment.environment == "production" and
+              .result.canonical_deployment.deployment_trigger.metadata.commit_hash == env.TARGET_SHA and
+              .result.canonical_deployment.latest_stage.status == "success"
+            ' recovery-evidence/pages-project-after-deploy.json > /dev/null; then
               pages_ok=true
               break
             fi
             sleep 5
           done
           test "$pages_ok" = "true" || {
-            echo "::error::Exact-SHA production Pages deployment was not visible through the Cloudflare API."
-            jq -r '.result[]? | [.id, .environment, .deployment_trigger.metadata.branch, .deployment_trigger.metadata.commit_hash, .latest_stage.status] | @tsv' \
-              recovery-evidence/pages-deployments-api.json || true
+            echo "::error::Exact-SHA canonical production Pages deployment was not visible through the Cloudflare project API."
+            jq -r '[
+              .result.canonical_deployment.id,
+              .result.canonical_deployment.environment,
+              .result.canonical_deployment.deployment_trigger.metadata.branch,
+              .result.canonical_deployment.deployment_trigger.metadata.commit_hash,
+              .result.canonical_deployment.latest_stage.status
+            ] | @tsv' recovery-evidence/pages-project-after-deploy.json || true
             exit 1
           }
 
@@ -146,7 +151,7 @@ jobs:
 
           bun scripts/verify-production-deployment.mjs \
             "$TARGET_SHA" \
-            recovery-evidence/pages-deployments-api.json \
+            recovery-evidence/pages-project-after-deploy.json \
             recovery-evidence/worker-versions.json \
             recovery-evidence/worker-deployment.json \
             > recovery-evidence/deployment-verification.json
@@ -202,7 +207,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          deployment_id="$(TARGET_SHA="$TARGET_SHA" jq -r '.result[] | select(.environment == "production" and .deployment_trigger.metadata.commit_hash == env.TARGET_SHA) | .id' recovery-evidence/pages-deployments-api.json | head -n1)"
+          deployment_id="$(jq -r '.result.canonical_deployment.id // empty' recovery-evidence/pages-project-after-deploy.json)"
           jq -n \
             --arg targetSha "$TARGET_SHA" \
             --arg pagesProject "$PAGES_PROJECT" \
@@ -216,7 +221,7 @@ jobs:
               "- Production branch: `" + $productionBranch + "`\n" +
               "- Pages deployment ID: `" + $deploymentId + "`\n" +
               "- Worker: `" + $workerName + "`\n" +
-              "- Raw Cloudflare Pages API metadata: verified\n" +
+              "- Raw Cloudflare Pages project metadata: verified\n" +
               "- Exact Worker version and active deployment: verified\n" +
               "- Required Worker secret names: verified\n" +
               "- Production smoke tests: passed\n" +
