@@ -124,7 +124,7 @@ function canonicalJson(value: unknown): string {
 
 function ownerNotificationEmail(env: LeadServiceEnv) {
   const recipient = normalizeEmail(
-    env.OWNER_NOTIFICATION_EMAIL || "joel@homeinstgeorgeutah.com",
+    env.OWNER_NOTIFICATION_EMAIL || "joel@homeinstgeorge.com",
   );
   if (recipient === "buyers@homeinstgeorgeutah.com") {
     throw new Error("Buyer mailbox automation is prohibited.");

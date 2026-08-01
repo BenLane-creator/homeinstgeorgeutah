@@ -111,7 +111,7 @@ function createMockLeadEnv(options: {
   return {
     env: {
       DB: db,
-      OWNER_NOTIFICATION_EMAIL: "joel@homeinstgeorgeutah.com",
+      OWNER_NOTIFICATION_EMAIL: "joel@homeinstgeorge.com",
     },
     statements,
     getBatchCalls: () => batchCalls,
@@ -188,7 +188,7 @@ describe("storeLeadIntake", () => {
     const outboxInsert = batchStatements.find((statement) =>
       statement.sql.includes("insert into notification_outbox"),
     );
-    expect(outboxInsert?.values).toContain("joel@homeinstgeorgeutah.com");
+    expect(outboxInsert?.values).toContain("joel@homeinstgeorge.com");
     expect(outboxInsert?.values).not.toContain("buyers@homeinstgeorgeutah.com");
   });
 

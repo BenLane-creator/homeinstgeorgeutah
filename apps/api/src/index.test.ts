@@ -5,7 +5,7 @@ function env(overrides: Partial<Env> = {}) {
   return {
     APP_ENV: "production",
     API_WRITE_ORIGINS: "https://homeinstgeorgeutah.com",
-    OWNER_NOTIFICATION_EMAIL: "joel@homeinstgeorgeutah.com",
+    OWNER_NOTIFICATION_EMAIL: "joel@homeinstgeorge.com",
     DB: {} as D1Database,
     WASHINGTON_IDX_APPROVAL_STATUS: "pending",
     WASHINGTON_VOW_APPROVAL_STATUS: "pending",

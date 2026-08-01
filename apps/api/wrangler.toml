@@ -23,7 +23,7 @@ SITE_URL = "https://homeinstgeorgeutah.com"
 API_WRITE_ORIGINS = "https://homeinstgeorgeutah.com,https://www.homeinstgeorgeutah.com"
 TURNSTILE_HOSTNAMES = "homeinstgeorgeutah.com,www.homeinstgeorgeutah.com"
 TURNSTILE_EXPECTED_ACTION = "turnstile-spin-v2"
-OWNER_NOTIFICATION_EMAIL = "joel@homeinstgeorgeutah.com"
+OWNER_NOTIFICATION_EMAIL = "joel@homeinstgeorge.com"
 EMAIL_DELIVERY_WEBHOOK_URL = ""
 
 # Four independent MLS approval and activation scopes. Pending status is

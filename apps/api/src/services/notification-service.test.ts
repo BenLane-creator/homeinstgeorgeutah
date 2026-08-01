@@ -51,7 +51,7 @@ function createEnv(job: Job | null, queuedIds: string[] = []) {
   return {
     env: {
       DB: db,
-      OWNER_NOTIFICATION_EMAIL: "joel@homeinstgeorgeutah.com",
+      OWNER_NOTIFICATION_EMAIL: "joel@homeinstgeorge.com",
     },
     writes,
   };
@@ -61,7 +61,7 @@ const job: Job = {
   id: "notify-1",
   lead_event_id: "lead-1",
   contact_id: "contact-1",
-  recipient: "joel@homeinstgeorgeutah.com",
+  recipient: "joel@homeinstgeorge.com",
   status: "queued",
   attempts: 0,
   full_name: "Test Lead",

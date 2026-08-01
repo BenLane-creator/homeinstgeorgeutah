@@ -34,7 +34,7 @@ function normalizedEmail(value: string | undefined) {
 
 function approvedRecipient(env: NotificationServiceEnv, recipient: string) {
   const configured = normalizedEmail(
-    env.OWNER_NOTIFICATION_EMAIL || "joel@homeinstgeorgeutah.com",
+    env.OWNER_NOTIFICATION_EMAIL || "joel@homeinstgeorge.com",
   );
   const requested = normalizedEmail(recipient);
   return (
