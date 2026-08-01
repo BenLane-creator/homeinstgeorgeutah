@@ -32,15 +32,59 @@ if (wwwLocation.href !== `${apex}/`) {
   throw new Error(`www redirect target must be ${apex}/; received ${wwwLocation.href}.`);
 }
 
-const home = await request("/");
-if (home.status !== 200) throw new Error(`Homepage returned ${home.status}.`);
-const homeText = await home.text();
-if (!homeText.includes("Better Real Estate Decisions.")) {
-  throw new Error("Homepage does not contain the canonical headline.");
-}
-if (!/noindex/i.test(homeText) || !/nofollow/i.test(homeText)) {
+const canonicalHeadline = "Better Real Estate Decisions.";
+const homepagePropagationAttempts = 18;
+const homepagePropagationDelayMs = 5_000;
+
+async function readReadyHomepage() {
+  let lastStatus = 0;
+  let lastText = "";
+
+  for (let attempt = 1; attempt <= homepagePropagationAttempts; attempt += 1) {
+    const cacheBust = `__release_smoke=${Date.now()}-${attempt}`;
+    const response = await request(`/?${cacheBust}`, {
+      cache: "no-store",
+      headers: {
+        "cache-control": "no-cache",
+        pragma: "no-cache",
+      },
+    });
+
+    lastStatus = response.status;
+    lastText = await response.text();
+
+    const headlineReady = lastText.includes(canonicalHeadline);
+    const crawlControlsReady = /noindex/i.test(lastText) && /nofollow/i.test(lastText);
+
+    if (lastStatus === 200 && headlineReady && crawlControlsReady) {
+      return { attempt, status: lastStatus, text: lastText };
+    }
+
+    if (attempt < homepagePropagationAttempts) {
+      await new Promise((resolve) => setTimeout(resolve, homepagePropagationDelayMs));
+    }
+  }
+
+  console.error(
+    [
+      `Homepage did not become release-ready after ${homepagePropagationAttempts} attempts.`,
+      `Last status: ${lastStatus}.`,
+      "Last response snapshot (first 2,000 characters):",
+      lastText.slice(0, 2_000),
+    ].join("\n"),
+  );
+
+  if (lastStatus !== 200) {
+    throw new Error(`Homepage returned ${lastStatus}.`);
+  }
+  if (!lastText.includes(canonicalHeadline)) {
+    throw new Error("Homepage does not contain the canonical headline.");
+  }
   throw new Error("Prelaunch homepage must contain noindex,nofollow controls.");
 }
+
+const home = await readReadyHomepage();
+const homeText = home.text;
 
 const unknownPage = await request("/__release-smoke-not-found__/");
 if (unknownPage.status !== 404) {
@@ -133,6 +177,7 @@ console.log(
     {
       ok: true,
       homepage: 200,
+      homepagePropagationAttempts: home.attempt,
       genuine404: true,
       wwwSingleRedirect: true,
       prelaunchCrawlControls: true,
