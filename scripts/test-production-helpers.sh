@@ -102,4 +102,32 @@ CLOUDFLARE_ACCOUNT_ID=test-account D1_DATABASE=homeinstgeorgeutah \
     --accountSession="$fixture_dir/account-session.json" \
     > "$fixture_dir/preflight-result.json"
 
+cat > "$fixture_dir/homepage.html" <<'HTML'
+<!doctype html>
+<html>
+  <head>
+    <style>.hidden { display: none; }</style>
+    <script>const misleading = "Better Real Estate Decisions.";</script>
+  </head>
+  <body>
+    <h1>
+      <span>Better</span>
+      <span>Real Estate</span>
+      <span>Decisions.</span>
+    </h1>
+  </body>
+</html>
+HTML
+FIXTURE_PATH="$fixture_dir/homepage.html" bun -e '
+  import { readFileSync } from "node:fs";
+  import { homepageHasCanonicalHeadline } from "./scripts/homepage-contract.mjs";
+  const html = readFileSync(process.env.FIXTURE_PATH, "utf8");
+  if (!homepageHasCanonicalHeadline(html)) {
+    throw new Error("Split semantic homepage headline was not recognized.");
+  }
+  if (homepageHasCanonicalHeadline(html.replace("Decisions.</span>", "Choices.</span>"))) {
+    throw new Error("Drifted homepage headline was accepted.");
+  }
+'
+
 echo "Production release helper fixtures passed."
