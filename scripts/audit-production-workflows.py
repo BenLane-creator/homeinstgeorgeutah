@@ -141,10 +141,21 @@ if "ROLLBACK APPLICATION WITHOUT D1 RESTORE" not in rollback:
     raise SystemExit("Rollback must require the explicit no-D1-restore confirmation.")
 if "wrangler rollback" not in rollback or "wrangler pages deploy" not in rollback:
     raise SystemExit("Rollback must restore both the Worker version and prior Pages SHA.")
+if '--commit-hash "$ROLLBACK_SHA"' not in rollback:
+    raise SystemExit("Rollback Pages deployment must retain the exact rollback SHA metadata.")
 if "time-travel restore" in rollback:
     raise SystemExit("Application rollback must never restore D1 automatically.")
 if "actions/upload-artifact@v6" not in rollback:
     raise SystemExit("Rollback must preserve an evidence artifact using the Node 24 action.")
+
+for name, workflow in [("release", release), ("rollback", rollback)]:
+    pages_deploy = re.search(r"wrangler pages deploy[\s\S]{0,400}", workflow)
+    if not pages_deploy:
+        raise SystemExit(f"Production {name} is missing its Pages deployment command.")
+    if re.search(r"--branch(?:\s|\\)", pages_deploy.group(0)):
+        raise SystemExit(
+            f"Production {name} must omit --branch so the Direct Upload reaches canonical production."
+        )
 
 preflight_requirements = [
     "verify-production-preflight.mjs",
