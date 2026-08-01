@@ -23,7 +23,7 @@ jobs:
     timeout-minutes: 45
     environment: production
     env:
-      TARGET_SHA: e50997b7c581af3ce2a4a5fecf825b37c3f1c772
+      TARGET_SHA: ${{ github.sha }}
       PAGES_PROJECT: homeinstgeorgeutah-cloudflare
       PRODUCTION_BRANCH: main
       WORKER_NAME: homeinstgeorgeutah-api
