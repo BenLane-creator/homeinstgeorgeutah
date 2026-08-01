@@ -23,8 +23,8 @@ function decodeHtmlEntities(value) {
 export function htmlToVisibleText(html) {
   return decodeHtmlEntities(
     String(html)
-      .replace(/<!--[^]*?-->/g, " ")
-      .replace(/<(script|style|noscript)\b[^>]*>[^]*?<\/\1>/gi, " ")
+      .replace(/<!--[\s\S]*?-->/g, " ")
+      .replace(/<(script|style|noscript)\b[^>]*>[\s\S]*?<\/\1>/gi, " ")
       .replace(/<[^>]+>/g, " "),
   )
     .replace(/\s+/g, " ")
