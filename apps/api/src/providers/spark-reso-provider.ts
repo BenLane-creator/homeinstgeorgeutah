@@ -9,8 +9,8 @@ import type {
   ListingSyncResult,
   SimilarListingsInput,
   ViewerContext,
-} from "../listing-provider";
-import { publicViewer } from "../listing-provider";
+} from "../property-listing-provider";
+import { publicViewer } from "../property-listing-provider";
 import { mapToSparkQuery } from "../search/map-to-spark-query";
 import { complianceWarnings } from "./spark-compliance";
 import {

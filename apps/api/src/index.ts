@@ -4,7 +4,7 @@ import {
   SearchInputError,
   searchListings,
   type ListingServiceEnv,
-} from "./services/listing-service";
+} from "./services/property-search-service";
 import {
   LeadIdempotencyConflictError,
   storeLeadIntake,

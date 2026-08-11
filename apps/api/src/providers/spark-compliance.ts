@@ -1,4 +1,4 @@
-import type { ListingAgreementScope, ViewerState } from "../listing-provider";
+import type { ListingAgreementScope, ViewerState } from "../property-listing-provider";
 
 export type ListingDisplayPolicyInput = {
   fieldName: string;

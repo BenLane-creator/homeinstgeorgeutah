@@ -5,7 +5,7 @@ import {
   getMlsActivationState,
   sanitizeSearchParams,
   searchListings,
-} from "./listing-service";
+} from "./property-search-service";
 import { APPROVED_POLICY_VERSIONS } from "./mls-scope-service";
 
 const originalFetch = globalThis.fetch;

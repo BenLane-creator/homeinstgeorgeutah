@@ -3,7 +3,7 @@ import type {
   PublicListingCard,
   PublicListingDetail,
   ViewerContext,
-} from "../listing-provider";
+} from "../property-listing-provider";
 import { canDisplayMedia, requiredDisclaimers } from "./spark-compliance";
 import type { SparkRawListing } from "./spark-types";
 

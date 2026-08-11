@@ -1,4 +1,4 @@
-import { sanitizeSearchParams } from "./listing-service";
+import { sanitizeSearchParams } from "./property-search-service";
 import {
   readVowSession,
   type VowAuthEnv,

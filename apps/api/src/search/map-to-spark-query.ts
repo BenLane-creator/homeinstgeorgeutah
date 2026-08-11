@@ -1,4 +1,4 @@
-import type { ListingSearchInput } from "../listing-provider";
+import type { ListingSearchInput } from "../property-listing-provider";
 
 function escapeOData(value: string) {
   return value.replace(/'/g, "''");
