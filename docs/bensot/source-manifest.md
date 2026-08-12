@@ -8,45 +8,80 @@ project: HomeInStGeorgeUtah
 
 # BenSOT Source Manifest
 
-This manifest identifies the authoritative sources for this project.
+BenSOT identifies and governs authoritative sources. It does not create a
+competing source of truth.
 
-## Project authority
+## Existing project authority
 
-- `docs/source-of-truth.md`
-  - existing project source-of-truth declaration
-  - defines internal and external authority boundaries
+### Project Source of Truth
 
-- `docs/revised-master-architecture-spec.md`
-  - controlling internal project architecture
-  - authority established by `docs/source-of-truth.md`
+`docs/source-of-truth.md`
+
+Status: canonical authority declaration.
+
+This record defines the project's internal architecture authority and external
+MLS/API authority boundaries.
+
+### Controlling Architecture
+
+`docs/revised-master-architecture-spec.md`
+
+Status: controlling internal architecture.
+
+Authority is established by `docs/source-of-truth.md`.
 
 ## Implementation authority
 
-- `apps/api/src/`
-  - first-party API implementation
+### API
 
-- `packages/db/`
-  - database schema and migrations
+`apps/api/src/`
 
-- `.github/workflows/`
-  - repository automation and release controls
+Status: canonical first-party API implementation.
 
-- `apps/api/wrangler.toml`
-  - Cloudflare Worker deployment configuration
+### Database
+
+`packages/db/`
+
+Status: canonical database schema and migration implementation.
+
+### Deployment
+
+`.github/workflows/`
+
+`apps/api/wrangler.toml`
+
+Status: canonical repository automation and Worker deployment configuration.
 
 ## BenDESK governance
 
-- `docs/bensot/`
-  - authority manifests and canonical declarations
+### BenSOT
 
-- `docs/vocabulary/`
-  - canonical naming and terminology standards
+`docs/bensot/`
 
-- `docs/bencode/`
-  - implementation and engineering conventions
+Function: authority, canonical declarations, provenance, supersession, and
+source manifests.
 
-- `docs/bennote/`
-  - Obsidian-compatible human knowledge interface
+### BenNOTE
+
+`docs/bennote/`
+
+Function: Obsidian-compatible human knowledge interface.
+
+BenNOTE may organize and expose canonical information but does not independently
+establish authority.
+
+### BenCODE
+
+`docs/bencode/`
+
+Function: code, implementation, repository, automation, testing, and engineering
+standards.
+
+### Vocabulary
+
+`docs/vocabulary/`
+
+Function: canonical naming and terminology standards.
 
 ## External authority
 
@@ -55,21 +90,31 @@ where established by `docs/source-of-truth.md`.
 
 ## Authority rule
 
-Indexes, catalogs, generated artifacts, exports, notes, and derivatives do not
-become authoritative merely because they exist.
+Existence does not establish authority.
 
-Canonical authority must be explicitly declared by BenSOT or an authority record
-recognized by this manifest.
+Indexes, notes, catalogs, generated artifacts, exports, reports, derivatives,
+and copied documents are non-authoritative unless explicitly declared
+canonical by a recognized authority record.
 
 ## Supersession rule
 
-A new document does not silently replace an existing canonical record.
+Canonical records MUST NOT be silently replaced.
 
-Supersession must identify:
+A supersession record must identify:
 
 - predecessor
 - successor
-- effective state
+- effective status
 - reason
 - provenance
 - verification evidence
+
+## Resolution rule
+
+When two records appear to conflict:
+
+1. inspect their declared authority;
+2. inspect provenance and supersession state;
+3. prefer the explicitly controlling canonical record;
+4. preserve the displaced record as historical evidence where appropriate;
+5. record the resolution rather than silently rewriting history.

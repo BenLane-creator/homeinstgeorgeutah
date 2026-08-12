@@ -6,17 +6,22 @@ status: active
 
 # BenSOT
 
-BenSOT is the authority and source-of-truth governance layer.
+BenSOT is the BenDESK authority and source-of-truth governance layer.
 
-## Canonical navigation
+## Canonical authority map
 
 - [[source-manifest]]
 - [[../source-of-truth]]
 - [[../revised-master-architecture-spec]]
 - [[../vocabulary/bendesk-naming-standard]]
 
+## Related BenDESK systems
+
+- [[../bennote/index|BenNOTE]]
+- [[../bencode/index|BenCODE]]
+
 ## Principle
 
-BenSOT does not create competing sources of truth.
+BenSOT does not create parallel truths.
 
-It identifies, governs, versions, and resolves authoritative project records.
+It identifies, governs, versions, reconciles, and resolves authoritative records.
