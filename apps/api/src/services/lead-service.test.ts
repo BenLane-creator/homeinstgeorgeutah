@@ -69,11 +69,13 @@ type ExistingIntake = {
   workflow_lane: "general_contact";
 };
 
-function createMockLeadEnv(options: {
-  contactId?: string;
-  existingIntake?: ExistingIntake | null;
-  failBatch?: boolean;
-} = {}) {
+function createMockLeadEnv(
+  options: {
+    contactId?: string;
+    existingIntake?: ExistingIntake | null;
+    failBatch?: boolean;
+  } = {},
+) {
   const statements: CapturedStatement[] = [];
   let batchCalls = 0;
 

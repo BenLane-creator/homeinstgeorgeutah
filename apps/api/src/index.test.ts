@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { handleRequest, type Env } from "./index";
+import { type Env, handleRequest } from "./index";
 
 function env(overrides: Partial<Env> = {}) {
   return {
@@ -69,9 +69,7 @@ describe("API routing", () => {
 
   test("keeps county search disabled when only provider credentials exist", async () => {
     const response = await handleRequest(
-      new Request(
-        "https://homeinstgeorgeutah.com/api/search?county=iron",
-      ),
+      new Request("https://homeinstgeorgeutah.com/api/search?county=iron"),
       env({
         IRON_IDX_API_BASE_URL: "https://example.com/reso",
         IRON_IDX_ACCESS_TOKEN: "secret",
