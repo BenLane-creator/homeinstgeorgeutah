@@ -1,0 +1,38 @@
+name = "homeinstgeorgeutah-email-worker"
+main = "src/index.ts"
+compatibility_date = "2025-05-23"
+account_id = "5c2c50cd82516e7f000aac929d48c0d2"
+
+# This Worker is invoked by Cloudflare Email Routing for inbound mail and by the
+# API Worker through a Service Binding for owner notifications. Do not expose an
+# HTTP workers.dev or preview URL.
+workers_dev = false
+preview_urls = false
+
+[vars]
+AUTO_REPLY_ENABLED = "true"
+AUTO_REPLY_FROM = "contact@homeinstgeorgeutah.com"
+FORWARD_TO = "joel@homeinstgeorge.com"
+ADDITIONAL_WORKFLOW_LANES = ""
+
+[[d1_databases]]
+binding = "DB"
+database_name = "homeinstgeorgeutah"
+database_id = "8ca08d07-6614-4533-b7eb-3c92db623282"
+migrations_dir = "../../packages/db/migrations"
+
+# Preserve the deployed unrestricted binding used by the existing inbound
+# auto-reply path. Its behavior is intentionally unchanged in the issue #42
+# release-blocker patch.
+[[send_email]]
+name = "EMAIL"
+
+# Dedicated capability for website owner notifications. Cloudflare enforces
+# both the single recipient and the allowed sender at the binding layer.
+[[send_email]]
+name = "OWNER_EMAIL"
+destination_address = "joel@homeinstgeorge.com"
+allowed_sender_addresses = ["contact@homeinstgeorgeutah.com"]
+
+[limits]
+cpu_ms = 50

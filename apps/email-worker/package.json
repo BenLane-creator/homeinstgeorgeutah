@@ -1,0 +1,16 @@
+{
+  "name": "@home/email-worker",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev --config wrangler.toml",
+    "deploy": "wrangler deploy --config wrangler.toml",
+    "typecheck": "tsc --noEmit",
+    "test": "bun test src/**/*.test.ts src/*.test.ts"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20260604.1",
+    "typescript": "^5.0.0",
+    "wrangler": "4.113.0"
+  }
+}
