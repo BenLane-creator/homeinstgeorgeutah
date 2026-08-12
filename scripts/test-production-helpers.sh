@@ -59,6 +59,9 @@ fi
 
 cat > "$fixture_dir/wrangler.toml" <<'TOML'
 account_id = "test-account"
+[[services]]
+binding = "EMAIL_DELIVERY"
+service = "homeinstgeorgeutah-email-worker"
 [[d1_databases]]
 binding = "DB"
 database_name = "homeinstgeorgeutah"
@@ -79,6 +82,19 @@ JSON
 cat > "$fixture_dir/worker-secrets.json" <<'JSON'
 [{"name":"INTERNAL_JOB_TOKEN"},{"name":"TURNSTILE_SECRET_KEY"},{"name":"VOW_TOKEN_ENCRYPTION_KEY"}]
 JSON
+cat > "$fixture_dir/email-worker-version.json" <<'JSON'
+{
+  "resources": {
+    "script": {
+      "handlers": ["email", "fetch"]
+    },
+    "bindings": [
+      {"name":"OWNER_EMAIL","type":"send_email"},
+      {"name":"FORWARD_TO","type":"plain_text","text":"joel@homeinstgeorge.com"}
+    ]
+  }
+}
+JSON
 cat > "$fixture_dir/health.json" <<'JSON'
 {"ok":true,"data":{"service":"homeinstgeorgeutah-api","status":"ok"}}
 JSON
@@ -97,6 +113,7 @@ CLOUDFLARE_ACCOUNT_ID=test-account D1_DATABASE=homeinstgeorgeutah \
     --d1State="$fixture_dir/d1-state.json" \
     --workerDeployment="$fixture_dir/worker-deployment.json" \
     --workerSecrets="$fixture_dir/worker-secrets.json" \
+    --emailWorkerVersion="$fixture_dir/email-worker-version.json" \
     --health="$fixture_dir/health.json" \
     --mlsStatus="$fixture_dir/mls-status.json" \
     --accountSession="$fixture_dir/account-session.json" \

@@ -9,10 +9,10 @@ The only automated lead-notification recipient is the approved owner address con
 ## Delivery contract
 
 - Canonical state: `notification_outbox` in D1.
-- Delivery utility: replaceable HTTPS endpoint configured by `EMAIL_DELIVERY_WEBHOOK_URL`.
-- Authentication: server-side `EMAIL_DELIVERY_TOKEN` secret when required.
+- Delivery utility: `homeinstgeorgeutah-email-worker` through the internal `EMAIL_DELIVERY` Cloudflare Service Binding.
+- Authentication boundary: the Cloudflare Service Binding; no public webhook URL or shared delivery token is used.
 - Immediate attempt: Worker `ExecutionContext.waitUntil` after a new lead transaction.
-- Recovery: five-minute scheduled drain plus protected manual drain route.
+- Recovery: 30-minute scheduled drain plus protected manual drain route.
 - Maximum automated attempts: five.
 - Backoff: 5, 10, 20, 40, then 60 minutes.
 - Terminal status: `dead`, requiring a documented manual decision.
@@ -32,7 +32,7 @@ The route may process only queued jobs and failed jobs whose retry time has arri
 
 1. Confirm the lead exists in `contacts`, `lead_events`, and `routing_decisions`.
 2. Confirm the outbox record references the same contact and lead event.
-3. Correct the delivery endpoint, token, sender authorization, or approved recipient configuration.
+3. Correct the Service Binding, email Worker deployment, sender authorization, or approved recipient configuration.
 4. Run the protected drain operation or wait for the scheduled drain.
 5. Verify `status='sent'`, `delivered_at`, attempt count, and provider message identifier.
 6. If delivery remains impossible, contact Joel directly using the canonical D1 record and document the manual handling before marking the job resolved or retaining it as `dead`.

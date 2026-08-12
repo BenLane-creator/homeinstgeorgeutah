@@ -24,7 +24,8 @@ Dispatch `.github/workflows/production-preflight.yml` and require it to verify:
 - Committed D1 database name and UUID
 - Complete remote migration ledger
 - Contact-email integrity
-- Existing Worker deployment and approved secret-name inventory
+- Existing API Worker deployment and approved secret-name inventory
+- Deployed email Worker contract and internal `EMAIL_DELIVERY` Service Binding
 - Root-domain API routing
 - Anonymous consumer session state
 - All four IDX/VOW scopes inactive
@@ -40,8 +41,8 @@ Before lead operations are approved:
 - `BACKUP_ENCRYPTION_PASSPHRASE`
 - `INTERNAL_JOB_TOKEN`
 - `TURNSTILE_SECRET_KEY`
-- approved `EMAIL_DELIVERY_WEBHOOK_URL`
-- `EMAIL_DELIVERY_TOKEN` when required by the delivery utility
+- deployed `homeinstgeorgeutah-email-worker` with both `email` and `fetch` handlers
+- `EMAIL_DELIVERY` Cloudflare Service Binding from `homeinstgeorgeutah-api`
 
 Do not configure MLS credentials or enable flags until the corresponding authorization and policy contract is approved.
 
