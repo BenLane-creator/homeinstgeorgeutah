@@ -87,15 +87,17 @@ describe("lead request protection", () => {
 });
 
 describe("Turnstile siteverify", () => {
-  const request = new Request("https://homeinstgeorgeutah.com/api/v1/leads/intake", {
-    method: "POST",
-    headers: { "cf-connecting-ip": "203.0.113.10" },
-  });
+  const request = new Request(
+    "https://homeinstgeorgeutah.com/api/v1/leads/intake",
+    {
+      method: "POST",
+      headers: { "cf-connecting-ip": "203.0.113.10" },
+    },
+  );
   const env = {
     APP_ENV: "production",
     TURNSTILE_SECRET_KEY: "test-secret",
-    TURNSTILE_HOSTNAMES:
-      "homeinstgeorgeutah.com,www.homeinstgeorgeutah.com",
+    TURNSTILE_HOSTNAMES: "homeinstgeorgeutah.com,www.homeinstgeorgeutah.com",
     TURNSTILE_EXPECTED_ACTION: "turnstile-spin-v2",
   };
 

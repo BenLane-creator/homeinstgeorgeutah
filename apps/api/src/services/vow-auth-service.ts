@@ -45,7 +45,10 @@ function asString(value: unknown) {
 function bytesToBase64Url(bytes: Uint8Array) {
   let binary = "";
   for (const byte of bytes) binary += String.fromCharCode(byte);
-  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
+  return btoa(binary)
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/g, "");
 }
 
 function randomToken(size = 32) {
@@ -55,11 +58,15 @@ function randomToken(size = 32) {
 }
 
 async function sha256Bytes(value: string) {
-  return new Uint8Array(await crypto.subtle.digest("SHA-256", encoder.encode(value)));
+  return new Uint8Array(
+    await crypto.subtle.digest("SHA-256", encoder.encode(value)),
+  );
 }
 
 async function sha256Hex(value: string) {
-  return Array.from(await sha256Bytes(value), (byte) => byte.toString(16).padStart(2, "0")).join("");
+  return Array.from(await sha256Bytes(value), (byte) =>
+    byte.toString(16).padStart(2, "0"),
+  ).join("");
 }
 
 async function hmac(value: string, secret: string) {
@@ -71,7 +78,9 @@ async function hmac(value: string, secret: string) {
     ["sign"],
   );
   return bytesToBase64Url(
-    new Uint8Array(await crypto.subtle.sign("HMAC", key, encoder.encode(value))),
+    new Uint8Array(
+      await crypto.subtle.sign("HMAC", key, encoder.encode(value)),
+    ),
   );
 }
 
@@ -93,7 +102,8 @@ async function createState(secret: string) {
 
 async function verifyStateSignature(state: string, secret: string) {
   const [random, suppliedSignature, extra] = state.split(".");
-  if (!random || !suppliedSignature || extra || state.length > 256) return false;
+  if (!random || !suppliedSignature || extra || state.length > 256)
+    return false;
   const expectedSignature = await hmac(random, secret);
   return constantTimeEqual(suppliedSignature, expectedSignature);
 }
@@ -187,7 +197,9 @@ function parseContact(payload: unknown) {
   const email = asString(contact?.PrimaryEmail).toLowerCase();
   const displayName =
     asString(contact?.DisplayName) ||
-    [asString(contact?.GivenName), asString(contact?.FamilyName)].filter(Boolean).join(" ");
+    [asString(contact?.GivenName), asString(contact?.FamilyName)]
+      .filter(Boolean)
+      .join(" ");
   if (!externalId || !email || !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) {
     throw new VowAuthError(
       502,
@@ -214,7 +226,9 @@ function parseTokenResponse(payload: unknown) {
   const refreshToken = asString(root?.refresh_token);
   const rawExpiresIn = Number(root?.expires_in);
   const expiresIn =
-    Number.isFinite(rawExpiresIn) && rawExpiresIn > 0 && rawExpiresIn <= 7 * 24 * 60 * 60
+    Number.isFinite(rawExpiresIn) &&
+    rawExpiresIn > 0 &&
+    rawExpiresIn <= 7 * 24 * 60 * 60
       ? Math.floor(rawExpiresIn)
       : 24 * 60 * 60;
   if (!accessToken) {
@@ -361,7 +375,10 @@ async function fetchCurrentContact(
 
 export async function completeVowAuthorization(env: VowAuthEnv, url: URL) {
   const state = asString(url.searchParams.get("state"));
-  if (!state || !(await verifyStateSignature(state, env.VOW_STATE_SECRET?.trim() || ""))) {
+  if (
+    !state ||
+    !(await verifyStateSignature(state, env.VOW_STATE_SECRET?.trim() || ""))
+  ) {
     throw new VowAuthError(
       400,
       "VOW_STATE_INVALID",
@@ -370,7 +387,9 @@ export async function completeVowAuthorization(env: VowAuthEnv, url: URL) {
   }
 
   const attempt = await claimAttempt(env, state);
-  const county = attempt.scope_key.startsWith("washington") ? "washington" : "iron";
+  const county = attempt.scope_key.startsWith("washington")
+    ? "washington"
+    : "iron";
   const source = getActiveVowSource(env, county);
   if (!source || source.scopeKey !== attempt.scope_key) {
     await markAttempt(env, attempt.id, "failed", "scope_inactive");
@@ -538,7 +557,9 @@ export async function completeVowAuthorization(env: VowAuthEnv, url: URL) {
       | { user_account_id?: unknown; contact_id?: unknown }
       | undefined;
     if (!asString(stored?.user_account_id) || !asString(stored?.contact_id)) {
-      throw new Error("VOW account transaction did not return a local identity.");
+      throw new Error(
+        "VOW account transaction did not return a local identity.",
+      );
     }
 
     return {

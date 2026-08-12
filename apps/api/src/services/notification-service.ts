@@ -98,7 +98,11 @@ export async function processNotificationJob(
   }
 
   if (!approvedRecipient(env, job.recipient)) {
-    return markFailed(env, { ...job, attempts: 4 }, "Recipient is not approved.");
+    return markFailed(
+      env,
+      { ...job, attempts: 4 },
+      "Recipient is not approved.",
+    );
   }
 
   const deliveryUrl = env.EMAIL_DELIVERY_WEBHOOK_URL?.trim();

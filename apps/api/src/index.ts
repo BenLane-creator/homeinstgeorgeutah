@@ -1,25 +1,18 @@
 import {
-  providerMeta,
-  sanitizeSearchParams,
-  SearchInputError,
-  searchListings,
-  type ListingServiceEnv,
-} from "./services/property-search-service";
+  type InternalAuthEnv,
+  InternalAuthError,
+  requireInternalJobToken,
+} from "./security/internal-auth";
 import {
-  LeadIdempotencyConflictError,
-  storeLeadIntake,
-} from "./services/lead-service";
-import { getAllMlsScopeStates, isMlsCounty } from "./services/mls-scope-service";
-import {
-  drainNotificationOutbox,
-  processNotificationJob,
-  type NotificationServiceEnv,
-} from "./services/notification-service";
-import {
-  syncAllActiveIdxScopes,
-  syncMlsPropertyCache,
-  type MlsSyncEnv,
-} from "./services/mls-source-adapter";
+  addWriteResponseHeaders,
+  enforceLeadRateLimit,
+  type LeadSecurityEnv,
+  RequestSecurityError,
+  readJsonBody,
+  requireApprovedWriteOrigin,
+  validateAndMinimizeLeadBody,
+  verifyTurnstile,
+} from "./security/request-security";
 import {
   ConsumerAccountError,
   createSavedHome,
@@ -31,29 +24,39 @@ import {
   requireConsumerSession,
 } from "./services/consumer-account-service";
 import {
+  LeadIdempotencyConflictError,
+  storeLeadIntake,
+} from "./services/lead-service";
+import {
+  getAllMlsScopeStates,
+  isMlsCounty,
+} from "./services/mls-scope-service";
+import {
+  type MlsSyncEnv,
+  syncAllActiveIdxScopes,
+  syncMlsPropertyCache,
+} from "./services/mls-source-adapter";
+import {
+  drainNotificationOutbox,
+  type NotificationServiceEnv,
+  processNotificationJob,
+} from "./services/notification-service";
+import {
+  type ListingServiceEnv,
+  providerMeta,
+  SearchInputError,
+  sanitizeSearchParams,
+  searchListings,
+} from "./services/property-search-service";
+import {
   clearVowSessionCookie,
   completeVowAuthorization,
   readVowSession,
   revokeVowSession,
   startVowAuthorization,
-  VowAuthError,
   type VowAuthEnv,
+  VowAuthError,
 } from "./services/vow-auth-service";
-import {
-  addWriteResponseHeaders,
-  enforceLeadRateLimit,
-  readJsonBody,
-  RequestSecurityError,
-  requireApprovedWriteOrigin,
-  type LeadSecurityEnv,
-  validateAndMinimizeLeadBody,
-  verifyTurnstile,
-} from "./security/request-security";
-import {
-  InternalAuthError,
-  requireInternalJobToken,
-  type InternalAuthEnv,
-} from "./security/internal-auth";
 
 export interface Env
   extends ListingServiceEnv,
@@ -297,7 +300,8 @@ async function handleSession(request: Request, env: Env) {
 async function handleLogout(request: Request, env: Env) {
   try {
     requireApprovedWriteOrigin(request, env);
-    if (request.method === "OPTIONS") return new Response(null, { status: 204 });
+    if (request.method === "OPTIONS")
+      return new Response(null, { status: 204 });
     if (request.method !== "POST") return methodNotAllowed(["POST"]);
     await revokeVowSession(env, request);
     return json(
@@ -350,13 +354,23 @@ async function handleSavedHomes(request: Request, env: Env, pathname: string) {
     }
     if (request.method === "POST" && !itemId) {
       requireApprovedWriteOrigin(request, env);
-      const saved = await createSavedHome(env, session, await readJsonBody(request));
-      return json({ ok: true, data: { home: saved }, meta: metadata() }, { status: 201 });
+      const saved = await createSavedHome(
+        env,
+        session,
+        await readJsonBody(request),
+      );
+      return json(
+        { ok: true, data: { home: saved }, meta: metadata() },
+        { status: 201 },
+      );
     }
     if (request.method === "DELETE" && itemId) {
       requireApprovedWriteOrigin(request, env);
       await deleteSavedHome(env, session, itemId);
-      return new Response(null, { status: 204, headers: { "cache-control": "no-store" } });
+      return new Response(null, {
+        status: 204,
+        headers: { "cache-control": "no-store" },
+      });
     }
     return methodNotAllowed(itemId ? ["DELETE"] : ["GET", "POST"]);
   } catch (error) {
@@ -364,7 +378,11 @@ async function handleSavedHomes(request: Request, env: Env, pathname: string) {
   }
 }
 
-async function handleSavedSearches(request: Request, env: Env, pathname: string) {
+async function handleSavedSearches(
+  request: Request,
+  env: Env,
+  pathname: string,
+) {
   try {
     const itemId = pathname.startsWith("/api/v1/saved-searches/")
       ? decodeURIComponent(pathname.slice("/api/v1/saved-searches/".length))
@@ -383,7 +401,11 @@ async function handleSavedSearches(request: Request, env: Env, pathname: string)
     }
     if (request.method === "POST" && !itemId) {
       requireApprovedWriteOrigin(request, env);
-      const saved = await createSavedSearch(env, session, await readJsonBody(request));
+      const saved = await createSavedSearch(
+        env,
+        session,
+        await readJsonBody(request),
+      );
       return json(
         { ok: true, data: { search: saved }, meta: metadata() },
         { status: 201 },
@@ -392,7 +414,10 @@ async function handleSavedSearches(request: Request, env: Env, pathname: string)
     if (request.method === "DELETE" && itemId) {
       requireApprovedWriteOrigin(request, env);
       await deleteSavedSearch(env, session, itemId);
-      return new Response(null, { status: 204, headers: { "cache-control": "no-store" } });
+      return new Response(null, {
+        status: 204,
+        headers: { "cache-control": "no-store" },
+      });
     }
     return methodNotAllowed(itemId ? ["DELETE"] : ["GET", "POST"]);
   } catch (error) {
@@ -509,8 +534,7 @@ async function handleInternalMlsSync(request: Request, env: Env) {
   try {
     requireInternalJobToken(request, env);
     const countyParam = new URL(request.url).searchParams.get("county");
-    const county =
-      countyParam && isMlsCounty(countyParam) ? countyParam : null;
+    const county = countyParam && isMlsCounty(countyParam) ? countyParam : null;
     if (countyParam && !county) {
       return apiError(
         400,

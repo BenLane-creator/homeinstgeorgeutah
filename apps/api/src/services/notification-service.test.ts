@@ -115,9 +115,9 @@ describe("notification outbox", () => {
     );
 
     expect(result.status).toBe("sent");
-    expect(writes.some((write) => write.sql.includes("status = 'sending'"))).toBe(
-      true,
-    );
+    expect(
+      writes.some((write) => write.sql.includes("status = 'sending'")),
+    ).toBe(true);
     expect(writes.at(-1)?.sql).toContain("status = 'sent'");
     expect(writes.at(-1)?.values).toContain("provider-message-1");
   });

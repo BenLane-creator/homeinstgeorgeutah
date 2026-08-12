@@ -13,8 +13,7 @@ describe("independent MLS scope activation", () => {
       {
         WASHINGTON_IDX_APPROVAL_STATUS: "pending",
         WASHINGTON_IDX_ENABLED: "true",
-        WASHINGTON_IDX_POLICY_VERSION:
-          APPROVED_POLICY_VERSIONS.washington.idx,
+        WASHINGTON_IDX_POLICY_VERSION: APPROVED_POLICY_VERSIONS.washington.idx,
         WASHINGTON_IDX_PROVIDER: "spark-reso",
         WASHINGTON_IDX_API_BASE_URL: "https://example.com/reso",
         WASHINGTON_IDX_ACCESS_TOKEN: "secret",
@@ -49,8 +48,7 @@ describe("independent MLS scope activation", () => {
     const states = getAllMlsScopeStates({
       WASHINGTON_IDX_APPROVAL_STATUS: "approved",
       WASHINGTON_IDX_ENABLED: "true",
-      WASHINGTON_IDX_POLICY_VERSION:
-        APPROVED_POLICY_VERSIONS.washington.idx,
+      WASHINGTON_IDX_POLICY_VERSION: APPROVED_POLICY_VERSIONS.washington.idx,
       WASHINGTON_IDX_PROVIDER: "spark-reso",
       WASHINGTON_IDX_API_BASE_URL: "https://example.com/reso",
       WASHINGTON_IDX_ACCESS_TOKEN: "secret",
@@ -59,7 +57,9 @@ describe("independent MLS scope activation", () => {
     expect(states.find((state) => state.key === "washington-idx")?.active).toBe(
       true,
     );
-    expect(states.find((state) => state.key === "iron-idx")?.active).toBe(false);
+    expect(states.find((state) => state.key === "iron-idx")?.active).toBe(
+      false,
+    );
     expect(states.find((state) => state.key === "washington-vow")?.active).toBe(
       false,
     );
@@ -69,20 +69,17 @@ describe("independent MLS scope activation", () => {
     const env = {
       WASHINGTON_VOW_APPROVAL_STATUS: "approved",
       WASHINGTON_VOW_ENABLED: "true",
-      WASHINGTON_VOW_POLICY_VERSION:
-        APPROVED_POLICY_VERSIONS.washington.vow,
+      WASHINGTON_VOW_POLICY_VERSION: APPROVED_POLICY_VERSIONS.washington.vow,
       WASHINGTON_VOW_CLIENT_ID: "client",
       WASHINGTON_VOW_CLIENT_SECRET: "secret",
-      WASHINGTON_VOW_AUTHORIZATION_URL:
-        "https://sparkplatform.com/auth/vow",
+      WASHINGTON_VOW_AUTHORIZATION_URL: "https://sparkplatform.com/auth/vow",
       WASHINGTON_VOW_TOKEN_URL: "https://sparkapi.com/v1/oauth2/grant",
       WASHINGTON_VOW_CONTACT_URL: "https://sparkapi.com/v1/my/contact",
       WASHINGTON_VOW_MLS_ID: "washington-mls",
       VOW_REDIRECT_URI:
         "https://homeinstgeorgeutah.com/api/v1/auth/flexmls/callback",
       VOW_STATE_SECRET: "state-secret-state-secret-state-secret",
-      VOW_TOKEN_ENCRYPTION_KEY:
-        "token-encryption-key-token-encryption-key",
+      VOW_TOKEN_ENCRYPTION_KEY: "token-encryption-key-token-encryption-key",
     };
 
     expect(getMlsScopeState(env, "washington", "vow").active).toBe(true);

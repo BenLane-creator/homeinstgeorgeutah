@@ -38,7 +38,7 @@ required_source_files = [
     SITE / "public" / "fonts" / "geist-latin-variable.woff2",
     SITE / "public" / "fonts" / "inter-latin-variable.woff2",
     ROOT / "apps" / "api" / "src" / "security" / "request-security.ts",
-    ROOT / "apps" / "api" / "src" / "services" / "listing-service.ts",
+    ROOT / "apps" / "api" / "src" / "services" / "property-search-service.ts",
     ROOT / "apps" / "api" / "src" / "services" / "mls-scope-service.ts",
     ROOT / "apps" / "api" / "src" / "services" / "vow-auth-service.ts",
     ROOT / "apps" / "api" / "src" / "services" / "consumer-account-service.ts",
@@ -138,7 +138,7 @@ for control in [
     if control not in account_island:
         errors.append(f"Consumer account UI is missing fail-closed control: {control}")
 
-listing_service = require(ROOT / "apps" / "api" / "src" / "services" / "listing-service.ts")
+property_search_service = require(ROOT / "apps" / "api" / "src" / "services" / "property-search-service.ts")
 mls_scope_service = require(ROOT / "apps" / "api" / "src" / "services" / "mls-scope-service.ts")
 for gate in [
     "WASHINGTON_IDX_APPROVAL_STATUS",
@@ -149,7 +149,7 @@ for gate in [
     "getActiveIdxSource",
     "getActiveVowSource",
 ]:
-    if gate not in mls_scope_service and gate not in listing_service:
+    if gate not in mls_scope_service and gate not in property_search_service:
         errors.append(f"MLS integration is missing county/role activation gate: {gate}")
 for routing_control in [
     'counties: ["Washington", "Iron"]',
@@ -157,7 +157,7 @@ for routing_control in [
     "getActiveIdxSource(env, params.county)",
     "isMlsCounty(requestedCounty)",
 ]:
-    if routing_control not in listing_service:
+    if routing_control not in property_search_service:
         errors.append(
             f"Listing adapter is missing explicit Washington/Iron county routing: {routing_control}"
         )

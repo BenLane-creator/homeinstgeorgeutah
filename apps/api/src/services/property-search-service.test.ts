@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, test } from "bun:test";
+import { APPROVED_POLICY_VERSIONS } from "./mls-scope-service";
 import {
   buildCacheSearchQuery,
   buildProviderSearchParams,
@@ -6,7 +7,6 @@ import {
   sanitizeSearchParams,
   searchListings,
 } from "./property-search-service";
-import { APPROVED_POLICY_VERSIONS } from "./mls-scope-service";
 
 const originalFetch = globalThis.fetch;
 afterEach(() => {

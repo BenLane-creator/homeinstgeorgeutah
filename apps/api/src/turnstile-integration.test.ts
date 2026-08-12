@@ -3,7 +3,8 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 const repositoryRoot = resolve(import.meta.dir, "../../..");
-const read = (path: string) => readFileSync(resolve(repositoryRoot, path), "utf8");
+const read = (path: string) =>
+  readFileSync(resolve(repositoryRoot, path), "utf8");
 
 describe("Turnstile integration contract", () => {
   test("keeps the existing widget sitekey and Spin action on every shared lead form", () => {

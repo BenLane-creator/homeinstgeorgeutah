@@ -228,6 +228,8 @@ export function getActiveVowSource(
   };
 }
 
-export function isMlsCounty(value: string | null | undefined): value is MlsCounty {
+export function isMlsCounty(
+  value: string | null | undefined,
+): value is MlsCounty {
   return MLS_COUNTIES.includes(value as MlsCounty);
 }

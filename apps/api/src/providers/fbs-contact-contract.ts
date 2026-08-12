@@ -199,7 +199,10 @@ export function validateFbsContactProvisioningResult(
     );
   }
 
-  if (result.state === "consumer-action-required" && !result.credentialProvisioning) {
+  if (
+    result.state === "consumer-action-required" &&
+    !result.credentialProvisioning
+  ) {
     throw new FbsContractError(
       "FBS_CREDENTIAL_PROVISIONING_REQUIRED",
       "Consumer-action-required responses must describe the FBS-owned next step.",

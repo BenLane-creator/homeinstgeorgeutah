@@ -3,8 +3,8 @@ import { APPROVED_POLICY_VERSIONS } from "./mls-scope-service";
 import {
   completeVowAuthorization,
   startVowAuthorization,
-  VowAuthError,
   type VowAuthEnv,
+  VowAuthError,
 } from "./vow-auth-service";
 
 type Statement = {
@@ -17,8 +17,11 @@ type Statement = {
 function activeEnv() {
   const statements: Statement[] = [];
   const batches: Statement[][] = [];
-  let claim: { id: string; scope_key: "washington-vow"; redirect_after: string } | null =
-    null;
+  let claim: {
+    id: string;
+    scope_key: "washington-vow";
+    redirect_after: string;
+  } | null = null;
 
   const db = {
     prepare(sql: string) {
@@ -31,7 +34,10 @@ function activeEnv() {
               return { success: true };
             },
             async first<T>() {
-              if (sql.includes("update vow_authorization_attempts") && sql.includes("returning")) {
+              if (
+                sql.includes("update vow_authorization_attempts") &&
+                sql.includes("returning")
+              ) {
                 return claim as T | null;
               }
               return null;
@@ -142,7 +148,10 @@ describe("VOW OAuth2 boundary", () => {
     });
 
     const fetchRequests: Array<{ url: string; init?: RequestInit }> = [];
-    globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+    globalThis.fetch = (async (
+      input: RequestInfo | URL,
+      init?: RequestInit,
+    ) => {
       const url = String(input);
       fetchRequests.push({ url, init });
       if (url.endsWith("/oauth2/grant")) {

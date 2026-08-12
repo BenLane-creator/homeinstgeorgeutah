@@ -24,7 +24,11 @@ function asRecord(value: unknown): Record<string, unknown> {
 function boundedString(value: unknown, label: string, maxLength: number) {
   const normalized = typeof value === "string" ? value.trim() : "";
   if (normalized.length > maxLength) {
-    throw new ConsumerAccountError(400, "INVALID_FIELD", `${label} is too long.`);
+    throw new ConsumerAccountError(
+      400,
+      "INVALID_FIELD",
+      `${label} is too long.`,
+    );
   }
   return normalized;
 }
@@ -50,7 +54,10 @@ function listingCounty(listingId: string) {
   return null;
 }
 
-function requireScope(session: VowSessionIdentity, county: "washington" | "iron") {
+function requireScope(
+  session: VowSessionIdentity,
+  county: "washington" | "iron",
+) {
   const scope = `${county}-vow`;
   if (!session.scopes.includes(scope)) {
     throw new ConsumerAccountError(
@@ -62,7 +69,10 @@ function requireScope(session: VowSessionIdentity, county: "washington" | "iron"
   return scope;
 }
 
-export async function listSavedHomes(env: VowAuthEnv, session: VowSessionIdentity) {
+export async function listSavedHomes(
+  env: VowAuthEnv,
+  session: VowSessionIdentity,
+) {
   const result = await env.DB.prepare(
     `select sh.id, sh.listing_id, sh.source_listing_key, sh.created_at,
             lc.standard_status, lc.list_price, lc.property_type,
@@ -152,14 +162,17 @@ export async function deleteSavedHome(
     .bind(savedId, session.userAccountId)
     .first<{ id: string; listing_id: string }>();
   if (!existing) {
-    throw new ConsumerAccountError(404, "SAVED_HOME_NOT_FOUND", "Saved home not found.");
+    throw new ConsumerAccountError(
+      404,
+      "SAVED_HOME_NOT_FOUND",
+      "Saved home not found.",
+    );
   }
   const county = listingCounty(existing.listing_id);
   await env.DB.batch([
-    env.DB.prepare("delete from saved_homes where id = ? and user_account_id = ?").bind(
-      savedId,
-      session.userAccountId,
-    ),
+    env.DB.prepare(
+      "delete from saved_homes where id = ? and user_account_id = ?",
+    ).bind(savedId, session.userAccountId),
     env.DB.prepare(
       `insert into consumer_audit_events
         (id, user_account_id, event_type, scope_key, entity_id, payload_json)
@@ -176,7 +189,11 @@ export async function deleteSavedHome(
 function validatedSavedSearch(input: Record<string, unknown>) {
   const name = boundedString(input.name, "Search name", 100);
   if (!name) {
-    throw new ConsumerAccountError(400, "SEARCH_NAME_REQUIRED", "Search name is required.");
+    throw new ConsumerAccountError(
+      400,
+      "SEARCH_NAME_REQUIRED",
+      "Search name is required.",
+    );
   }
   const alertFrequency =
     boundedString(input.alertFrequency, "Alert frequency", 20) || "daily";
@@ -297,14 +314,18 @@ export async function deleteSavedSearch(
   const query = asRecord(JSON.parse(existing.query_json));
   const county = query.county === "iron" ? "iron" : "washington";
   await env.DB.batch([
-    env.DB.prepare("delete from saved_searches where id = ? and user_account_id = ?").bind(
-      savedId,
-      session.userAccountId,
-    ),
+    env.DB.prepare(
+      "delete from saved_searches where id = ? and user_account_id = ?",
+    ).bind(savedId, session.userAccountId),
     env.DB.prepare(
       `insert into consumer_audit_events
         (id, user_account_id, event_type, scope_key, entity_id, payload_json)
        values (?, ?, 'saved_search_deleted', ?, ?, '{}')`,
-    ).bind(crypto.randomUUID(), session.userAccountId, `${county}-vow`, savedId),
+    ).bind(
+      crypto.randomUUID(),
+      session.userAccountId,
+      `${county}-vow`,
+      savedId,
+    ),
   ]);
 }
