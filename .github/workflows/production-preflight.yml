@@ -7,6 +7,8 @@ on:
     paths:
       - .github/workflows/production-preflight.yml
       - scripts/verify-production-preflight.mjs
+      - apps/api/wrangler.toml
+      - apps/email-worker/wrangler.toml
   workflow_dispatch:
 
 permissions:
@@ -27,6 +29,8 @@ jobs:
       WRANGLER_SEND_METRICS: "false"
       WORKER_CONFIG: apps/api/wrangler.toml
       WORKER_NAME: homeinstgeorgeutah-api
+      EMAIL_WORKER_NAME: homeinstgeorgeutah-email-worker
+      EMAIL_WORKER_CONFIG: apps/email-worker/wrangler.toml
       D1_DATABASE: homeinstgeorgeutah
 
     steps:
@@ -81,6 +85,22 @@ jobs:
             --name "$WORKER_NAME" \
             --config "$WORKER_CONFIG" \
             --format json > /tmp/worker-secrets.json
+          bunx wrangler deployments status \
+            --name "$EMAIL_WORKER_NAME" \
+            --config "$EMAIL_WORKER_CONFIG" \
+            --json > /tmp/email-worker-deployment.json
+          email_worker_version_id="$(
+            jq -r '.versions[]? | select(.percentage == 100) | .version_id' \
+              /tmp/email-worker-deployment.json | head -n 1
+          )"
+          test -n "$email_worker_version_id" || {
+            echo "::error::No 100% active email Worker version was returned."
+            exit 1
+          }
+          bunx wrangler versions view "$email_worker_version_id" \
+            --name "$EMAIL_WORKER_NAME" \
+            --config "$EMAIL_WORKER_CONFIG" \
+            --json > /tmp/email-worker-version.json
           curl --fail-with-body --silent --show-error \
             --retry 2 --connect-timeout 10 --max-time 30 \
             https://homeinstgeorgeutah.com/api/health > /tmp/api-health.json
@@ -104,6 +124,7 @@ jobs:
             --d1State=/tmp/d1-state.json \
             --workerDeployment=/tmp/worker-deployment.json \
             --workerSecrets=/tmp/worker-secrets.json \
+            --emailWorkerVersion=/tmp/email-worker-version.json \
             --health=/tmp/api-health.json \
             --mlsStatus=/tmp/mls-status.json \
             --accountSession=/tmp/account-session.json \
@@ -117,7 +138,8 @@ jobs:
             echo
             echo "- Cloudflare account and D1 ownership verified"
             echo "- Production migration ledger and contact integrity verified"
-            echo "- Worker deployment and approved secret-name inventory verified"
+            echo "- API Worker deployment and approved secret-name inventory verified"
+            echo "- Email Worker handlers and internal Service Binding verified"
             echo "- Root-domain API route verified"
             echo "- Washington and Iron IDX/VOW scopes confirmed disabled"
             echo "- Consumer session confirmed anonymous without creating an account or authorization attempt"

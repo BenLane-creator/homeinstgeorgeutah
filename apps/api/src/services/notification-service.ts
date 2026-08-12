@@ -1,8 +1,7 @@
 export interface NotificationServiceEnv {
   DB: D1Database;
   OWNER_NOTIFICATION_EMAIL?: string;
-  EMAIL_DELIVERY_WEBHOOK_URL?: string;
-  EMAIL_DELIVERY_TOKEN?: string;
+  EMAIL_DELIVERY?: Fetcher;
 }
 
 type NotificationJob = {
@@ -27,6 +26,9 @@ export type NotificationDispatchResult = {
   attempts: number;
   error?: string;
 };
+
+const INTERNAL_EMAIL_DELIVERY_URL =
+  "https://email-delivery.internal/internal/owner-lead";
 
 function normalizedEmail(value: string | undefined) {
   return (value || "").trim().toLowerCase();
@@ -105,17 +107,12 @@ export async function processNotificationJob(
     );
   }
 
-  const deliveryUrl = env.EMAIL_DELIVERY_WEBHOOK_URL?.trim();
-  if (!deliveryUrl) {
-    return markFailed(env, job, "Email delivery utility is not configured.");
-  }
-
-  let url: URL;
-  try {
-    url = new URL(deliveryUrl);
-    if (url.protocol !== "https:") throw new Error();
-  } catch {
-    return markFailed(env, job, "Email delivery URL is invalid.");
+  if (!env.EMAIL_DELIVERY) {
+    return markFailed(
+      env,
+      job,
+      "Email delivery service binding is not configured.",
+    );
   }
 
   await env.DB.prepare(
@@ -128,38 +125,37 @@ export async function processNotificationJob(
     .run();
 
   try {
-    const response = await fetch(url, {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        ...(env.EMAIL_DELIVERY_TOKEN
-          ? { authorization: `Bearer ${env.EMAIL_DELIVERY_TOKEN}` }
-          : {}),
-      },
-      body: JSON.stringify({
-        event: "owner.lead.received",
-        to: job.recipient,
-        subject: `New ${job.workflow_lane.replaceAll("_", " ")} website request`,
-        lead: {
-          eventId: job.lead_event_id,
-          contactId: job.contact_id,
-          name: job.full_name,
-          email: job.email,
-          phone: job.phone,
-          message: job.message,
-          workflowLane: job.workflow_lane,
-          pageUrl: job.page_url,
-          context: JSON.parse(job.payload_json || "{}"),
+    const response = await env.EMAIL_DELIVERY.fetch(
+      new Request(INTERNAL_EMAIL_DELIVERY_URL, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
         },
+        body: JSON.stringify({
+          event: "owner.lead.received",
+          to: job.recipient,
+          subject: `New ${job.workflow_lane.replaceAll("_", " ")} website request`,
+          lead: {
+            eventId: job.lead_event_id,
+            contactId: job.contact_id,
+            name: job.full_name,
+            email: job.email,
+            phone: job.phone,
+            message: job.message,
+            workflowLane: job.workflow_lane,
+            pageUrl: job.page_url,
+            context: JSON.parse(job.payload_json || "{}"),
+          },
+        }),
+        signal: AbortSignal.timeout(8_000),
       }),
-      signal: AbortSignal.timeout(8_000),
-    });
+    );
 
     if (!response.ok) {
       return markFailed(
         env,
         job,
-        `Email delivery utility returned HTTP ${response.status}.`,
+        `Email delivery service returned HTTP ${response.status}.`,
       );
     }
 

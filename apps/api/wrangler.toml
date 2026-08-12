@@ -24,7 +24,6 @@ API_WRITE_ORIGINS = "https://homeinstgeorgeutah.com,https://www.homeinstgeorgeut
 TURNSTILE_HOSTNAMES = "homeinstgeorgeutah.com,www.homeinstgeorgeutah.com"
 TURNSTILE_EXPECTED_ACTION = "turnstile-spin-v2"
 OWNER_NOTIFICATION_EMAIL = "joel@homeinstgeorge.com"
-EMAIL_DELIVERY_WEBHOOK_URL = ""
 
 # Four independent MLS approval and activation scopes. Pending status is
 # informational only; no live data path activates until every county/role gate passes.
@@ -69,10 +68,13 @@ VOW_REDIRECT_URI = "https://homeinstgeorgeutah.com/api/v1/auth/flexmls/callback"
 # bunx wrangler secret put VOW_TOKEN_ENCRYPTION_KEY --config apps/api/wrangler.toml
 # bunx wrangler secret put TURNSTILE_SECRET_KEY --config apps/api/wrangler.toml
 # bunx wrangler secret put INTERNAL_JOB_TOKEN --config apps/api/wrangler.toml
-# bunx wrangler secret put EMAIL_DELIVERY_TOKEN --config apps/api/wrangler.toml
 #
 # Do not commit live tokens, API keys, client secrets, state secrets, encryption keys,
 # session values, or MLS credentials.
+
+[[services]]
+binding = "EMAIL_DELIVERY"
+service = "homeinstgeorgeutah-email-worker"
 
 [[ratelimits]]
 name = "LEAD_RATE_LIMITER"

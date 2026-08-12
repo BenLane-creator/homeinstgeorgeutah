@@ -7,6 +7,7 @@ const required = [
   "d1State",
   "workerDeployment",
   "workerSecrets",
+  "emailWorkerVersion",
   "health",
   "mlsStatus",
   "accountSession",
@@ -29,16 +30,72 @@ if (!accountId || !databaseName) {
 
 const parse = (name) => JSON.parse(readFileSync(argumentsByName[name], "utf8"));
 const config = readFileSync(argumentsByName.config, "utf8");
-const configuredAccountId = config.match(/^account_id\s*=\s*"([^"]+)"\s*$/m)?.[1];
+const configuredAccountId = config.match(
+  /^account_id\s*=\s*"([^"]+)"\s*$/m,
+)?.[1];
 if (configuredAccountId !== accountId) {
-  throw new Error("Worker account_id does not match the production environment.");
+  throw new Error(
+    "Worker account_id does not match the production environment.",
+  );
 }
 const databaseBlock = config
   .split("[[d1_databases]]")
   .slice(1)
-  .find((block) => block.match(/^database_name\s*=\s*"([^"]+)"\s*$/m)?.[1] === databaseName);
-const configuredDatabaseId = databaseBlock?.match(/^database_id\s*=\s*"([^"]+)"\s*$/m)?.[1];
-if (!configuredDatabaseId) throw new Error(`No configured database_id for ${databaseName}.`);
+  .find(
+    (block) =>
+      block.match(/^database_name\s*=\s*"([^"]+)"\s*$/m)?.[1] === databaseName,
+  );
+const configuredDatabaseId = databaseBlock?.match(
+  /^database_id\s*=\s*"([^"]+)"\s*$/m,
+)?.[1];
+if (!configuredDatabaseId)
+  throw new Error(`No configured database_id for ${databaseName}.`);
+
+const serviceBlock = config
+  .split("[[services]]")
+  .slice(1)
+  .find(
+    (block) =>
+      block.match(/^binding\s*=\s*"([^"]+)"\s*$/m)?.[1] === "EMAIL_DELIVERY",
+  );
+const configuredEmailService = serviceBlock?.match(
+  /^service\s*=\s*"([^"]+)"\s*$/m,
+)?.[1];
+if (configuredEmailService !== "homeinstgeorgeutah-email-worker") {
+  throw new Error(
+    "EMAIL_DELIVERY must bind to homeinstgeorgeutah-email-worker.",
+  );
+}
+if (
+  config.includes("EMAIL_DELIVERY_WEBHOOK_URL") ||
+  config.includes("EMAIL_DELIVERY_TOKEN")
+) {
+  throw new Error(
+    "Legacy public email-delivery webhook configuration is still present.",
+  );
+}
+
+const emailWorkerConfig = readFileSync(
+  "apps/email-worker/wrangler.toml",
+  "utf8",
+);
+if (!/^workers_dev\s*=\s*false\s*$/m.test(emailWorkerConfig)) {
+  throw new Error("Email Worker workers.dev exposure is not disabled.");
+}
+if (!/^preview_urls\s*=\s*false\s*$/m.test(emailWorkerConfig)) {
+  throw new Error("Email Worker preview URL exposure is not disabled.");
+}
+if (
+  !emailWorkerConfig.includes('name = "OWNER_EMAIL"') ||
+  !emailWorkerConfig.includes(
+    'destination_address = "joel@homeinstgeorge.com"',
+  ) ||
+  !emailWorkerConfig.includes(
+    'allowed_sender_addresses = ["contact@homeinstgeorgeutah.com"]',
+  )
+) {
+  throw new Error("Email Worker owner-only send binding is not configured.");
+}
 
 const d1ListPayload = parse("d1List");
 const databases = Array.isArray(d1ListPayload)
@@ -46,24 +103,35 @@ const databases = Array.isArray(d1ListPayload)
   : Array.isArray(d1ListPayload?.result)
     ? d1ListPayload.result
     : [];
-const databaseMatches = databases.filter((database) => database?.name === databaseName);
+const databaseMatches = databases.filter(
+  (database) => database?.name === databaseName,
+);
 if (databaseMatches.length !== 1) {
-  throw new Error(`Expected exactly one ${databaseName} database; found ${databaseMatches.length}.`);
+  throw new Error(
+    `Expected exactly one ${databaseName} database; found ${databaseMatches.length}.`,
+  );
 }
 const remoteDatabaseId = databaseMatches[0]?.uuid ?? databaseMatches[0]?.id;
 if (remoteDatabaseId !== configuredDatabaseId) {
-  throw new Error("Configured D1 UUID does not match the authenticated account.");
+  throw new Error(
+    "Configured D1 UUID does not match the authenticated account.",
+  );
 }
 
 const d1InfoPayload = parse("d1Info");
-const d1InfoRows = Array.isArray(d1InfoPayload) ? d1InfoPayload : [d1InfoPayload];
+const d1InfoRows = Array.isArray(d1InfoPayload)
+  ? d1InfoPayload
+  : [d1InfoPayload];
 if (!d1InfoRows.some((entry) => entry?.name === databaseName)) {
-  throw new Error("Configured production D1 database was not returned by d1 info.");
+  throw new Error(
+    "Configured production D1 database was not returned by d1 info.",
+  );
 }
 
 const d1StatePayload = parse("d1State");
-const d1State = (Array.isArray(d1StatePayload) ? d1StatePayload : [d1StatePayload])
-  .flatMap((entry) => entry?.results || [])[0];
+const d1State = (
+  Array.isArray(d1StatePayload) ? d1StatePayload : [d1StatePayload]
+).flatMap((entry) => entry?.results || [])[0];
 if (!d1State) throw new Error("D1 returned no production-state row.");
 const expectedMigrations = readdirSync("packages/db/migrations")
   .filter((name) => name.endsWith(".sql"))
@@ -72,8 +140,12 @@ const appliedMigrations = String(d1State.applied_migrations || "")
   .split("|")
   .filter(Boolean)
   .sort();
-const pendingMigrations = expectedMigrations.filter((name) => !appliedMigrations.includes(name));
-const unexpectedMigrations = appliedMigrations.filter((name) => !expectedMigrations.includes(name));
+const pendingMigrations = expectedMigrations.filter(
+  (name) => !appliedMigrations.includes(name),
+);
+const unexpectedMigrations = appliedMigrations.filter(
+  (name) => !expectedMigrations.includes(name),
+);
 if (JSON.stringify(appliedMigrations) !== JSON.stringify(expectedMigrations)) {
   throw new Error(
     `Production migration mismatch. Pending: ${pendingMigrations.join(", ") || "none"}; unexpected: ${unexpectedMigrations.join(", ") || "none"}.`,
@@ -87,7 +159,11 @@ if (Number(d1State.duplicate_email_group_count) !== 0) {
 }
 
 const workerDeployment = parse("workerDeployment");
-if (!workerDeployment || JSON.stringify(workerDeployment) === "{}" || JSON.stringify(workerDeployment) === "[]") {
+if (
+  !workerDeployment ||
+  JSON.stringify(workerDeployment) === "{}" ||
+  JSON.stringify(workerDeployment) === "[]"
+) {
   throw new Error("No active Worker deployment was returned.");
 }
 const approvedSecrets = new Set([
@@ -103,15 +179,64 @@ const approvedSecrets = new Set([
 ]);
 const requiredSecrets = ["INTERNAL_JOB_TOKEN", "TURNSTILE_SECRET_KEY"];
 const secretsPayload = parse("workerSecrets");
-if (!Array.isArray(secretsPayload)) throw new Error("Worker secret inventory is not an array.");
-const secretNames = secretsPayload.map((secret) => secret?.name).filter(Boolean);
-const unapprovedSecrets = secretNames.filter((name) => !approvedSecrets.has(name));
-const missingSecrets = requiredSecrets.filter((name) => !secretNames.includes(name));
+if (!Array.isArray(secretsPayload))
+  throw new Error("Worker secret inventory is not an array.");
+const secretNames = secretsPayload
+  .map((secret) => secret?.name)
+  .filter(Boolean);
+const unapprovedSecrets = secretNames.filter(
+  (name) => !approvedSecrets.has(name),
+);
+const missingSecrets = requiredSecrets.filter(
+  (name) => !secretNames.includes(name),
+);
 if (unapprovedSecrets.length > 0) {
-  throw new Error(`Unapproved Worker secret names: ${unapprovedSecrets.join(", ")}.`);
+  throw new Error(
+    `Unapproved Worker secret names: ${unapprovedSecrets.join(", ")}.`,
+  );
 }
 if (missingSecrets.length > 0) {
-  throw new Error(`Required Worker secret names are missing: ${missingSecrets.join(", ")}.`);
+  throw new Error(
+    `Required Worker secret names are missing: ${missingSecrets.join(", ")}.`,
+  );
+}
+
+const emailWorkerVersion = parse("emailWorkerVersion");
+const emailWorkerHandlers = Array.isArray(
+  emailWorkerVersion?.resources?.script?.handlers,
+)
+  ? emailWorkerVersion.resources.script.handlers
+  : [];
+if (
+  !emailWorkerHandlers.includes("email") ||
+  !emailWorkerHandlers.includes("fetch")
+) {
+  throw new Error(
+    "Active email Worker version does not expose both email and fetch handlers.",
+  );
+}
+const emailWorkerBindings = Array.isArray(
+  emailWorkerVersion?.resources?.bindings,
+)
+  ? emailWorkerVersion.resources.bindings
+  : [];
+if (
+  !emailWorkerBindings.some(
+    (binding) =>
+      binding?.name === "OWNER_EMAIL" && binding?.type === "send_email",
+  )
+) {
+  throw new Error("Active email Worker version is missing OWNER_EMAIL.");
+}
+if (
+  !emailWorkerBindings.some(
+    (binding) =>
+      binding?.name === "FORWARD_TO" &&
+      binding?.type === "plain_text" &&
+      String(binding?.text || "").toLowerCase() === "joel@homeinstgeorge.com",
+  )
+) {
+  throw new Error("Active email Worker owner destination is not verified.");
 }
 
 const health = parse("health");
@@ -120,11 +245,18 @@ if (
   health?.data?.service !== "homeinstgeorgeutah-api" ||
   health?.data?.status !== "ok"
 ) {
-  throw new Error("Root-domain API health route is not serving the expected Worker.");
+  throw new Error(
+    "Root-domain API health route is not serving the expected Worker.",
+  );
 }
 
 const mls = parse("mlsStatus");
-const expectedScopes = ["washington-idx", "washington-vow", "iron-idx", "iron-vow"];
+const expectedScopes = [
+  "washington-idx",
+  "washington-vow",
+  "iron-idx",
+  "iron-vow",
+];
 const scopes = Array.isArray(mls?.data?.scopes) ? mls.data.scopes : [];
 const scopeKeys = scopes.map((scope) => scope?.key).sort();
 if (
@@ -134,7 +266,9 @@ if (
   JSON.stringify(scopeKeys) !== JSON.stringify(expectedScopes.sort()) ||
   scopes.some((scope) => scope?.active !== false)
 ) {
-  throw new Error("MLS activation is not in the required four-scope disabled state.");
+  throw new Error(
+    "MLS activation is not in the required four-scope disabled state.",
+  );
 }
 
 const accountSession = parse("accountSession");
@@ -156,6 +290,9 @@ console.log(
       uniqueEmailIndex: true,
       duplicateEmailGroups: 0,
       approvedWorkerSecretNames: secretNames.sort(),
+      emailDeliveryServiceBinding: configuredEmailService,
+      emailWorkerHandlers: emailWorkerHandlers.sort(),
+      emailWorkerOwnerBinding: true,
       apiHealth: true,
       inactiveMlsScopes: expectedScopes,
       anonymousAccountSession: true,
