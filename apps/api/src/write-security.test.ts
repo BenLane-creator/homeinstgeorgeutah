@@ -33,6 +33,9 @@ describe("lead write security headers", () => {
     );
 
     expect(response.status).toBe(204);
+    expect(response.headers.get("access-control-allow-headers")).toBe(
+      "content-type, idempotency-key",
+    );
     expect(response.headers.get("access-control-allow-origin")).toBe(
       "https://www.homeinstgeorgeutah.com",
     );

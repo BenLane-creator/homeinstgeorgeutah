@@ -57,7 +57,7 @@ export function addWriteResponseHeaders(
   const headers = new Headers(response.headers);
   const origin = approvedWriteOrigin(request, env);
   if (origin) headers.set("access-control-allow-origin", origin);
-  headers.set("access-control-allow-headers", "content-type");
+  headers.set("access-control-allow-headers", "content-type, idempotency-key");
   headers.set("access-control-allow-methods", "POST,OPTIONS");
   headers.set("cache-control", "no-store");
   headers.append("vary", "Origin");
